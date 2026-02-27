@@ -1,0 +1,426 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Agent Toolbelt",
+    "description": "API microservices for AI agents. Generate schemas, extract structured data from text, and more. Each tool is focused, fast, and billed per call.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Agent Toolbelt Support",
+      "url": "https://agent-toolbelt-production.up.railway.app"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://agent-toolbelt-production.up.railway.app",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/api/tools/catalog": {
+      "get": {
+        "operationId": "getToolCatalog",
+        "summary": "List all available tools",
+        "description": "Returns the full catalog of available tools with descriptions, endpoints, and pricing. Use this to discover what tools are available before calling them.",
+        "responses": {
+          "200": {
+            "description": "Tool catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tools": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Tool identifier slug"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "What the tool does"
+                          },
+                          "version": {
+                            "type": "string"
+                          },
+                          "endpoint": {
+                            "type": "string",
+                            "description": "API endpoint path"
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tools/schema-generator": {
+      "post": {
+        "operationId": "generateSchema",
+        "summary": "Generate a data schema from a description",
+        "description": "Generate JSON Schema, TypeScript interfaces, or Zod validation schemas from a natural language description of a data structure. Useful when you need to create or validate data models on the fly.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["description"],
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "Natural language description of the data structure. Examples: 'a user profile with name, email, and signup date', 'a product listing with title, price, and inventory count', 'an event with start time, end time, and location'."
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": ["json_schema", "zod", "typescript"],
+                    "default": "json_schema",
+                    "description": "Output format. json_schema for standard JSON Schema, typescript for a TS interface, zod for a Zod validation schema."
+                  },
+                  "strict": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "If true, all fields are required. If false, optional fields are marked as optional."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "durationMs": {
+                      "type": "integer",
+                      "description": "Processing time in milliseconds"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "schema": {
+                          "description": "The generated schema (object for json_schema, string for typescript/zod)"
+                        },
+                        "format": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key"
+          },
+          "429": {
+            "description": "Rate limit or quota exceeded"
+          }
+        }
+      }
+    },
+    "/api/tools/text-extractor": {
+      "post": {
+        "operationId": "extractFromText",
+        "summary": "Extract structured data from raw text",
+        "description": "Extract emails, URLs, phone numbers, dates, currencies, addresses, names, or JSON blocks from unstructured text. Useful for parsing documents, emails, web content, or any raw text into structured data.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text", "extractors"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "description": "The raw text to extract data from. Can be an email body, document content, web page text, chat transcript, etc."
+                  },
+                  "extractors": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "emails",
+                        "urls",
+                        "phone_numbers",
+                        "dates",
+                        "currencies",
+                        "addresses",
+                        "names",
+                        "json_blocks"
+                      ]
+                    },
+                    "minItems": 1,
+                    "description": "Which types of data to extract from the text. Choose one or more."
+                  },
+                  "deduplicate": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "If true, removes duplicate results within each extractor type."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Extracted data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "durationMs": {
+                      "type": "integer"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "extracted": {
+                          "type": "object",
+                          "description": "Extracted data keyed by extractor type. Each value is an array of strings.",
+                          "additionalProperties": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "totalItemsFound": {
+                              "type": "integer"
+                            },
+                            "byType": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key"
+          },
+          "429": {
+            "description": "Rate limit or quota exceeded"
+          }
+        }
+      }
+    },
+    "/api/tools/cron-builder": {
+      "post": {
+        "operationId": "buildCronExpression",
+        "summary": "Convert a schedule description into a cron expression",
+        "description": "Convert natural language schedule descriptions into cron expressions. Returns the expression, human-readable confirmation, field breakdown, and next 5 scheduled run times.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["description"],
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "Natural language schedule description. Examples: 'every weekday at 9am', 'first Monday of each month at noon', 'every 5 minutes', 'every Sunday at 3:30pm'."
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "default": "UTC",
+                    "description": "Timezone for context (e.g., 'America/New_York')."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Cron expression result" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
+    "/api/tools/regex-builder": {
+      "post": {
+        "operationId": "buildRegex",
+        "summary": "Build and test a regex from a description",
+        "description": "Build regular expressions from natural language descriptions. Supports 20+ common patterns including emails, URLs, phone numbers, dates, IPs, hex colors, UUIDs, and more. Optionally test against provided strings. Returns pattern, code snippets in JS/Python/TS.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["description"],
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "What to match. Examples: 'email addresses', 'US phone numbers', 'hex color codes', 'semantic version numbers'."
+                  },
+                  "testStrings": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Optional strings to test the regex against."
+                  },
+                  "flags": {
+                    "type": "string",
+                    "default": "g",
+                    "description": "Regex flags (e.g., 'gi' for case-insensitive global)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Regex pattern and test results" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
+    "/api/tools/brand-kit": {
+      "post": {
+        "operationId": "generateBrandKit",
+        "summary": "Generate a complete brand kit",
+        "description": "Generate a full brand kit from a company name, industry, and aesthetic keywords. Returns color palette (hex, HSL, RGB with WCAG accessibility scores), typography pairings (curated Google Fonts), and design tokens in JSON, CSS custom properties, or Tailwind config format. Powered by color psychology and professional design principles.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Company or brand name."
+                  },
+                  "industry": {
+                    "type": "string",
+                    "description": "Industry or sector (e.g., 'fintech', 'healthcare', 'fashion')."
+                  },
+                  "vibe": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Aesthetic keywords: 'modern', 'playful', 'luxurious', 'minimal', 'bold', 'organic', 'techy', 'warm', etc."
+                  },
+                  "targetAudience": {
+                    "type": "string",
+                    "description": "Who the brand is for."
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": ["full", "tokens", "css", "tailwind"],
+                    "default": "full",
+                    "description": "Output format: full (everything), tokens (JSON), css (custom properties), tailwind (config)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Generated brand kit" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "details": {
+            "type": "object",
+            "description": "Additional error details (for validation errors)"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key from Agent Toolbelt. Register at /api/clients/register to get a key. Pass as: Authorization: Bearer atb_..."
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ]
+}

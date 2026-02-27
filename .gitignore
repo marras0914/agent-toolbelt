@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+data/
+*.db
+.env
+.DS_Store
+mcp-server/node_modules/
+mcp-server/build/

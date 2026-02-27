@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Toolbelt — Privacy Policy</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #2a2a3a;
+      --text: #e8e8ef;
+      --text-dim: #8888a0;
+      --accent: #00e5a0;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.8; padding: 60px 24px; }
+    .container { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 2rem; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .updated { font-family: var(--mono); font-size: 0.8rem; color: var(--text-dim); margin-bottom: 40px; }
+    h2 { font-size: 1.2rem; margin: 32px 0 12px; color: var(--accent); }
+    p { color: var(--text-dim); margin-bottom: 16px; }
+    a { color: var(--accent); }
+    code { font-family: var(--mono); background: var(--surface); padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: February 2026</p>
+
+    <h2>What We Collect</h2>
+    <p>When you use Agent Toolbelt's API, we collect the minimum data necessary to provide and bill for the service:</p>
+    <p><strong>Account data:</strong> Email address and name (provided during registration). Used to create your account and send billing-related communications.</p>
+    <p><strong>API usage data:</strong> Which tools you call, when, response times, and status codes. Used for billing, rate limiting, and service monitoring.</p>
+    <p><strong>Request payloads:</strong> The data you send to tool endpoints is processed in real-time to generate responses. We do <strong>not</strong> store, log, or retain the contents of your API requests or responses beyond what is needed for the immediate request-response cycle.</p>
+
+    <h2>What We Don't Collect</h2>
+    <p>We do not collect cookies, browser fingerprints, IP addresses (beyond standard server logs), or any tracking data. We do not use analytics or advertising trackers. We do not sell or share any data with third parties for marketing purposes.</p>
+
+    <h2>Third-Party Services</h2>
+    <p><strong>Stripe:</strong> Payment processing is handled by Stripe. When you upgrade to a paid plan, your payment information is collected and processed directly by Stripe under their <a href="https://stripe.com/privacy" target="_blank">privacy policy</a>. We never see or store your credit card number.</p>
+
+    <h2>Data Retention</h2>
+    <p>Account data is retained as long as your account is active. Usage records are retained for 90 days for billing purposes and then aggregated into anonymous statistics. You can request deletion of your account and all associated data by emailing us.</p>
+
+    <h2>GPT Actions / ChatGPT Integration</h2>
+    <p>When Agent Toolbelt is used as a GPT Action within ChatGPT, OpenAI sends API requests to our servers on your behalf. We process these requests identically to direct API calls — the same privacy protections apply. We do not receive or store your ChatGPT conversation history, only the specific tool input sent in each API call.</p>
+
+    <h2>Security</h2>
+    <p>API keys are hashed with SHA-256 before storage — we never store plaintext keys. All API traffic is encrypted via TLS. Our database uses WAL mode with regular backups.</p>
+
+    <h2>Your Rights</h2>
+    <p>You can request a copy of your data, request deletion of your account, or ask questions about our data practices by contacting us at the email below.</p>
+
+    <h2>Contact</h2>
+    <p>For privacy questions or data requests: <a href="mailto:privacy@yourdomain.com">privacy@yourdomain.com</a></p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,131 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  # ============================================
+  # Job 1: Lint, type-check, and test
+  # ============================================
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run unit tests
+        run: npm run test:ci
+        env:
+          NODE_ENV: test
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke test — server starts
+        run: |
+          API_KEY_SECRET=ci-test-secret \
+          DATABASE_PATH=./data/ci-test.db \
+          NODE_ENV=test \
+          PORT=3333 \
+          node dist/index.js &
+          sleep 3
+
+          # Health check
+          curl -sf http://localhost:3333/api | grep -q "operational"
+          echo "✓ Health check passed"
+
+          # Catalog check
+          curl -sf http://localhost:3333/api/tools/catalog | grep -q "schema-generator"
+          echo "✓ Tool catalog working"
+
+          # Registration + tool call
+          RESULT=$(curl -sf -X POST http://localhost:3333/api/clients/register \
+            -H "Content-Type: application/json" \
+            -d '{"email": "ci@test.com"}')
+          KEY=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['apiKey']['key'])")
+
+          curl -sf -X POST http://localhost:3333/api/tools/schema-generator \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $KEY" \
+            -d '{"description": "a test user"}' | grep -q '"success":true'
+          echo "✓ Tool execution working"
+
+          kill %1 || true
+
+  # ============================================
+  # Job 2: Build and push Docker image
+  # ============================================
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  # ============================================
+  # Job 3: Deploy to Railway (if configured)
+  # ============================================
+  deploy-railway:
+    needs: [test, docker]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Only runs if RAILWAY_TOKEN secret is set
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        if: ${{ env.RAILWAY_TOKEN != '' }}
+        run: railway up --service agent-toolbelt
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Verify deployment
+        if: ${{ env.DEPLOY_URL != '' }}
+        run: |
+          sleep 10
+          curl -sf "$DEPLOY_URL/api" | grep -q "operational"
+          echo "✓ Production deployment verified"
+        env:
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}

@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Toolbelt — API Tools for AI Agents</title>
+  <meta name="description" content="Plug-and-play API microservices that AI agents can discover and call. Schema generation, data extraction, and more.">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface-2: #1a1a26;
+      --border: #2a2a3a;
+      --text: #e8e8ef;
+      --text-dim: #8888a0;
+      --accent: #00e5a0;
+      --accent-dim: #00e5a020;
+      --accent-glow: #00e5a040;
+      --orange: #ff6b35;
+      --purple: #a78bfa;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* Nav */
+    nav {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      background: rgba(10, 10, 15, 0.9);
+    }
+
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: -0.5px;
+    }
+
+    .logo span { color: var(--text-dim); font-weight: 400; }
+
+    nav a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-family: var(--mono);
+      transition: color 0.2s;
+    }
+    nav a:hover { color: var(--accent); }
+
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+
+    .btn {
+      display: inline-block;
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 0 24px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .btn-ghost:hover {
+      background: var(--accent-dim);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(0, 229, 160, 0.15);
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+      letter-spacing: 0.5px;
+    }
+
+    h1 {
+      font-family: var(--sans);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+    }
+
+    h1 .highlight {
+      background: linear-gradient(135deg, var(--accent) 0%, #00b8d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-dim);
+      max-width: 560px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* Terminal Demo */
+    .terminal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin: 60px auto 0;
+      max-width: 720px;
+      overflow: hidden;
+      text-align: left;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .terminal-dot:nth-child(1) { background: #ff5f57; }
+    .terminal-dot:nth-child(2) { background: #febc2e; }
+    .terminal-dot:nth-child(3) { background: #28c840; }
+
+    .terminal-title {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-left: 8px;
+    }
+
+    .terminal-body {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .terminal-body .prompt { color: var(--accent); }
+    .terminal-body .cmd { color: var(--text); }
+    .terminal-body .comment { color: var(--text-dim); }
+    .terminal-body .string { color: var(--orange); }
+    .terminal-body .key { color: var(--purple); }
+
+    /* Sections */
+    section { padding: 80px 0; }
+
+    h2 {
+      font-family: var(--sans);
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    .section-sub {
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      margin-bottom: 48px;
+      max-width: 500px;
+    }
+
+    /* Tool Cards */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .tool-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 28px;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tool-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    .tool-card:hover {
+      border-color: rgba(0, 229, 160, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .tool-card:hover::before { opacity: 1; }
+
+    .tool-name {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .tool-desc {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .tool-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      background: var(--surface-2);
+      padding: 3px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .tool-price {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--orange);
+      margin-top: 12px;
+    }
+
+    /* Pricing */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .price-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 32px 28px;
+      text-align: center;
+      transition: all 0.25s;
+    }
+
+    .price-card.featured {
+      border-color: var(--accent);
+      box-shadow: 0 0 40px var(--accent-dim);
+    }
+
+    .price-tier {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .price-amount {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    .price-amount span {
+      font-size: 1rem;
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+
+    .price-detail {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      margin-top: 8px;
+      font-family: var(--mono);
+    }
+
+    .price-features {
+      list-style: none;
+      margin: 24px 0;
+      text-align: left;
+    }
+
+    .price-features li {
+      color: var(--text-dim);
+      font-size: 0.88rem;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(42, 42, 58, 0.5);
+    }
+
+    .price-features li::before {
+      content: '→ ';
+      color: var(--accent);
+      font-family: var(--mono);
+    }
+
+    /* How it works */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 32px;
+    }
+
+    .step {
+      position: relative;
+    }
+
+    .step-num {
+      font-family: var(--mono);
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--surface-2);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .step h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+    }
+
+    /* CTA */
+    .cta {
+      text-align: center;
+      padding: 80px 0 100px;
+    }
+
+    .cta h2 { margin-bottom: 16px; }
+    .cta p { color: var(--text-dim); margin-bottom: 32px; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      font-family: var(--mono);
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .hero { padding: 60px 0 40px; }
+      .terminal { margin: 40px auto 0; }
+      section { padding: 60px 0; }
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-badge, h1, .hero p, .hero-actions, .terminal {
+      animation: fadeUp 0.6s ease both;
+    }
+    h1 { animation-delay: 0.1s; }
+    .hero p { animation-delay: 0.2s; }
+    .hero-actions { animation-delay: 0.3s; }
+    .terminal { animation-delay: 0.5s; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="container">
+      <a href="/" class="logo">agent-toolbelt <span>v1.0</span></a>
+      <div class="nav-links">
+        <a href="/api/tools/catalog">Catalog</a>
+        <a href="/api/docs">API Docs</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/api/clients/register" class="btn btn-primary">Get API Key</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">BUILT FOR THE AGENT ECONOMY</div>
+      <h1>API tools that<br><span class="highlight">agents pay to use</span></h1>
+      <p>Plug-and-play microservices for AI agents. Schema generation, data extraction, validation, and more — discoverable via catalog, billed per call.</p>
+      <div class="hero-actions">
+        <a href="#get-started" class="btn btn-primary">Start Free →</a>
+        <a href="/api/tools/catalog" class="btn btn-ghost">View Catalog</a>
+      </div>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="terminal-dot"></div>
+          <div class="terminal-dot"></div>
+          <div class="terminal-dot"></div>
+          <span class="terminal-title">bash</span>
+        </div>
+        <div class="terminal-body">
+          <span class="comment"># 1. Register and get your API key</span><br>
+          <span class="prompt">$</span> <span class="cmd">curl -X POST /api/clients/register \</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">-d </span><span class="string">'{"email": "agent@example.com"}'</span><br>
+          <br>
+          <span class="comment"># 2. Discover available tools</span><br>
+          <span class="prompt">$</span> <span class="cmd">curl /api/tools/catalog</span><br>
+          <span class="comment"># → {"tools": [{"name": "schema-generator", ...}, ...]}</span><br>
+          <br>
+          <span class="comment"># 3. Call a tool</span><br>
+          <span class="prompt">$</span> <span class="cmd">curl -X POST /api/tools/schema-generator \</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">-H </span><span class="string">"Authorization: Bearer atb_..."</span> <span class="cmd">\</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">-d </span><span class="string">'{"description": "a user profile", "format": "json_schema"}'</span><br>
+          <br>
+          <span class="comment"># → {</span><span class="key">"success"</span><span class="comment">: true, </span><span class="key">"durationMs"</span><span class="comment">: 3, </span><span class="key">"result"</span><span class="comment">: {...}}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>Available Tools</h2>
+      <p class="section-sub">Each tool is a focused microservice — validated input, structured output, usage-tracked.</p>
+      <div class="tools-grid" id="tools-grid">
+        <!-- Populated by JS from /api/tools/catalog -->
+        <div class="tool-card">
+          <div class="tool-name">schema-generator</div>
+          <div class="tool-desc">Generate JSON Schema, TypeScript interfaces, or Zod schemas from natural language descriptions. Agents use this to validate data on the fly.</div>
+          <div class="tool-tags">
+            <span class="tag">schema</span>
+            <span class="tag">validation</span>
+            <span class="tag">code-generation</span>
+          </div>
+          <div class="tool-price">$0.001 / call</div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-name">text-extractor</div>
+          <div class="tool-desc">Extract structured data — emails, URLs, phone numbers, dates, currencies, addresses — from raw text. Essential for processing unstructured content.</div>
+          <div class="tool-tags">
+            <span class="tag">extraction</span>
+            <span class="tag">parsing</span>
+            <span class="tag">nlp</span>
+          </div>
+          <div class="tool-price">$0.0005 / call</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>How It Works</h2>
+      <p class="section-sub">Three steps. Five minutes. Start earning per-call revenue from AI agents.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h3>Discover</h3>
+          <p>Agents hit <code>/api/tools/catalog</code> to see what tools are available, with descriptions, input schemas, and pricing.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h3>Authenticate</h3>
+          <p>Register for a free API key. Pass it as a Bearer token. Upgrade to a paid tier when you need more volume.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h3>Call</h3>
+          <p>POST to any tool endpoint with JSON input. Get validated, structured output in milliseconds. Usage is tracked and billed automatically.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="container">
+      <h2>Pricing</h2>
+      <p class="section-sub">Start free. Scale when your agents need it.</p>
+      <div class="pricing-grid">
+        <div class="price-card">
+          <div class="price-tier">Free</div>
+          <div class="price-amount">$0<span>/mo</span></div>
+          <div class="price-detail">1,000 calls/month</div>
+          <ul class="price-features">
+            <li>All tools included</li>
+            <li>10 requests/min</li>
+            <li>Community support</li>
+          </ul>
+          <a href="#get-started" class="btn btn-ghost" style="width:100%;text-align:center;">Get Started</a>
+        </div>
+        <div class="price-card featured">
+          <div class="price-tier">Pro</div>
+          <div class="price-amount">$99<span>/mo</span></div>
+          <div class="price-detail">500,000 calls/month</div>
+          <ul class="price-features">
+            <li>All tools included</li>
+            <li>300 requests/min</li>
+            <li>Priority support</li>
+            <li>Usage analytics</li>
+          </ul>
+          <a href="#get-started" class="btn btn-primary" style="width:100%;text-align:center;">Subscribe</a>
+        </div>
+        <div class="price-card">
+          <div class="price-tier">Enterprise</div>
+          <div class="price-amount">Custom</div>
+          <div class="price-detail">5M+ calls/month</div>
+          <ul class="price-features">
+            <li>All tools included</li>
+            <li>1,000+ requests/min</li>
+            <li>Dedicated support</li>
+            <li>Custom tools & SLA</li>
+          </ul>
+          <a href="mailto:hello@agenttoolbelt.com" class="btn btn-ghost" style="width:100%;text-align:center;">Contact Us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta" id="get-started">
+    <div class="container">
+      <h2>Get your API key in 10 seconds</h2>
+      <p>Register with your email. Start calling tools immediately.</p>
+      <div style="max-width: 480px; margin: 0 auto;">
+        <div style="display: flex; gap: 12px;">
+          <input type="email" id="email-input" placeholder="agent@example.com"
+            style="flex:1; padding: 12px 16px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--mono); font-size: 0.9rem; outline: none;">
+          <button onclick="registerClient()" class="btn btn-primary" id="register-btn">Get Key →</button>
+        </div>
+        <div id="register-result" style="margin-top: 16px; font-family: var(--mono); font-size: 0.85rem; text-align: left;"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      agent-toolbelt © 2026 — Built for the agent economy
+    </div>
+  </footer>
+
+  <script>
+    async function registerClient() {
+      const email = document.getElementById('email-input').value.trim();
+      const result = document.getElementById('register-result');
+      const btn = document.getElementById('register-btn');
+
+      if (!email) {
+        result.innerHTML = '<span style="color: var(--orange);">Enter your email above.</span>';
+        return;
+      }
+
+      btn.textContent = '...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/clients/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name: email.split('@')[0] }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          result.innerHTML = `
+            <div style="background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 16px;">
+              <div style="color: var(--accent); margin-bottom: 8px;">✅ You're in!</div>
+              <div style="margin-bottom: 8px;">Your API key (save this — shown once):</div>
+              <code style="background: var(--bg); padding: 8px 12px; border-radius: 4px; display: block; word-break: break-all; color: var(--orange); font-size: 0.8rem;">${data.apiKey.key}</code>
+              <div style="margin-top: 12px; color: var(--text-dim); font-size: 0.8rem;">Client ID: ${data.client.id} | Tier: ${data.client.tier}</div>
+            </div>
+          `;
+        } else {
+          result.innerHTML = `<span style="color: var(--orange);">${data.error}</span>`;
+        }
+      } catch (err) {
+        result.innerHTML = '<span style="color: var(--orange);">Network error. Is the server running?</span>';
+      }
+
+      btn.textContent = 'Get Key →';
+      btn.disabled = false;
+    }
+
+    // Allow Enter key to submit
+    document.getElementById('email-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') registerClient();
+    });
+  </script>
+</body>
+</html>

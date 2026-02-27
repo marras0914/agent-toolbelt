@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#0a0a0f"/>
+  <rect x="40" y="40" width="432" height="432" rx="60" fill="none" stroke="#00e5a0" stroke-width="3" opacity="0.3"/>
+  <!-- Wrench icon -->
+  <g transform="translate(256, 240)" fill="none" stroke="#00e5a0" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-60,-60 L-20,-20 M-20,-20 L-20,10 L10,10 L10,-20 L-20,-20" />
+    <path d="M10,10 L70,70" />
+    <circle cx="80" cy="80" r="20" fill="#00e5a0" opacity="0.2" stroke="#00e5a0"/>
+  </g>
+  <!-- Text -->
+  <text x="256" y="380" text-anchor="middle" font-family="monospace" font-weight="700" font-size="42" fill="#00e5a0">TOOLBELT</text>
+  <text x="256" y="420" text-anchor="middle" font-family="monospace" font-size="20" fill="#8888a0">for agents</text>
+</svg>

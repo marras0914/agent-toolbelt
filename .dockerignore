@@ -1,0 +1,15 @@
+node_modules
+dist
+data
+.env
+*.db
+.git
+.gitignore
+.github
+mcp-server
+README.md
+ROADMAP.md
+SETUP.md
+GPT-ACTIONS-SETUP.md
+MCP-SETUP.md
+deploy.sh

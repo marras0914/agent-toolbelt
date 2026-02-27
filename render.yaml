@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: agent-toolbelt
+    runtime: docker
+    plan: starter         # $7/mo — upgrade to standard ($25) for production
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api
+    autoDeploy: true      # Deploy on every push to main
+    disk:
+      name: toolbelt-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /app/data/toolbelt.db
+      - key: USAGE_TRACKING_ENABLED
+        value: "true"
+      # Set these in the Render dashboard (Sensitive)
+      - key: API_KEY_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_STARTER
+        sync: false
+      - key: STRIPE_PRICE_PRO
+        sync: false
+      - key: STRIPE_PRICE_ENTERPRISE
+        sync: false

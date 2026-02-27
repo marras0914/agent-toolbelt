@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(bash:*)",
+      "Bash(curl:*)",
+      "Bash(railway:*)",
+      "Bash(git init:*)",
+      "Bash(git:*)"
+    ]
+  }
+}
