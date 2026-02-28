@@ -742,6 +742,108 @@
         }
       }
     },
+    "/api/tools/color-palette": {
+      "post": {
+        "operationId": "generateColorPalette",
+        "summary": "Generate a color palette",
+        "description": "Generate color palettes from a text description or a hex seed color. Returns colors with hex, RGB, and HSL values, WCAG contrast scores against white/black, and ready-to-use CSS custom properties. Supports 35+ aesthetic themes (calm, bold, earthy, neon, pastel, etc.) and complementary/analogous palette generation from a seed hex.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "Text description of the desired palette. Examples: 'calm fintech blue', 'warm earthy tones', 'neon cyberpunk', 'pastel spring'. Use this or seedColor."
+                  },
+                  "seedColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9A-Fa-f]{6}$",
+                    "description": "Hex color to build the palette from (e.g. '#3B82F6'). Generates complementary and analogous colors."
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 10,
+                    "default": 5,
+                    "description": "Number of colors to return (2–10)."
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": ["hex", "rgb", "hsl", "all"],
+                    "default": "all",
+                    "description": "Color format in the output."
+                  },
+                  "includeShades": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, include light and dark shade variants for each color."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated color palette",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "durationMs": { "type": "integer" },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "palette": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": { "type": "string" },
+                              "hex": { "type": "string" },
+                              "rgb": { "type": "object", "properties": { "r": { "type": "integer" }, "g": { "type": "integer" }, "b": { "type": "integer" } } },
+                              "hsl": { "type": "object", "properties": { "h": { "type": "number" }, "s": { "type": "number" }, "l": { "type": "number" } } },
+                              "wcag": {
+                                "type": "object",
+                                "properties": {
+                                  "contrastWithWhite": { "type": "number" },
+                                  "contrastWithBlack": { "type": "number" },
+                                  "passesAA": { "type": "boolean" },
+                                  "passesAAA": { "type": "boolean" }
+                                }
+                              },
+                              "shades": {
+                                "type": "object",
+                                "properties": {
+                                  "light": { "type": "string" },
+                                  "dark": { "type": "string" }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "cssVariables": { "type": "string", "description": "CSS custom property declarations" },
+                        "theme": { "type": "string", "description": "Detected or inferred palette theme" },
+                        "count": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
     "/api/tools/brand-kit": {
       "post": {
         "operationId": "generateBrandKit",
