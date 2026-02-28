@@ -23,6 +23,7 @@ import "./tools/cron-builder";
 import "./tools/regex-builder";
 import "./tools/brand-kit";
 import "./tools/markdown-converter";
+import "./tools/url-metadata";
 
 // ----- App Setup -----
 const app = express();
