@@ -1,0 +1,50 @@
+{
+  "name": "agent-toolbelt",
+  "version": "0.1.0",
+  "description": "Official SDK for Agent Toolbelt — typed API client and LangChain tool wrappers for schema generation, text extraction, token counting, CSV conversion, and more.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./langchain": {
+      "types": "./dist/langchain.d.ts",
+      "import": "./dist/langchain.mjs",
+      "require": "./dist/langchain.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsup src/index.ts src/langchain.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts src/langchain.ts --format cjs,esm --dts --watch"
+  },
+  "keywords": [
+    "langchain", "ai", "agent", "tools", "schema", "text-extraction",
+    "token-counter", "csv", "markdown", "llm", "openai", "claude"
+  ],
+  "author": "Agent Toolbelt",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marras0914/agent-toolbelt"
+  },
+  "homepage": "https://agent-toolbelt-production.up.railway.app",
+  "peerDependencies": {
+    "@langchain/core": ">=0.2.0",
+    "zod": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/core": { "optional": true }
+  },
+  "devDependencies": {
+    "@langchain/core": "^0.3.0",
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "zod": "^3.22.0"
+  }
+}

@@ -1,0 +1,229 @@
+import { DynamicStructuredTool } from "@langchain/core/tools";
+import { z } from "zod";
+import { AgentToolbelt } from "./client.js";
+
+/**
+ * Create a set of LangChain DynamicStructuredTools from an AgentToolbelt client.
+ *
+ * @example
+ * ```ts
+ * import { AgentToolbelt } from "agent-toolbelt";
+ * import { createLangChainTools } from "agent-toolbelt/langchain";
+ * import { createReactAgent } from "@langchain/langgraph/prebuilt";
+ * import { ChatOpenAI } from "@langchain/openai";
+ *
+ * const client = new AgentToolbelt({ apiKey: process.env.AGENT_TOOLBELT_KEY! });
+ * const tools = createLangChainTools(client);
+ *
+ * const agent = createReactAgent({ llm: new ChatOpenAI({ model: "gpt-4o" }), tools });
+ * ```
+ */
+export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTool[] {
+  return [
+    // ---- Text Extractor ----
+    new DynamicStructuredTool({
+      name: "extract_from_text",
+      description:
+        "Extract structured data from raw, unstructured text. " +
+        "Use this when you need to pull out specific types of data from a document, email, web page, or any text — " +
+        "such as all email addresses, phone numbers, dates, URLs, currencies, addresses, or names. " +
+        "Returns a structured JSON object with arrays of matched items per type. " +
+        "Example use cases: parsing contact info from a scraped page, finding all dates in a contract, extracting prices from a product description.",
+      schema: z.object({
+        text: z.string().describe("The raw text to extract data from"),
+        extractors: z
+          .array(z.enum(["emails", "urls", "phone_numbers", "dates", "currencies", "addresses", "names", "json_blocks"]))
+          .describe("Which types of data to extract. Pick all that apply."),
+        deduplicate: z.boolean().default(true).describe("Remove duplicate results"),
+      }),
+      func: async ({ text, extractors, deduplicate }) => {
+        const result = await client.textExtractor({ text, extractors, deduplicate });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Token Counter ----
+    new DynamicStructuredTool({
+      name: "count_tokens",
+      description:
+        "Count how many tokens a piece of text will consume in different LLM models, and estimate the API cost. " +
+        "Use this before sending large text to an LLM to check if it fits in the context window, " +
+        "to compare costs across models, or to decide whether to chunk or summarize content. " +
+        "Supports GPT-4o, GPT-4, GPT-3.5-turbo, Claude 3.5 Sonnet, Claude 3 Opus, and 10+ other models. " +
+        "Returns exact token counts for OpenAI models and close approximations for Claude.",
+      schema: z.object({
+        text: z.string().describe("The text to count tokens for"),
+        models: z
+          .array(z.string())
+          .default(["gpt-4o", "claude-3-5-sonnet"])
+          .describe("Models to count tokens for. Defaults to gpt-4o and claude-3-5-sonnet."),
+      }),
+      func: async ({ text, models }) => {
+        const result = await client.tokenCounter({ text, models });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Schema Generator ----
+    new DynamicStructuredTool({
+      name: "generate_schema",
+      description:
+        "Generate a JSON Schema, TypeScript interface, or Zod validation schema from a plain English description of a data structure. " +
+        "Use this when you need to define a data model, validate incoming data, or create type definitions without writing them by hand. " +
+        "Example: 'a user profile with name, email, and subscription tier' → full JSON Schema with required fields and types. " +
+        "Ideal for agents that dynamically create or validate data structures based on user requirements.",
+      schema: z.object({
+        description: z.string().describe("Plain English description of the data structure. Be specific about field names and types."),
+        format: z
+          .enum(["json_schema", "typescript", "zod"])
+          .default("json_schema")
+          .describe("Output format: json_schema (standard), typescript (TS interface), or zod (Zod validator)"),
+        strict: z.boolean().default(true).describe("If true, all fields are required"),
+      }),
+      func: async ({ description, format, strict }) => {
+        const result = await client.schemaGenerator({ description, format, strict });
+        return typeof result.schema === "string"
+          ? result.schema
+          : JSON.stringify(result.schema, null, 2);
+      },
+    }),
+
+    // ---- CSV to JSON ----
+    new DynamicStructuredTool({
+      name: "csv_to_json",
+      description:
+        "Convert CSV data into typed JSON. " +
+        "Use this when you have spreadsheet data, database exports, or any CSV-formatted content that needs to be processed as structured JSON. " +
+        "Automatically detects delimiters (comma, tab, semicolon, pipe), converts numbers to actual numbers, " +
+        "'true'/'false' to booleans, empty cells to null, and infers column types. " +
+        "Returns an array of row objects with column names as keys.",
+      schema: z.object({
+        csv: z.string().describe("The CSV content to convert"),
+        delimiter: z.enum(["auto", ",", ";", "\t", "|"]).default("auto").describe("Column delimiter (auto-detects by default)"),
+        hasHeader: z.boolean().default(true).describe("Whether the first row contains column names"),
+        typeCast: z.boolean().default(true).describe("Auto-convert values to numbers, booleans, and nulls"),
+        limit: z.number().optional().describe("Max rows to return (useful for large files)"),
+      }),
+      func: async ({ csv, delimiter, hasHeader, typeCast, limit }) => {
+        const result = await client.csvToJson({ csv, delimiter, hasHeader, typeCast, limit, skipEmptyRows: true });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Markdown Converter ----
+    new DynamicStructuredTool({
+      name: "convert_markdown",
+      description:
+        "Convert HTML to clean Markdown, or Markdown to HTML. " +
+        "Use HTML→Markdown when you've fetched a web page and need clean, readable text for an LLM — " +
+        "stripping HTML tags, preserving structure (headings, lists, code blocks, links, tables). " +
+        "Use Markdown→HTML when you need to render content in a web context. " +
+        "Handles complex HTML including nested lists, code blocks with language hints, tables, and inline formatting.",
+      schema: z.object({
+        content: z.string().describe("The content to convert"),
+        from: z.enum(["html", "markdown"]).describe("Input format"),
+        to: z.enum(["html", "markdown"]).describe("Output format"),
+      }),
+      func: async ({ content, from, to }) => {
+        const result = await client.markdownConverter({ content, from, to });
+        return result.output;
+      },
+    }),
+
+    // ---- URL Metadata ----
+    new DynamicStructuredTool({
+      name: "fetch_url_metadata",
+      description:
+        "Fetch a URL and extract its metadata: page title, meta description, Open Graph tags (og:image, og:type, og:site_name), " +
+        "Twitter card tags, favicon URL, canonical URL, author, and publish/modified dates. " +
+        "Use this to enrich a URL with context before presenting it to a user, " +
+        "to get the main image or description for a link preview, " +
+        "or to quickly understand what a page is about without reading the full content.",
+      schema: z.object({
+        url: z.string().url().describe("The URL to fetch metadata from"),
+        timeout: z.number().default(8000).describe("Request timeout in ms (default 8000)"),
+      }),
+      func: async ({ url, timeout }) => {
+        const result = await client.urlMetadata({ url, timeout });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Regex Builder ----
+    new DynamicStructuredTool({
+      name: "build_regex",
+      description:
+        "Build and test a regular expression from a natural language description. " +
+        "Use this when you need a regex pattern for validation, parsing, or data extraction — " +
+        "without needing to write or debug regex syntax yourself. " +
+        "Supports 20+ common patterns: email, URL, phone number, date, IP address, hex color, UUID, slug, JWT, credit card, SSN, and more. " +
+        "Optionally test the pattern against provided strings. Returns ready-to-use code in JavaScript, Python, and TypeScript.",
+      schema: z.object({
+        description: z.string().describe("What the regex should match (e.g. 'valid email addresses', 'US phone numbers with area code')"),
+        testStrings: z.array(z.string()).optional().describe("Optional strings to test the regex against"),
+        flags: z.string().default("g").describe("Regex flags (default: 'g' for global)"),
+      }),
+      func: async ({ description, testStrings, flags }) => {
+        const result = await client.regexBuilder({ description, testStrings, flags });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Cron Builder ----
+    new DynamicStructuredTool({
+      name: "build_cron",
+      description:
+        "Convert a natural language schedule description into a cron expression. " +
+        "Use this when setting up scheduled jobs, tasks, or automation workflows. " +
+        "Examples: 'every weekday at 9am EST', 'first Monday of every month at noon', 'every 15 minutes', 'twice a day at 8am and 6pm'. " +
+        "Returns the cron expression, a human-readable confirmation of the schedule, and the next 5 run times.",
+      schema: z.object({
+        description: z.string().describe("Natural language schedule description"),
+        timezone: z.string().default("UTC").describe("Timezone (e.g. 'America/New_York', 'Europe/London')"),
+      }),
+      func: async ({ description, timezone }) => {
+        const result = await client.cronBuilder({ description, timezone });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Address Normalizer ----
+    new DynamicStructuredTool({
+      name: "normalize_address",
+      description:
+        "Normalize a US mailing address to USPS standard format. " +
+        "Use this when cleaning address data for mailing, geocoding, deduplication, or database storage. " +
+        "Expands abbreviations (st→ST, ave→AVE, apt→APT), standardizes directionals (north→N), " +
+        "converts state names to abbreviations (California→CA), and parses the address into components. " +
+        "Returns a confidence score (high/medium/low) indicating parse quality.",
+      schema: z.object({
+        address: z.string().describe("The address to normalize (e.g. '123 main st apt 4b, springfield, il 62701')"),
+        includeComponents: z.boolean().default(true).describe("Include parsed components (street number, city, state, ZIP, etc.)"),
+      }),
+      func: async ({ address, includeComponents }) => {
+        const result = await client.addressNormalizer({ address, includeComponents });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Color Palette ----
+    new DynamicStructuredTool({
+      name: "generate_color_palette",
+      description:
+        "Generate a color palette from a description, mood, industry, or hex color seed. " +
+        "Use this for branding, UI design, or any task requiring a cohesive set of colors. " +
+        "Accepts moods ('calm', 'energetic', 'luxurious'), industries ('fintech', 'healthcare', 'fashion'), " +
+        "nature themes ('sunset', 'ocean', 'forest'), or a specific hex color to build around. " +
+        "Returns hex/RGB/HSL values, WCAG accessibility contrast scores, and ready-to-use CSS custom properties.",
+      schema: z.object({
+        description: z.string().describe("Description of desired palette (e.g. 'professional fintech blue', 'warm sunset', '#3B82F6')"),
+        count: z.number().int().min(2).max(10).default(5).describe("Number of colors (2-10)"),
+        format: z.enum(["hex", "rgb", "hsl", "all"]).default("all").describe("Color format in output"),
+      }),
+      func: async ({ description, count, format }) => {
+        const result = await client.colorPalette({ description, count, format });
+        return JSON.stringify(result);
+      },
+    }),
+  ];
+}
