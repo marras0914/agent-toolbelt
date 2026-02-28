@@ -341,6 +341,90 @@
         }
       }
     },
+    "/api/tools/csv-to-json": {
+      "post": {
+        "operationId": "csvToJson",
+        "summary": "Convert CSV to JSON",
+        "description": "Convert CSV data to typed JSON. Supports auto-delimiter detection (comma, semicolon, tab, pipe), header row parsing, type casting (numbers, booleans, nulls), column type inference, and row limits.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["csv"],
+                "properties": {
+                  "csv": {
+                    "type": "string",
+                    "maxLength": 500000,
+                    "description": "CSV content to convert."
+                  },
+                  "delimiter": {
+                    "type": "string",
+                    "enum": ["auto", ",", ";", "\t", "|"],
+                    "default": "auto",
+                    "description": "Column delimiter. Use 'auto' to detect automatically."
+                  },
+                  "hasHeader": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether the first row is a header. If false, columns are named col_1, col_2, etc."
+                  },
+                  "typeCast": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Auto-convert values to numbers, booleans, and nulls where appropriate."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000,
+                    "description": "Maximum number of rows to return."
+                  },
+                  "skipEmptyRows": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Skip rows where all values are empty."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Converted JSON data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "durationMs": { "type": "integer" },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "rows": { "type": "array", "items": { "type": "object" } },
+                        "headers": { "type": "array", "items": { "type": "string" } },
+                        "rowCount": { "type": "integer" },
+                        "totalRows": { "type": "integer" },
+                        "columnCount": { "type": "integer" },
+                        "columnTypes": { "type": "object", "additionalProperties": { "type": "string" } },
+                        "detectedDelimiter": { "type": "string" },
+                        "truncated": { "type": "boolean" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
     "/api/tools/token-counter": {
       "post": {
         "operationId": "countTokens",
