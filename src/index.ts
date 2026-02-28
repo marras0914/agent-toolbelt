@@ -24,6 +24,7 @@ import "./tools/regex-builder";
 import "./tools/brand-kit";
 import "./tools/markdown-converter";
 import "./tools/url-metadata";
+import "./tools/token-counter";
 
 // ----- App Setup -----
 const app = express();
