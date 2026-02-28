@@ -341,6 +341,87 @@
         }
       }
     },
+    "/api/tools/token-counter": {
+      "post": {
+        "operationId": "countTokens",
+        "summary": "Count tokens across LLM models",
+        "description": "Count tokens for any text across multiple LLM models (GPT-4o, GPT-4, GPT-3.5, Claude 3.x, and more). Returns exact token counts using official tokenizers and estimated API costs per model.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "maxLength": 200000,
+                    "description": "The text to count tokens for."
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "default": ["gpt-4o", "claude-3-5-sonnet"],
+                    "description": "Models to count tokens for. Supported: gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4o, gpt-4o-mini, claude-3-5-sonnet, claude-3-5-haiku, claude-3-opus, claude-3-sonnet, claude-3-haiku, claude-sonnet-4-6, claude-opus-4-6, text-embedding-ada-002, text-embedding-3-small, text-embedding-3-large."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token counts per model",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "durationMs": { "type": "integer" },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "characterCount": { "type": "integer" },
+                        "wordCount": { "type": "integer" },
+                        "results": {
+                          "type": "object",
+                          "description": "Token count results keyed by model name.",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "tokens": { "type": "integer" },
+                              "encoding": { "type": "string" },
+                              "approximate": { "type": "boolean" },
+                              "estimatedCost": {
+                                "type": "object",
+                                "properties": {
+                                  "input": { "type": "number", "description": "Estimated input cost in USD" },
+                                  "output": { "type": "number", "description": "Estimated output cost in USD" },
+                                  "currency": { "type": "string" }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "supportedModels": {
+                          "type": "array",
+                          "items": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
     "/api/tools/url-metadata": {
       "post": {
         "operationId": "fetchUrlMetadata",
