@@ -341,6 +341,81 @@
         }
       }
     },
+    "/api/tools/url-metadata": {
+      "post": {
+        "operationId": "fetchUrlMetadata",
+        "summary": "Fetch metadata from a URL",
+        "description": "Fetch a URL and extract metadata: title, description, Open Graph tags (og:image, og:type, etc.), Twitter card tags, favicon, canonical URL, author, and publish dates. Ideal for enriching links with context.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "The URL to fetch metadata from."
+                  },
+                  "timeout": {
+                    "type": "integer",
+                    "minimum": 1000,
+                    "maximum": 15000,
+                    "default": 8000,
+                    "description": "Request timeout in milliseconds (default 8000)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "URL metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "durationMs": { "type": "integer" },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "url": { "type": "string" },
+                        "finalUrl": { "type": "string", "description": "URL after redirects" },
+                        "statusCode": { "type": "integer" },
+                        "error": { "type": "string", "description": "Set if the fetch failed" },
+                        "metadata": {
+                          "type": "object",
+                          "properties": {
+                            "title": { "type": "string" },
+                            "description": { "type": "string" },
+                            "favicon": { "type": "string" },
+                            "canonical": { "type": "string" },
+                            "author": { "type": "string" },
+                            "themeColor": { "type": "string" },
+                            "publishedTime": { "type": "string" },
+                            "modifiedTime": { "type": "string" },
+                            "og": { "type": "object", "description": "All og: meta tags as key/value pairs", "additionalProperties": { "type": "string" } },
+                            "twitter": { "type": "object", "description": "All twitter: meta tags as key/value pairs", "additionalProperties": { "type": "string" } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
     "/api/tools/markdown-converter": {
       "post": {
         "operationId": "convertMarkdown",
