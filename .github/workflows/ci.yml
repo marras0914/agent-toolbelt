@@ -115,7 +115,6 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway
-        if: ${{ secrets.RAILWAY_TOKEN != '' }}
         run: railway up --service agent-toolbelt
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -123,7 +122,6 @@ jobs:
           RAILWAY_ENVIRONMENT_ID: 0ca4ce58-6579-4e17-88c0-4430601a3ada
 
       - name: Verify deployment
-        if: ${{ env.DEPLOY_URL != '' }}
         run: |
           sleep 10
           curl -sf "$DEPLOY_URL/api" | grep -q "operational"
