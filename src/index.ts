@@ -27,6 +27,7 @@ import "./tools/url-metadata";
 import "./tools/token-counter";
 import "./tools/csv-to-json";
 import "./tools/address-normalizer";
+import "./tools/color-palette";
 
 // ----- App Setup -----
 const app = express();
