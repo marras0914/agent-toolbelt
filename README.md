@@ -1,173 +1,143 @@
-# 🔧 Agent Toolbelt
+# Agent Toolbelt
 
-**Licensable API microservices for AI agents — build IP that other agents pay to use.**
+**Focused API tools for AI agents and developers.** Schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex, cron expressions, address normalization, and color palettes — each one a focused microservice, billed per call.
 
-## Overview
+**Production API:** https://agent-toolbelt-production.up.railway.app
 
-Agent Toolbelt is a plug-and-play framework for building, hosting, and monetizing small, focused API tools that AI agents can discover and call. Think of it as "Stripe for agent tools" — you build useful microservices, agents find them via a catalog endpoint, and you earn per-call revenue.
+---
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────┐
-│                   Agent Toolbelt                     │
-│                                                      │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
-│  │  Auth     │  │  Rate    │  │  Usage Tracking   │  │
-│  │  (JWT)    │  │  Limiter │  │  (per-call billing)│  │
-│  └────┬─────┘  └────┬─────┘  └────────┬──────────┘  │
-│       │              │                 │              │
-│  ┌────▼──────────────▼─────────────────▼──────────┐  │
-│  │              Tool Registry                      │  │
-│  │  ┌─────────────┐  ┌─────────────────────────┐  │  │
-│  │  │  Schema Gen  │  │  Text Extractor         │  │  │
-│  │  └─────────────┘  └─────────────────────────┘  │  │
-│  │  ┌─────────────┐  ┌─────────────────────────┐  │  │
-│  │  │  Your Tool   │  │  Your Next Tool         │  │  │
-│  │  └─────────────┘  └─────────────────────────┘  │  │
-│  └────────────────────────────────────────────────┘  │
-│                                                      │
-│  GET /api/tools/catalog  ← Agents discover tools     │
-│  POST /api/tools/{name}  ← Agents call tools         │
-└─────────────────────────────────────────────────────┘
-```
-
-## Quick Start
+## Quickstart
 
 ```bash
-# 1. Install dependencies
-npm install
-
-# 2. Set up environment
-cp .env.example .env
-# Edit .env with your secret key
-
-# 3. Run in development
-npm run dev
-
-# 4. Generate an API key
-curl -X POST http://localhost:3000/admin/generate-key \
+# Get a free API key
+curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \
   -H "Content-Type: application/json" \
-  -d '{"clientId": "my-first-agent", "tier": "free"}'
+  -d '{"email": "you@example.com"}'
 
-# 5. Call a tool
-curl -X POST http://localhost:3000/api/tools/schema-generator \
+# Call a tool
+curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/token-counter \
+  -H "Authorization: Bearer atb_YOUR_KEY" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer atb_YOUR_KEY_HERE" \
-  -d '{"description": "A user profile with name and email", "format": "json_schema"}'
+  -d '{"text": "Hello world", "models": ["gpt-4o", "claude-3-5-sonnet"]}'
 ```
 
-## Included Tools
+---
 
-### 1. Schema Generator (`/api/tools/schema-generator`)
-Generates JSON Schema, TypeScript interfaces, or Zod schemas from natural language descriptions. Agents use this to validate data on the fly.
+## npm SDK + LangChain
 
-### 2. Text Extractor (`/api/tools/text-extractor`)
-Extracts structured data (emails, URLs, phone numbers, dates, currencies, addresses) from raw text. Essential for agents processing unstructured content.
+```bash
+npm install agent-toolbelt
+```
 
-## Adding Your Own Tools
+### Typed client
 
-Create a new file in `src/tools/` following this pattern:
+```ts
+import { AgentToolbelt } from "agent-toolbelt";
 
-```typescript
-import { z } from "zod";
-import { ToolDefinition, registerTool } from "./registry";
+const client = new AgentToolbelt({ apiKey: process.env.AGENT_TOOLBELT_KEY! });
 
-const inputSchema = z.object({
-  // Define your input with Zod
-  myField: z.string().describe("What this field does"),
+// Count tokens across models with cost estimates
+const tokens = await client.tokenCounter({
+  text: myDocument,
+  models: ["gpt-4o", "claude-3-5-sonnet"],
 });
 
-type Input = z.infer<typeof inputSchema>;
+// Extract structured data from raw text
+const contacts = await client.textExtractor({
+  text: emailBody,
+  extractors: ["emails", "phone_numbers", "addresses"],
+});
 
-async function handler(input: Input) {
-  // Your tool logic here
-  return { result: "your output" };
+// Convert HTML to clean Markdown for LLM consumption
+const markdown = await client.markdownConverter({
+  content: scrapedHtml,
+  from: "html",
+  to: "markdown",
+});
+```
+
+### LangChain integration
+
+```ts
+import { AgentToolbelt } from "agent-toolbelt";
+import { createLangChainTools } from "agent-toolbelt/langchain";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { ChatOpenAI } from "@langchain/openai";
+
+const client = new AgentToolbelt({ apiKey: process.env.AGENT_TOOLBELT_KEY! });
+const tools = createLangChainTools(client); // 10 ready-to-use DynamicStructuredTools
+
+const agent = createReactAgent({
+  llm: new ChatOpenAI({ model: "gpt-4o" }),
+  tools,
+});
+```
+
+---
+
+## Tools
+
+| Tool | What it does | Price |
+|---|---|---|
+| `text-extractor` | Extract emails, URLs, phones, dates, currencies, addresses, names from any text | $0.0005/call |
+| `token-counter` | Count tokens across 15 LLM models (GPT-4o, Claude 3.5, etc.) with cost estimates | $0.0001/call |
+| `schema-generator` | Generate JSON Schema, TypeScript interfaces, or Zod validators from plain English | $0.001/call |
+| `csv-to-json` | Convert CSV to typed JSON — auto-detects delimiters, casts types, infers column types | $0.0005/call |
+| `markdown-converter` | Convert HTML ↔ Markdown. Clean up web content for LLM consumption | $0.0005/call |
+| `url-metadata` | Fetch a URL and extract title, description, OG tags, favicon, author, publish date | $0.001/call |
+| `regex-builder` | Build and test regex patterns from natural language. Returns JS/Python/TS code snippets | $0.0005/call |
+| `cron-builder` | Convert schedule descriptions to cron expressions with next-run preview | $0.0005/call |
+| `address-normalizer` | Normalize US addresses to USPS format with component parsing and confidence score | $0.0005/call |
+| `color-palette` | Generate color palettes from descriptions or hex seeds with WCAG scores and CSS vars | $0.0005/call |
+| `brand-kit` | Full brand kit — color palette, typography pairings, CSS/Tailwind design tokens | $0.001/call |
+
+---
+
+## Discover tools programmatically
+
+Agents can auto-discover all tools at runtime:
+
+```bash
+curl https://agent-toolbelt-production.up.railway.app/api/tools/catalog
+```
+
+```json
+{
+  "tools": [
+    {
+      "name": "text-extractor",
+      "description": "Extract structured data...",
+      "endpoint": "/api/tools/text-extractor",
+      "metadata": { "pricing": "$0.0005 per call" }
+    }
+  ],
+  "count": 11
 }
-
-const myTool: ToolDefinition<Input> = {
-  name: "my-tool",
-  description: "What my tool does",
-  version: "1.0.0",
-  inputSchema,
-  handler,
-  metadata: {
-    tags: ["category"],
-    pricing: "$0.001 per call",
-  },
-};
-
-registerTool(myTool);
-export default myTool;
 ```
 
-Then import it in `src/index.ts`:
-```typescript
-import "./tools/my-tool";
-```
+---
 
-That's it — it's automatically available in the catalog and as a POST endpoint.
+## Pricing
 
-## Pricing Tiers
+| Tier | Price | Monthly calls | Rate limit |
+|---|---|---|---|
+| Free | $0/mo | 1,000 | 10/min |
+| Starter | $29/mo | 50,000 | 60/min |
+| Pro | $99/mo | 500,000 | 300/min |
+| Enterprise | Custom | 5,000,000 | 1,000/min |
 
-| Tier       | Requests/min | Monthly Limit | Price     |
-|------------|-------------|---------------|-----------|
-| Free       | 10          | 1,000         | $0/mo     |
-| Starter    | 60          | 50,000        | $29/mo    |
-| Pro        | 300         | 500,000       | $99/mo    |
-| Enterprise | 1,000       | 5,000,000     | Custom    |
+---
 
-## Monetization Channels
+## Integrations
 
-1. **Direct API subscriptions** — Stripe Billing with usage-based metering
-2. **RapidAPI Marketplace** — List tools on rapidapi.com for organic discovery
-3. **Toolhouse.ai** — Purpose-built marketplace for agent tools
-4. **OpenAI GPT Actions** — Package tools as GPT Actions for ChatGPT users
-5. **Claude MCP Servers** — Expose tools as MCP servers for Claude integrations
-6. **LangChain/LangGraph Hub** — Publish as community tools
+- **npm** — `npm install agent-toolbelt` — typed client + LangChain tools
+- **LangChain/LangGraph** — `createLangChainTools(client)` — 10 `DynamicStructuredTool` instances
+- **Claude MCP** — see `mcp-server/` — works with Claude Desktop and Claude Code
+- **OpenAI GPT Actions** — OpenAPI spec at `/openapi/openapi-gpt-actions.json`
+- **RapidAPI** — listed on the RapidAPI marketplace
 
-## Deployment
-
-Recommended platforms (cheapest to most scalable):
-
-- **Railway / Render** — $5/mo, zero-config Node hosting, great for starting
-- **Fly.io** — Edge deployment, scales globally
-- **AWS Lambda + API Gateway** — Pay-per-invocation, ideal at scale
-- **Cloudflare Workers** — Edge compute, very low latency
-
-## Production Checklist
-
-- [ ] Replace in-memory usage store with Redis or PostgreSQL
-- [ ] Add Stripe integration for billing (see `src/middleware/usage.ts`)
-- [ ] Add proper API key storage (database, not just JWT)
-- [ ] Set up monitoring (Sentry, Datadog, or PostHog)
-- [ ] Add request logging and alerting
-- [ ] Write integration tests for each tool
-- [ ] Set up CI/CD pipeline
-- [ ] Add OpenAPI spec generation for each tool
-- [ ] Register on agent tool marketplaces
-- [ ] Create landing page for developer signups
-
-## Project Structure
-
-```
-agent-toolbelt/
-├── src/
-│   ├── config.ts              # Environment config
-│   ├── index.ts               # Express app + server
-│   ├── middleware/
-│   │   ├── auth.ts            # JWT-based API key auth
-│   │   └── usage.ts           # Per-call usage tracking
-│   └── tools/
-│       ├── registry.ts        # Plug-and-play tool system
-│       ├── schema-generator.ts # Tool: JSON/TS/Zod schema gen
-│       └── text-extractor.ts  # Tool: structured data extraction
-├── .env.example
-├── package.json
-├── tsconfig.json
-└── README.md
-```
+---
 
 ## License
 
-Proprietary — this is your IP. Protect it.
+MIT

@@ -510,31 +510,74 @@
     </div>
   </section>
 
+  <!-- npm / LangChain section -->
+  <section style="border-top: 1px solid var(--border);">
+    <div class="container">
+      <h2>Works where you work</h2>
+      <p class="section-sub">One npm package. Direct HTTP calls, LangChain agents, MCP servers, GPT Actions — pick your integration.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+
+        <div class="tool-card">
+          <div class="tool-name">npm install agent-toolbelt</div>
+          <div class="tool-desc" style="margin-top: 8px;">Typed client for all tools. Works in Node.js, Bun, edge runtimes. Zero heavy dependencies.</div>
+          <div class="terminal" style="margin-top: 16px; box-shadow: none;">
+            <div class="terminal-body" style="padding: 14px; font-size: 0.78rem;">
+              <span class="key">import</span> <span class="cmd">{ AgentToolbelt }</span> <span class="key">from</span> <span class="string">'agent-toolbelt'</span><br><br>
+              <span class="key">const</span> <span class="cmd">client = </span><span class="key">new</span> <span class="cmd">AgentToolbelt({</span><br>
+              &nbsp;&nbsp;<span class="key">apiKey</span><span class="cmd">: process.env.AGENT_TOOLBELT_KEY</span><br>
+              <span class="cmd">})</span><br><br>
+              <span class="key">const</span> <span class="cmd">result = </span><span class="key">await</span> <span class="cmd">client.tokenCounter({</span><br>
+              &nbsp;&nbsp;<span class="key">text</span><span class="cmd">: myDocument,</span><br>
+              &nbsp;&nbsp;<span class="key">models</span><span class="cmd">: [</span><span class="string">'gpt-4o'</span><span class="cmd">, </span><span class="string">'claude-3-5-sonnet'</span><span class="cmd">]</span><br>
+              <span class="cmd">})</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <div class="tool-name">LangChain / LangGraph</div>
+          <div class="tool-desc" style="margin-top: 8px;">10 <code>DynamicStructuredTool</code> instances, ready to drop into any LangChain agent or LangGraph workflow.</div>
+          <div class="terminal" style="margin-top: 16px; box-shadow: none;">
+            <div class="terminal-body" style="padding: 14px; font-size: 0.78rem;">
+              <span class="key">import</span> <span class="cmd">{ createLangChainTools }</span> <span class="key">from</span><br>
+              &nbsp;&nbsp;<span class="string">'agent-toolbelt/langchain'</span><br><br>
+              <span class="key">const</span> <span class="cmd">tools = createLangChainTools(client)</span><br><br>
+              <span class="key">const</span> <span class="cmd">agent = createReactAgent({</span><br>
+              &nbsp;&nbsp;<span class="key">llm</span><span class="cmd">: </span><span class="key">new</span> <span class="cmd">ChatOpenAI({ model: </span><span class="string">'gpt-4o'</span> <span class="cmd">}),</span><br>
+              &nbsp;&nbsp;<span class="key">tools</span><br>
+              <span class="cmd">})</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <div class="tool-name">Claude MCP + GPT Actions</div>
+          <div class="tool-desc" style="margin-top: 8px;">Use tools directly in Claude Desktop, Claude Code, or any OpenAI-compatible GPT Actions integration.</div>
+          <div class="terminal" style="margin-top: 16px; box-shadow: none;">
+            <div class="terminal-body" style="padding: 14px; font-size: 0.78rem;">
+              <span class="comment"># Claude MCP (claude_desktop_config.json)</span><br>
+              <span class="cmd">{</span> <span class="key">"mcpServers"</span><span class="cmd">: {</span><br>
+              &nbsp;&nbsp;<span class="key">"agent-toolbelt"</span><span class="cmd">: {</span><br>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"command"</span><span class="cmd">: </span><span class="string">"npx"</span><span class="cmd">,</span><br>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"args"</span><span class="cmd">: [</span><span class="string">"agent-toolbelt-mcp"</span><span class="cmd">],</span><br>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"env"</span><span class="cmd">: { </span><span class="key">"AGENT_TOOLBELT_KEY"</span><span class="cmd">: </span><span class="string">"atb_..."</span> <span class="cmd">}</span><br>
+              &nbsp;&nbsp;<span class="cmd">}</span><br>
+              <span class="cmd">}}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
   <section>
     <div class="container">
       <h2>Available Tools</h2>
       <p class="section-sub">Each tool is a focused microservice — validated input, structured output, usage-tracked.</p>
       <div class="tools-grid" id="tools-grid">
-        <!-- Populated by JS from /api/tools/catalog -->
-        <div class="tool-card">
-          <div class="tool-name">schema-generator</div>
-          <div class="tool-desc">Generate JSON Schema, TypeScript interfaces, or Zod schemas from natural language descriptions. Agents use this to validate data on the fly.</div>
-          <div class="tool-tags">
-            <span class="tag">schema</span>
-            <span class="tag">validation</span>
-            <span class="tag">code-generation</span>
-          </div>
-          <div class="tool-price">$0.001 / call</div>
-        </div>
-        <div class="tool-card">
-          <div class="tool-name">text-extractor</div>
-          <div class="tool-desc">Extract structured data — emails, URLs, phone numbers, dates, currencies, addresses — from raw text. Essential for processing unstructured content.</div>
-          <div class="tool-tags">
-            <span class="tag">extraction</span>
-            <span class="tag">parsing</span>
-            <span class="tag">nlp</span>
-          </div>
-          <div class="tool-price">$0.0005 / call</div>
+        <div class="tool-card" style="opacity:0.4;">
+          <div class="tool-name">Loading catalog...</div>
         </div>
       </div>
     </div>
@@ -676,6 +719,28 @@
     document.getElementById('email-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') registerClient();
     });
+
+    // Load tool catalog dynamically
+    async function loadCatalog() {
+      const grid = document.getElementById('tools-grid');
+      try {
+        const res = await fetch('/api/tools/catalog');
+        const data = await res.json();
+        grid.innerHTML = data.tools.map(tool => `
+          <div class="tool-card">
+            <div class="tool-name">${tool.name}</div>
+            <div class="tool-desc">${tool.description}</div>
+            <div class="tool-tags">
+              ${(tool.metadata?.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}
+            </div>
+            ${tool.metadata?.pricing ? `<div class="tool-price">${tool.metadata.pricing}</div>` : ''}
+          </div>
+        `).join('');
+      } catch (e) {
+        grid.innerHTML = '<div class="tool-card"><div class="tool-name">Could not load catalog</div></div>';
+      }
+    }
+    loadCatalog();
   </script>
 </body>
 </html>
