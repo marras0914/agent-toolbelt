@@ -22,6 +22,7 @@ import "./tools/text-extractor";
 import "./tools/cron-builder";
 import "./tools/regex-builder";
 import "./tools/brand-kit";
+import "./tools/markdown-converter";
 
 // ----- App Setup -----
 const app = express();

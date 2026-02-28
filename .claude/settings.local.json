@@ -7,7 +7,9 @@
       "Bash(curl:*)",
       "Bash(railway:*)",
       "Bash(git init:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(npm install:*)",
+      "Bash(npm audit:*)"
     ]
   }
 }
