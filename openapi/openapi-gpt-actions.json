@@ -341,6 +341,94 @@
         }
       }
     },
+    "/api/tools/markdown-converter": {
+      "post": {
+        "operationId": "convertMarkdown",
+        "summary": "Convert between HTML and Markdown",
+        "description": "Convert HTML to clean Markdown or Markdown to HTML. Handles headings, lists, links, code blocks, tables, bold, italic, and more. Ideal for agents that need clean readable content from HTML pages, or need to render Markdown.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content", "from", "to"],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "maxLength": 100000,
+                    "description": "The content to convert."
+                  },
+                  "from": {
+                    "type": "string",
+                    "enum": ["html", "markdown"],
+                    "description": "Input format."
+                  },
+                  "to": {
+                    "type": "string",
+                    "enum": ["html", "markdown"],
+                    "description": "Output format."
+                  },
+                  "options": {
+                    "type": "object",
+                    "description": "Optional conversion settings.",
+                    "properties": {
+                      "headingStyle": {
+                        "type": "string",
+                        "enum": ["atx", "setext"],
+                        "default": "atx",
+                        "description": "Heading style for Markdown output: atx uses #, setext uses underlines."
+                      },
+                      "bulletListMarker": {
+                        "type": "string",
+                        "enum": ["-", "*", "+"],
+                        "default": "-",
+                        "description": "Bullet list marker character."
+                      },
+                      "codeBlockStyle": {
+                        "type": "string",
+                        "enum": ["fenced", "indented"],
+                        "default": "fenced",
+                        "description": "Code block style in Markdown output."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Converted content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "durationMs": { "type": "integer" },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "output": { "type": "string", "description": "Converted content" },
+                        "from": { "type": "string" },
+                        "to": { "type": "string" },
+                        "inputLength": { "type": "integer" },
+                        "outputLength": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
     "/api/tools/brand-kit": {
       "post": {
         "operationId": "generateBrandKit",
