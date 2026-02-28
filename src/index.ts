@@ -26,6 +26,7 @@ import "./tools/markdown-converter";
 import "./tools/url-metadata";
 import "./tools/token-counter";
 import "./tools/csv-to-json";
+import "./tools/address-normalizer";
 
 // ----- App Setup -----
 const app = express();
