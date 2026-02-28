@@ -103,10 +103,9 @@ jobs:
   # Job 3: Deploy to Railway (if configured)
   # ============================================
   deploy-railway:
-    needs: [test, docker]
+    needs: [test]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    # Only runs if RAILWAY_TOKEN secret is set
     environment: production
 
     steps:
@@ -116,10 +115,12 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway
-        if: ${{ env.RAILWAY_TOKEN != '' }}
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
         run: railway up --service agent-toolbelt
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: d345a508-2557-453d-953c-3acd1ae26568
+          RAILWAY_ENVIRONMENT_ID: 0ca4ce58-6579-4e17-88c0-4430601a3ada
 
       - name: Verify deployment
         if: ${{ env.DEPLOY_URL != '' }}
