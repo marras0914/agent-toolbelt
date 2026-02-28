@@ -332,6 +332,234 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Markdown Converter -----
+server.registerTool(
+  "convert_markdown",
+  {
+    title: "Markdown Converter",
+    description:
+      "Convert HTML to clean Markdown, or Markdown to HTML. " +
+      "Use HTML→Markdown when you've fetched a web page and need readable text for an LLM — strips tags, preserves headings, lists, code blocks, links, and tables. " +
+      "Use Markdown→HTML when rendering content in a web context.",
+    inputSchema: {
+      content: z.string().describe("The content to convert"),
+      from: z.enum(["html", "markdown"]).describe("Input format"),
+      to: z.enum(["html", "markdown"]).describe("Output format"),
+    },
+  },
+  async ({ content, from, to }) => {
+    const result = await callToolApi("markdown-converter", { content, from, to });
+    const data = result as any;
+    return {
+      content: [{ type: "text" as const, text: data.result?.output || "" }],
+    };
+  }
+);
+
+// ----- Tool: URL Metadata -----
+server.registerTool(
+  "fetch_url_metadata",
+  {
+    title: "URL Metadata",
+    description:
+      "Fetch a URL and extract its metadata: title, description, Open Graph tags (og:image, og:type), " +
+      "Twitter card tags, favicon, canonical URL, author, and publish date. " +
+      "Use to enrich links with context or understand what a page is about without reading the full content.",
+    inputSchema: {
+      url: z.string().url().describe("The URL to fetch metadata from"),
+      timeout: z.number().default(8000).describe("Request timeout in milliseconds (default 8000)"),
+    },
+  },
+  async ({ url, timeout }) => {
+    const result = await callToolApi("url-metadata", { url, timeout });
+    const data = result as any;
+    const r = data.result;
+
+    if (r.error) {
+      return { content: [{ type: "text" as const, text: `Error fetching ${url}: ${r.error}` }] };
+    }
+
+    const m = r.metadata;
+    const lines = [
+      `**URL:** ${r.finalUrl}`,
+      `**Title:** ${m?.title || "—"}`,
+      `**Description:** ${m?.description || "—"}`,
+      `**Author:** ${m?.author || "—"}`,
+      `**Published:** ${m?.publishedTime || "—"}`,
+      `**Favicon:** ${m?.favicon || "—"}`,
+      `**Canonical:** ${m?.canonical || "—"}`,
+    ];
+
+    if (m?.og && Object.keys(m.og).length > 0) {
+      lines.push("", "**Open Graph:**");
+      for (const [k, v] of Object.entries(m.og)) {
+        lines.push(`  og:${k}: ${v}`);
+      }
+    }
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: Token Counter -----
+server.registerTool(
+  "count_tokens",
+  {
+    title: "Token Counter",
+    description:
+      "Count tokens for any text across multiple LLM models and get per-model cost estimates. " +
+      "Use before sending text to an LLM to check context window usage or compare costs across models. " +
+      "Supports GPT-4o, GPT-4, GPT-3.5-turbo, Claude 3.5 Sonnet, Claude 3 Opus, and 10+ more.",
+    inputSchema: {
+      text: z.string().describe("The text to count tokens for"),
+      models: z
+        .array(z.string())
+        .default(["gpt-4o", "claude-3-5-sonnet"])
+        .describe("Models to count tokens for"),
+    },
+  },
+  async ({ text, models }) => {
+    const result = await callToolApi("token-counter", { text, models });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**Characters:** ${r.characterCount.toLocaleString()}`,
+      `**Words:** ${r.wordCount.toLocaleString()}`,
+      "",
+      "**Token counts:**",
+    ];
+
+    for (const [model, info] of Object.entries(r.results) as any) {
+      const approx = info.approximate ? " (approx)" : "";
+      const cost = info.estimatedCost
+        ? ` | input ~$${info.estimatedCost.input} / output ~$${info.estimatedCost.output}`
+        : "";
+      lines.push(`  ${model}: **${info.tokens.toLocaleString()} tokens**${approx}${cost}`);
+    }
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: CSV to JSON -----
+server.registerTool(
+  "csv_to_json",
+  {
+    title: "CSV to JSON",
+    description:
+      "Convert CSV data to typed JSON. Auto-detects delimiters, uses the first row as headers, " +
+      "and casts values to proper types (numbers, booleans, nulls). " +
+      "Use when processing spreadsheet exports or any CSV-formatted data.",
+    inputSchema: {
+      csv: z.string().describe("The CSV content to convert"),
+      delimiter: z.enum(["auto", ",", ";", "\t", "|"]).default("auto").describe("Column delimiter"),
+      hasHeader: z.boolean().default(true).describe("Whether the first row contains column names"),
+      typeCast: z.boolean().default(true).describe("Auto-convert values to proper types"),
+      limit: z.number().optional().describe("Max rows to return"),
+    },
+  },
+  async ({ csv, delimiter, hasHeader, typeCast, limit }) => {
+    const result = await callToolApi("csv-to-json", { csv, delimiter, hasHeader, typeCast, limit, skipEmptyRows: true });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**Rows:** ${r.rowCount}${r.truncated ? ` (truncated from ${r.totalRows})` : ""}`,
+      `**Columns:** ${r.columnCount} — ${r.headers.join(", ")}`,
+      `**Detected delimiter:** ${r.detectedDelimiter || delimiter}`,
+      "",
+      "**Column types:**",
+      ...Object.entries(r.columnTypes || {}).map(([k, v]) => `  ${k}: ${v}`),
+      "",
+      "**Data (first 3 rows):**",
+      "```json",
+      JSON.stringify(r.rows.slice(0, 3), null, 2),
+      "```",
+      r.rows.length > 3 ? `\n...and ${r.rows.length - 3} more rows` : "",
+    ];
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: Address Normalizer -----
+server.registerTool(
+  "normalize_address",
+  {
+    title: "Address Normalizer",
+    description:
+      "Normalize a US mailing address to USPS standard format. " +
+      "Expands abbreviations (st→ST, ave→AVE), standardizes directionals, converts state names to codes. " +
+      "Returns parsed components and a confidence score (high/medium/low).",
+    inputSchema: {
+      address: z.string().describe("The US address to normalize"),
+      includeComponents: z.boolean().default(true).describe("Include parsed address components in response"),
+    },
+  },
+  async ({ address, includeComponents }) => {
+    const result = await callToolApi("address-normalizer", { address, includeComponents });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**Original:** ${r.original}`,
+      `**Normalized:** ${r.normalized}`,
+      `**Confidence:** ${r.confidence}`,
+    ];
+
+    if (r.components && includeComponents) {
+      lines.push("", "**Components:**");
+      for (const [k, v] of Object.entries(r.components)) {
+        if (v) lines.push(`  ${k}: ${v}`);
+      }
+    }
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: Color Palette -----
+server.registerTool(
+  "generate_color_palette",
+  {
+    title: "Color Palette Generator",
+    description:
+      "Generate a color palette from a description, mood, industry, or hex seed color. " +
+      "Accepts moods (calm, energetic, luxurious), industries (fintech, healthcare, fashion), " +
+      "nature themes (sunset, ocean, forest), or a specific hex color. " +
+      "Returns hex/RGB/HSL values, WCAG accessibility scores, and CSS custom properties.",
+    inputSchema: {
+      description: z.string().describe("Description of the desired palette (e.g. 'calm fintech blue', 'sunset', '#3B82F6')"),
+      count: z.number().int().min(2).max(10).default(5).describe("Number of colors (2-10)"),
+      format: z.enum(["hex", "rgb", "hsl", "all"]).default("all").describe("Color format in output"),
+      includeShades: z.boolean().default(false).describe("Include light/dark shades for each color"),
+    },
+  },
+  async ({ description, count, format, includeShades }) => {
+    const result = await callToolApi("color-palette", { description, count, format, includeShades });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**Palette:** ${r.paletteName} — ${r.paletteLabel}`,
+      `**Swatches:** ${r.swatches}`,
+      "",
+      "**Colors:**",
+      ...r.colors.map((c: any) =>
+        `  ${c.index}. ${c.hex}${c.rgb ? ` | ${c.rgb}` : ""}${c.hsl ? ` | ${c.hsl}` : ""} | on-white: ${c.wcag.gradeOnWhite} | on-black: ${c.wcag.gradeOnBlack}`
+      ),
+      "",
+      "**CSS:**",
+      "```css",
+      r.css,
+      "```",
+    ];
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Discover Tools -----
 server.registerTool(
   "list_tools",
