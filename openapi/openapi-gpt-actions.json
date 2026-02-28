@@ -341,6 +341,79 @@
         }
       }
     },
+    "/api/tools/address-normalizer": {
+      "post": {
+        "operationId": "normalizeAddress",
+        "summary": "Normalize a US address to USPS format",
+        "description": "Standardize US mailing addresses to USPS format. Expands abbreviations, corrects capitalization, standardizes street types and directionals, parses components (street number, name, unit, city, state, ZIP), and returns a confidence score.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["address"],
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "The address string to normalize. Examples: '123 main st apt 4b, springfield, il 62701', '456 N. Oak Avenue Suite 200, Los Angeles, CA 90210'."
+                  },
+                  "includeComponents": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Include parsed address components (streetNumber, streetName, streetType, city, state, ZIP, etc.) in the response."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Normalized address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "durationMs": { "type": "integer" },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "original": { "type": "string" },
+                        "normalized": { "type": "string", "description": "USPS-formatted address" },
+                        "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+                        "components": {
+                          "type": "object",
+                          "properties": {
+                            "streetNumber": { "type": "string" },
+                            "preDirectional": { "type": "string" },
+                            "streetName": { "type": "string" },
+                            "streetType": { "type": "string" },
+                            "postDirectional": { "type": "string" },
+                            "secondaryUnit": { "type": "string" },
+                            "secondaryNumber": { "type": "string" },
+                            "city": { "type": "string" },
+                            "state": { "type": "string" },
+                            "zip": { "type": "string" },
+                            "zip4": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
     "/api/tools/csv-to-json": {
       "post": {
         "operationId": "csvToJson",
