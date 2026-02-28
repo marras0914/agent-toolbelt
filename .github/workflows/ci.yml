@@ -99,32 +99,3 @@ jobs:
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ github.sha }}
 
-  # ============================================
-  # Job 3: Deploy to Railway (if configured)
-  # ============================================
-  deploy-railway:
-    needs: [test]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-    environment: production
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy to Railway
-        run: railway up --service agent-toolbelt
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: d345a508-2557-453d-953c-3acd1ae26568
-          RAILWAY_ENVIRONMENT_ID: 0ca4ce58-6579-4e17-88c0-4430601a3ada
-
-      - name: Verify deployment
-        run: |
-          sleep 10
-          curl -sf "$DEPLOY_URL/api" | grep -q "operational"
-          echo "✓ Production deployment verified"
-        env:
-          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
