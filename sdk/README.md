@@ -2,7 +2,7 @@
 
 Official SDK for [Agent Toolbelt](https://agent-toolbelt-production.up.railway.app) — a suite of focused API tools for AI agents and developers.
 
-**Typed client + LangChain tool wrappers** for schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, color palette generation, and brand kit creation.
+**Typed client + LangChain tool wrappers** for schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, color palette generation, brand kit creation, meeting action item extraction, and prompt optimization.
 
 ## Install
 
@@ -121,6 +121,12 @@ await client.colorPalette({ description: "calm fintech blue", count: 5 });
 
 // Generate a full brand kit — colors, typography, CSS/Tailwind tokens
 await client.brandKit({ name: "Solaris Health", industry: "healthcare", vibe: ["modern", "trustworthy"], format: "full" });
+
+// Extract action items, decisions, and summary from meeting notes
+await client.meetingActionItems({ notes: transcript, format: "full", participants: ["Sarah", "John"] });
+
+// Analyze and improve an LLM prompt
+await client.promptOptimizer({ prompt: "Summarize this and tell me the main points.", model: "gpt-4o", mode: "both" });
 ```
 
 ---
@@ -163,6 +169,9 @@ const result = await agent.invoke({
 | `normalize_address` | Normalize US addresses to USPS format |
 | `generate_color_palette` | Generate color palettes with WCAG scores and CSS variables |
 | `generate_brand_kit` | Generate full brand kit — colors, typography, CSS/Tailwind tokens |
+| `strip_image_metadata` | Strip EXIF/GPS/IPTC/XMP metadata from images for privacy |
+| `extract_meeting_action_items` | Extract action items, decisions, and summary from meeting notes |
+| `optimize_prompt` | Analyze and improve LLM prompts with scores and rewrite |
 
 ---
 
@@ -181,6 +190,9 @@ const result = await agent.invoke({
 | `address-normalizer` | $0.0005 / call |
 | `color-palette` | $0.0005 / call |
 | `brand-kit` | $0.001 / call |
+| `image-metadata-stripper` | $0.001 / call |
+| `meeting-action-items` | $0.05 / call |
+| `prompt-optimizer` | $0.05 / call |
 
 ## License
 

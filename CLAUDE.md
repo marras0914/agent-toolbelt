@@ -78,6 +78,7 @@ export default myTool;
 | `ADMIN_SECRET` | Yes (prod) | Bearer token for `/admin/*` routes |
 | `STRIPE_SECRET_KEY` | Yes (billing) | Stripe secret key |
 | `STRIPE_WEBHOOK_SECRET` | Yes (billing) | Stripe webhook signing secret |
+| `ANTHROPIC_API_KEY` | Yes (LLM tools) | Powers meeting-action-items and prompt-optimizer |
 | `RAPIDAPI_PROXY_SECRET` | No | RapidAPI proxy validation |
 | `PORT` | No | Server port (default 3000) |
 
