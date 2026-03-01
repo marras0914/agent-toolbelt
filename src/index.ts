@@ -82,8 +82,8 @@ app.get("/.well-known/ai-plugin.json", (_req, res) => {
     schema_version: "v1",
     name_for_human: "Agent Toolbelt",
     name_for_model: "agent_toolbelt",
-    description_for_human: "API microservices for generating schemas, extracting structured data from text, and more.",
-    description_for_model: "Use Agent Toolbelt to generate JSON Schema / TypeScript / Zod schemas from natural language descriptions, and to extract structured data (emails, URLs, phone numbers, dates, currencies, addresses, names) from raw text. Call getToolCatalog first to see all available tools, then call the appropriate tool. Always include the API key as a Bearer token.",
+    description_for_human: "16 focused API tools for AI agents — data extraction, token counting, document analysis, contract review, prompt optimization, and more.",
+    description_for_model: "Use Agent Toolbelt to access 16 focused API tools: schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex/cron building, address normalization, color palettes, brand kits, image metadata stripping, meeting action item extraction, prompt optimization, document comparison, and contract clause extraction. Call getToolCatalog first to see all available tools, then call the appropriate tool. Always include the API key as a Bearer token.",
     auth: {
       type: "service_http",
       authorization_type: "bearer",

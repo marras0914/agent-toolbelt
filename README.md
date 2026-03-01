@@ -1,6 +1,6 @@
 # Agent Toolbelt
 
-**Focused API tools for AI agents and developers.** Schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex, cron expressions, address normalization, and color palettes — each one a focused microservice, billed per call.
+**Focused API tools for AI agents and developers.** 16 tools covering data transformation, text extraction, LLM utilities, document analysis, and contract review — each one a focused microservice, billed per call.
 
 **Production API:** https://agent-toolbelt-production.up.railway.app
 
@@ -65,7 +65,7 @@ import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { ChatOpenAI } from "@langchain/openai";
 
 const client = new AgentToolbelt({ apiKey: process.env.AGENT_TOOLBELT_KEY! });
-const tools = createLangChainTools(client); // 10 ready-to-use DynamicStructuredTools
+const tools = createLangChainTools(client); // 16 ready-to-use DynamicStructuredTools
 
 const agent = createReactAgent({
   llm: new ChatOpenAI({ model: "gpt-4o" }),
@@ -90,6 +90,11 @@ const agent = createReactAgent({
 | `address-normalizer` | Normalize US addresses to USPS format with component parsing and confidence score | $0.0005/call |
 | `color-palette` | Generate color palettes from descriptions or hex seeds with WCAG scores and CSS vars | $0.0005/call |
 | `brand-kit` | Full brand kit — color palette, typography pairings, CSS/Tailwind design tokens | $0.001/call |
+| `image-metadata-stripper` | Strip EXIF/GPS/IPTC/XMP metadata from images for privacy | $0.001/call |
+| `meeting-action-items` | Extract action items, decisions, and summary from meeting notes | $0.05/call |
+| `prompt-optimizer` | Analyze and improve LLM prompts — scores + rewrite + change summary | $0.05/call |
+| `document-comparator` | Semantic diff of two document versions with significance ratings | $0.05/call |
+| `contract-clause-extractor` | Extract and risk-flag key clauses from contracts and legal docs | $0.10/call |
 
 ---
 
@@ -111,7 +116,7 @@ curl https://agent-toolbelt-production.up.railway.app/api/tools/catalog
       "metadata": { "pricing": "$0.0005 per call" }
     }
   ],
-  "count": 11
+  "count": 16
 }
 ```
 
@@ -131,7 +136,7 @@ curl https://agent-toolbelt-production.up.railway.app/api/tools/catalog
 ## Integrations
 
 - **npm** — `npm install agent-toolbelt` — typed client + LangChain tools
-- **LangChain/LangGraph** — `createLangChainTools(client)` — 10 `DynamicStructuredTool` instances
+- **LangChain/LangGraph** — `createLangChainTools(client)` — 16 `DynamicStructuredTool` instances
 - **Claude MCP** — `npx -y agent-toolbelt-mcp` — works with Claude Desktop and Claude Code
 - **OpenAI GPT Actions** — OpenAPI spec at `/openapi/openapi-gpt-actions.json`
 - **RapidAPI** — listed on the RapidAPI marketplace
