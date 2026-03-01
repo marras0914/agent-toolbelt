@@ -132,9 +132,33 @@ curl https://agent-toolbelt-production.up.railway.app/api/tools/catalog
 
 - **npm** — `npm install agent-toolbelt` — typed client + LangChain tools
 - **LangChain/LangGraph** — `createLangChainTools(client)` — 10 `DynamicStructuredTool` instances
-- **Claude MCP** — see `mcp-server/` — works with Claude Desktop and Claude Code
+- **Claude MCP** — `npx -y agent-toolbelt-mcp` — works with Claude Desktop and Claude Code
 - **OpenAI GPT Actions** — OpenAPI spec at `/openapi/openapi-gpt-actions.json`
 - **RapidAPI** — listed on the RapidAPI marketplace
+
+### Claude MCP
+
+**Claude Desktop** — add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "agent-toolbelt": {
+      "command": "npx",
+      "args": ["-y", "agent-toolbelt-mcp"],
+      "env": {
+        "AGENT_TOOLBELT_KEY": "atb_your_key_here"
+      }
+    }
+  }
+}
+```
+
+**Claude Code** — one command:
+
+```bash
+claude mcp add agent-toolbelt -e AGENT_TOOLBELT_KEY=atb_your_key_here -- npx -y agent-toolbelt-mcp
+```
 
 ---
 

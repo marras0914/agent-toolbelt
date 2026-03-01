@@ -552,17 +552,22 @@
 
         <div class="tool-card">
           <div class="tool-name">Claude MCP + GPT Actions</div>
-          <div class="tool-desc" style="margin-top: 8px;">Use tools directly in Claude Desktop, Claude Code, or any OpenAI-compatible GPT Actions integration.</div>
+          <div class="tool-desc" style="margin-top: 8px;">Use all 11 tools directly in Claude Desktop, Claude Code, or any OpenAI-compatible GPT Actions integration.</div>
           <div class="terminal" style="margin-top: 16px; box-shadow: none;">
             <div class="terminal-body" style="padding: 14px; font-size: 0.78rem;">
-              <span class="comment"># Claude MCP (claude_desktop_config.json)</span><br>
+              <span class="comment"># Claude Desktop (claude_desktop_config.json)</span><br>
               <span class="cmd">{</span> <span class="key">"mcpServers"</span><span class="cmd">: {</span><br>
               &nbsp;&nbsp;<span class="key">"agent-toolbelt"</span><span class="cmd">: {</span><br>
               &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"command"</span><span class="cmd">: </span><span class="string">"npx"</span><span class="cmd">,</span><br>
-              &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"args"</span><span class="cmd">: [</span><span class="string">"agent-toolbelt-mcp"</span><span class="cmd">],</span><br>
+              &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"args"</span><span class="cmd">: [</span><span class="string">"-y"</span><span class="cmd">, </span><span class="string">"agent-toolbelt-mcp"</span><span class="cmd">],</span><br>
               &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"env"</span><span class="cmd">: { </span><span class="key">"AGENT_TOOLBELT_KEY"</span><span class="cmd">: </span><span class="string">"atb_..."</span> <span class="cmd">}</span><br>
               &nbsp;&nbsp;<span class="cmd">}</span><br>
-              <span class="cmd">}}</span>
+              <span class="cmd">}}</span><br>
+              <br>
+              <span class="comment"># Claude Code — one command</span><br>
+              <span class="prompt">$</span> <span class="cmd">claude mcp add agent-toolbelt \</span><br>
+              &nbsp;&nbsp;<span class="cmd">-e </span><span class="string">AGENT_TOOLBELT_KEY=atb_...</span> <span class="cmd">\</span><br>
+              &nbsp;&nbsp;<span class="cmd">-- npx -y agent-toolbelt-mcp</span>
             </div>
           </div>
         </div>
