@@ -11,4 +11,5 @@ export type {
   CronBuilderResult,
   AddressNormalizerResult,
   ColorPaletteResult,
+  BrandKitResult,
 } from "./client.js";

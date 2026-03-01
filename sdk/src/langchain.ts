@@ -225,5 +225,27 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
         return JSON.stringify(result);
       },
     }),
+
+    // ---- Brand Kit ----
+    new DynamicStructuredTool({
+      name: "generate_brand_kit",
+      description:
+        "Generate a complete brand kit from a company name, industry, and aesthetic keywords. " +
+        "Use this when a user needs a full visual identity: color palette, typography pairings, and design tokens. " +
+        "Powered by color psychology — maps industries to appropriate hues (fintech→blues, healthcare→greens, etc.) " +
+        "and vibes to color adjustments (luxurious→desaturated darks, playful→saturated brights). " +
+        "Returns Google Fonts pairings, WCAG accessibility scores, and ready-to-paste CSS custom properties or Tailwind config.",
+      schema: z.object({
+        name: z.string().describe("Company or brand name (e.g. 'Solaris Health', 'Bolt Finance')"),
+        industry: z.string().optional().describe("Industry or sector (e.g. 'fintech', 'healthcare', 'fashion', 'saas', 'food & beverage')"),
+        vibe: z.array(z.string()).optional().describe("Aesthetic keywords (e.g. ['modern', 'minimal'], ['bold', 'playful'], ['luxurious', 'elegant'])"),
+        targetAudience: z.string().optional().describe("Who the brand is for (e.g. 'enterprise B2B', 'gen-z consumers')"),
+        format: z.enum(["full", "tokens", "css", "tailwind"]).default("full").describe("Output format: full (everything), tokens (JSON), css (custom properties), tailwind (config)"),
+      }),
+      func: async ({ name, industry, vibe, targetAudience, format }) => {
+        const result = await client.brandKit({ name, industry, vibe, targetAudience, format });
+        return JSON.stringify(result);
+      },
+    }),
   ];
 }

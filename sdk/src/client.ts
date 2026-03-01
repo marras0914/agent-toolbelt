@@ -128,6 +128,52 @@ export interface ColorPaletteResult {
   swatches: string;
 }
 
+interface BrandKitColor {
+  name: string;
+  hex: string;
+  hsl: string;
+  rgb: string;
+  values: { h: number; s: number; l: number };
+}
+
+interface BrandKitAccessibilityCheck {
+  ratio: number;
+  rating: string;
+}
+
+export interface BrandKitResult {
+  brand: string;
+  industry?: string;
+  vibes?: string[];
+  palette?: {
+    primary: BrandKitColor;
+    secondary: BrandKitColor;
+    accent: BrandKitColor;
+    background: BrandKitColor;
+    surface: BrandKitColor;
+    text: BrandKitColor;
+    textMuted: BrandKitColor;
+    success: BrandKitColor;
+    warning: BrandKitColor;
+    error: BrandKitColor;
+  };
+  typography?: {
+    display: { family: string; weights: string[]; usage: string };
+    body: { family: string; weights: string[]; usage: string };
+    scale: Record<string, string>;
+    googleFontsUrl: string;
+  };
+  accessibility?: {
+    primaryOnBackground: BrandKitAccessibilityCheck;
+    textOnBackground: BrandKitAccessibilityCheck;
+    primaryOnWhite: BrandKitAccessibilityCheck;
+  };
+  tokens?: Record<string, unknown>;
+  css?: string;
+  tailwindConfig?: string;
+  fonts?: { display: string; body: string; googleFontsUrl?: string };
+}
+
 // ----- Client -----
 export class AgentToolbelt {
   private apiKey: string;
@@ -249,5 +295,16 @@ export class AgentToolbelt {
     includeShades?: boolean;
   }): Promise<ColorPaletteResult> {
     return this.call("color-palette", input);
+  }
+
+  /** Generate a full brand kit — color palette, typography, CSS/Tailwind tokens */
+  brandKit(input: {
+    name: string;
+    industry?: string;
+    vibe?: string[];
+    targetAudience?: string;
+    format?: "full" | "tokens" | "css" | "tailwind";
+  }): Promise<BrandKitResult> {
+    return this.call("brand-kit", input);
   }
 }
