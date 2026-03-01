@@ -892,6 +892,94 @@
         }
       }
     },
+    "/api/tools/prompt-optimizer": {
+      "post": {
+        "operationId": "optimizePrompt",
+        "summary": "Analyze and improve an LLM prompt",
+        "description": "Score an LLM prompt on clarity, specificity, structure, and completeness, then return an optimized rewrite with a summary of what changed and why. Supports targeting specific models for model-specific best practices.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "description": "The LLM prompt to analyze and/or improve."
+                  },
+                  "model": {
+                    "type": "string",
+                    "default": "gpt-4o",
+                    "description": "Target model to optimize for (e.g. 'gpt-4o', 'claude-3-5-sonnet', 'gpt-3.5-turbo')."
+                  },
+                  "task": {
+                    "type": "string",
+                    "description": "What this prompt is trying to accomplish. Helps generate more targeted suggestions."
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["improve", "analyze", "both"],
+                    "default": "both",
+                    "description": "'both' returns analysis + improved prompt. 'analyze' returns scores and issues only. 'improve' returns rewritten prompt only."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prompt analysis and/or optimized rewrite",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "durationMs": { "type": "integer" },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "mode": { "type": "string" },
+                        "model": { "type": "string" },
+                        "scores": {
+                          "type": "object",
+                          "properties": {
+                            "clarity": { "type": "number" },
+                            "specificity": { "type": "number" },
+                            "structure": { "type": "number" },
+                            "completeness": { "type": "number" },
+                            "overall": { "type": "number" }
+                          }
+                        },
+                        "issues": { "type": "array", "items": { "type": "string" } },
+                        "suggestions": { "type": "array", "items": { "type": "string" } },
+                        "improvedPrompt": { "type": "string" },
+                        "changesSummary": { "type": "array", "items": { "type": "string" } },
+                        "tokenStats": {
+                          "type": "object",
+                          "properties": {
+                            "original": { "type": "integer" },
+                            "improved": { "type": "integer" },
+                            "delta": { "type": "integer" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
     "/api/tools/meeting-action-items": {
       "post": {
         "operationId": "extractMeetingActionItems",

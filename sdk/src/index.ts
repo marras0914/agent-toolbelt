@@ -15,4 +15,5 @@ export type {
   ImageMetadataStripperResult,
   MeetingActionItem,
   MeetingActionItemsResult,
+  PromptOptimizerResult,
 } from "./client.js";

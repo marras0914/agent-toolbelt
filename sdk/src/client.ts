@@ -174,6 +174,27 @@ export interface BrandKitResult {
   fonts?: { display: string; body: string; googleFontsUrl?: string };
 }
 
+export interface PromptOptimizerResult {
+  mode: "improve" | "analyze" | "both";
+  model: string;
+  scores?: {
+    clarity: number;
+    specificity: number;
+    structure: number;
+    completeness: number;
+    overall: number;
+  };
+  issues?: string[];
+  suggestions?: string[];
+  improvedPrompt?: string;
+  changesSummary?: string[];
+  tokenStats: {
+    original: number;
+    improved?: number;
+    delta?: number;
+  };
+}
+
 export interface MeetingActionItem {
   id: number;
   owner: string;
@@ -337,6 +358,16 @@ export class AgentToolbelt {
     includeShades?: boolean;
   }): Promise<ColorPaletteResult> {
     return this.call("color-palette", input);
+  }
+
+  /** Analyze and improve an LLM prompt — scores clarity, specificity, structure, and completeness */
+  promptOptimizer(input: {
+    prompt: string;
+    model?: string;
+    task?: string;
+    mode?: "improve" | "analyze" | "both";
+  }): Promise<PromptOptimizerResult> {
+    return this.call("prompt-optimizer", input);
   }
 
   /** Extract action items, decisions, and summary from meeting notes or transcripts */

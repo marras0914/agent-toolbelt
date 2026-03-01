@@ -226,6 +226,31 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
       },
     }),
 
+    // ---- Prompt Optimizer ----
+    new DynamicStructuredTool({
+      name: "optimize_prompt",
+      description:
+        "Analyze and improve an LLM prompt for clarity, specificity, structure, and completeness. " +
+        "Use this when a prompt isn't performing well, to prepare prompts before deploying them, " +
+        "or to learn what makes a good prompt for a specific model. " +
+        "Returns scores (1-10) for each quality dimension, a list of issues found, " +
+        "an improved rewrite, and a summary of what changed and why. " +
+        "Supports targeting specific models: gpt-4o, claude-3-5-sonnet, gpt-3.5-turbo, etc.",
+      schema: z.object({
+        prompt: z.string().describe("The LLM prompt to analyze and/or improve"),
+        model: z.string().default("gpt-4o").describe("Target model to optimize for"),
+        task: z.string().optional().describe("What this prompt is trying to accomplish (helps generate targeted suggestions)"),
+        mode: z
+          .enum(["improve", "analyze", "both"])
+          .default("both")
+          .describe("'both' returns analysis + improved prompt; 'analyze' scores only; 'improve' rewrites only"),
+      }),
+      func: async ({ prompt, model, task, mode }) => {
+        const result = await client.promptOptimizer({ prompt, model, task, mode });
+        return JSON.stringify(result);
+      },
+    }),
+
     // ---- Meeting Action Items ----
     new DynamicStructuredTool({
       name: "extract_meeting_action_items",

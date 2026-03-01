@@ -560,6 +560,68 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Prompt Optimizer -----
+server.registerTool(
+  "optimize_prompt",
+  {
+    title: "Prompt Optimizer",
+    description:
+      "Analyze and improve an LLM prompt. Scores clarity, specificity, structure, and completeness. " +
+      "Returns an optimized rewrite with a summary of what changed and why. Powered by Claude.",
+    inputSchema: {
+      prompt: z.string().describe("The LLM prompt to analyze and/or improve"),
+      model: z.string().default("gpt-4o").describe("Target model (e.g. 'gpt-4o', 'claude-3-5-sonnet')"),
+      task: z.string().optional().describe("What this prompt is trying to accomplish"),
+      mode: z
+        .enum(["improve", "analyze", "both"])
+        .default("both")
+        .describe("'both' returns analysis + improved prompt; 'analyze' scores only; 'improve' rewrites only"),
+    },
+  },
+  async ({ prompt, model, task, mode }) => {
+    const result = await callToolApi("prompt-optimizer", { prompt, model, task, mode });
+    const data = result as any;
+    const r = data.result;
+
+    const lines: string[] = [`**Prompt Optimizer** (targeting: ${r.model})`];
+
+    if (r.scores) {
+      lines.push(
+        "",
+        "**Scores:**",
+        `  Clarity:      ${r.scores.clarity}/10`,
+        `  Specificity:  ${r.scores.specificity}/10`,
+        `  Structure:    ${r.scores.structure}/10`,
+        `  Completeness: ${r.scores.completeness}/10`,
+        `  Overall:      ${r.scores.overall}/10`
+      );
+    }
+
+    if (r.issues?.length) {
+      lines.push("", "**Issues found:**", ...r.issues.map((i: string) => `  - ${i}`));
+    }
+
+    if (r.suggestions?.length) {
+      lines.push("", "**Suggestions:**", ...r.suggestions.map((s: string) => `  - ${s}`));
+    }
+
+    if (r.improvedPrompt) {
+      lines.push("", "**Improved prompt:**", "```", r.improvedPrompt, "```");
+    }
+
+    if (r.changesSummary?.length) {
+      lines.push("", "**Changes made:**", ...r.changesSummary.map((c: string) => `  - ${c}`));
+    }
+
+    lines.push(
+      "",
+      `**Token stats:** original: ${r.tokenStats.original}${r.tokenStats.improved ? ` → improved: ${r.tokenStats.improved} (${r.tokenStats.delta > 0 ? "+" : ""}${r.tokenStats.delta})` : ""}`
+    );
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Meeting Action Items -----
 server.registerTool(
   "extract_meeting_action_items",

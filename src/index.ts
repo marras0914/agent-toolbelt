@@ -30,6 +30,7 @@ import "./tools/address-normalizer";
 import "./tools/color-palette";
 import "./tools/image-metadata-stripper";
 import "./tools/meeting-action-items";
+import "./tools/prompt-optimizer";
 
 // ----- App Setup -----
 const app = express();
