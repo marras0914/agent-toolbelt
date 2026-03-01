@@ -1,25 +1,26 @@
-I kept rebuilding the same small utilities across agent projects — counting tokens before LLM calls, extracting structured data from raw text, converting HTML to Markdown for context windows, normalizing addresses. Packaged them as a focused API with per-call pricing.
+# Hacker News Post
 
-16 tools live:
+**Title:**
+Show HN: Agent Toolbelt – 16 focused API tools for LLM agents (contract review, prompt optimizer, meeting notes, and more)
 
-**Data & transformation (rule-based, fast, cheap)**
-- Token counter — exact via tiktoken for OpenAI models, approximated for Claude — with cost estimates
-- Text extractor — emails, URLs, phones, dates, currencies, addresses, names from raw text
-- CSV → typed JSON with auto delimiter detection and type casting
-- HTML ↔ Markdown converter
-- URL metadata — title, OG tags, favicon, author, publish date
-- Schema generator — JSON Schema / TypeScript / Zod from plain English
-- Regex builder, cron builder, address normalizer, color palette, brand kit, image EXIF stripper
+---
 
-**LLM-powered tools (Claude Haiku, $0.05–$0.10/call)**
-- Meeting notes → action items — extracts owners, deadlines, priorities, decisions, and summary
-- Prompt optimizer — scores and rewrites LLM prompts (clarity, specificity, structure, completeness)
-- Document comparator — semantic diff of any two text versions with significance ratings
-- Contract clause extractor — pulls parties, payment terms, termination, IP, liability, risks from legal docs
+**Body:**
 
-Ships as:
-- npm package (`agent-toolbelt`) — typed client + LangChain DynamicStructuredTool wrappers
-- Claude MCP server (`agent-toolbelt-mcp`) — works in Claude Desktop and Claude Code
+I kept rebuilding the same small utilities across agent projects. Eventually packaged them as a focused API — each tool does one thing, billed per call.
+
+Started with the obvious stuff (token counting, text extraction, CSV conversion). Recently added four LLM-powered tools that are more interesting:
+
+- **Contract clause extractor** — paste in a contract, get back structured parties/payment terms/termination/IP/liability clauses plus risk flags with severity ratings and plain-English explanations ($0.10/call)
+- **Document comparator** — semantic diff of any two text versions. Identifies additions, deletions, modifications with significance ratings. Works on contracts, READMEs, policies, anything ($0.05/call)
+- **Meeting notes → action items** — extracts owners, deadlines, priorities, decisions, and a summary from raw transcripts or bullet notes ($0.05/call)
+- **Prompt optimizer** — scores LLM prompts on clarity, specificity, structure, and completeness, then rewrites them with a changelog ($0.05/call)
+
+Plus 12 rule-based tools: token counter (exact via tiktoken + cost estimates), text extractor, CSV→JSON, HTML↔Markdown, URL metadata, schema generator, regex builder, cron builder, address normalizer, color palette, brand kit, image EXIF stripper.
+
+Ships three ways:
+- npm: `npm install agent-toolbelt` — typed client + 16 LangChain DynamicStructuredTools
+- Claude MCP: `npx -y agent-toolbelt-mcp` — works in Claude Desktop and Claude Code
 - OpenAI GPT Actions — OpenAPI spec at /openapi/openapi-gpt-actions.json
 
 Free tier: 1,000 calls/month, no credit card.
