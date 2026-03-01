@@ -226,6 +226,53 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
       },
     }),
 
+    // ---- Document Comparator ----
+    new DynamicStructuredTool({
+      name: "compare_documents",
+      description:
+        "Compare two versions of a document and produce a semantic diff. " +
+        "Use this to understand what changed between drafts, versions, or revisions of any text document — " +
+        "contracts, READMEs, policies, essays, terms of service, code documentation, etc. " +
+        "Returns additions, deletions, and modifications with significance ratings and an overall change assessment. " +
+        "The 'structured' mode gives a categorized breakdown; 'summary' gives a quick overview; 'detailed' gives full prose analysis.",
+      schema: z.object({
+        original: z.string().describe("The original version of the document"),
+        revised: z.string().describe("The revised version of the document"),
+        mode: z
+          .enum(["summary", "detailed", "structured"])
+          .default("structured")
+          .describe("Output format: 'structured' (categorized lists), 'detailed' (prose), 'summary' (brief overview)"),
+        context: z.string().optional().describe("Document type for more relevant analysis (e.g. 'terms of service', 'employment contract')"),
+      }),
+      func: async ({ original, revised, mode, context }) => {
+        const result = await client.documentComparator({ original, revised, mode, context });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Contract Clause Extractor ----
+    new DynamicStructuredTool({
+      name: "extract_contract_clauses",
+      description:
+        "Extract and analyze key clauses from a contract or legal document. " +
+        "Use this to quickly understand the key terms in any legal agreement — " +
+        "who the parties are, payment terms, termination conditions, liability caps, IP ownership, confidentiality obligations, and more. " +
+        "Optionally flags risky or one-sided clauses with severity ratings and plain-language explanations. " +
+        "Ideal for contract review, due diligence, or surfacing terms that need negotiation.",
+      schema: z.object({
+        contract: z.string().describe("The contract or legal document text to analyze"),
+        clauses: z
+          .array(z.enum(["parties", "dates", "payment_terms", "termination", "liability", "ip_ownership", "confidentiality", "governing_law", "penalties", "renewal", "warranties", "dispute_resolution"]))
+          .default(["parties", "dates", "payment_terms", "termination", "liability", "ip_ownership", "confidentiality", "governing_law", "penalties", "renewal", "warranties", "dispute_resolution"])
+          .describe("Which clause types to extract"),
+        flagRisks: z.boolean().default(true).describe("Flag clauses that may be unfavorable or risky"),
+      }),
+      func: async ({ contract, clauses, flagRisks }) => {
+        const result = await client.contractClauseExtractor({ contract, clauses, flagRisks });
+        return JSON.stringify(result);
+      },
+    }),
+
     // ---- Prompt Optimizer ----
     new DynamicStructuredTool({
       name: "optimize_prompt",

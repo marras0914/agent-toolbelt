@@ -892,6 +892,74 @@
         }
       }
     },
+    "/api/tools/document-comparator": {
+      "post": {
+        "operationId": "compareDocuments",
+        "summary": "Compare two document versions (semantic diff)",
+        "description": "Compare two versions of any text document and produce a semantic diff. Returns additions, deletions, and modifications with significance ratings. Works with contracts, READMEs, policies, essays, or any text. Powered by Claude.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["original", "revised"],
+                "properties": {
+                  "original": { "type": "string", "description": "The original version of the document." },
+                  "revised": { "type": "string", "description": "The revised version of the document." },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["summary", "detailed", "structured"],
+                    "default": "structured",
+                    "description": "'structured' returns categorized additions/deletions/modifications. 'detailed' returns prose analysis. 'summary' returns a brief overview."
+                  },
+                  "context": { "type": "string", "description": "Optional document type to improve analysis quality (e.g. 'employment contract', 'terms of service')." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Document diff results" },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
+    "/api/tools/contract-clause-extractor": {
+      "post": {
+        "operationId": "extractContractClauses",
+        "summary": "Extract key clauses from a contract",
+        "description": "Extract and summarize key clauses from a contract or legal document. Identifies parties, payment terms, termination conditions, liability, IP ownership, confidentiality, and more. Optionally flags risky or one-sided clauses with severity ratings. Powered by Claude.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["contract"],
+                "properties": {
+                  "contract": { "type": "string", "description": "The contract or legal document text." },
+                  "clauses": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["parties", "dates", "payment_terms", "termination", "liability", "ip_ownership", "confidentiality", "governing_law", "penalties", "renewal", "warranties", "dispute_resolution"] },
+                    "description": "Which clause types to extract. Defaults to all."
+                  },
+                  "flagRisks": { "type": "boolean", "default": true, "description": "Flag clauses that may be unfavorable or risky." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Extracted clauses and risk analysis" },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
     "/api/tools/prompt-optimizer": {
       "post": {
         "operationId": "optimizePrompt",

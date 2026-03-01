@@ -31,6 +31,8 @@ import "./tools/color-palette";
 import "./tools/image-metadata-stripper";
 import "./tools/meeting-action-items";
 import "./tools/prompt-optimizer";
+import "./tools/document-comparator";
+import "./tools/contract-clause-extractor";
 
 // ----- App Setup -----
 const app = express();

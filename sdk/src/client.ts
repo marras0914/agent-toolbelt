@@ -174,6 +174,40 @@ export interface BrandKitResult {
   fonts?: { display: string; body: string; googleFontsUrl?: string };
 }
 
+export interface DocumentComparatorResult {
+  mode: string;
+  summary: string;
+  overallAssessment: "minor" | "moderate" | "major";
+  analysis?: string;
+  additions?: Array<{ description: string; content: string; significance: "high" | "medium" | "low" }>;
+  deletions?: Array<{ description: string; content: string; significance: "high" | "medium" | "low" }>;
+  modifications?: Array<{ description: string; before: string; after: string; significance: "high" | "medium" | "low" }>;
+  stats: { additions: number; deletions: number; modifications: number };
+}
+
+export interface ContractClauseResult {
+  found: boolean;
+  summary?: string;
+  excerpt?: string | null;
+  details?: Record<string, unknown>;
+}
+
+export interface ContractRiskFlag {
+  clause: string;
+  issue: string;
+  severity: "high" | "medium" | "low";
+  excerpt: string;
+}
+
+export interface ContractClauseExtractorResult {
+  contractType: string;
+  clausesRequested: number;
+  clausesFound: number;
+  clauses: Record<string, ContractClauseResult>;
+  riskFlags?: ContractRiskFlag[];
+  riskSummary?: string;
+}
+
 export interface PromptOptimizerResult {
   mode: "improve" | "analyze" | "both";
   model: string;
@@ -358,6 +392,25 @@ export class AgentToolbelt {
     includeShades?: boolean;
   }): Promise<ColorPaletteResult> {
     return this.call("color-palette", input);
+  }
+
+  /** Compare two document versions and produce a semantic diff */
+  documentComparator(input: {
+    original: string;
+    revised: string;
+    mode?: "summary" | "detailed" | "structured";
+    context?: string;
+  }): Promise<DocumentComparatorResult> {
+    return this.call("document-comparator", input);
+  }
+
+  /** Extract and analyze key clauses from a contract or legal document */
+  contractClauseExtractor(input: {
+    contract: string;
+    clauses?: Array<"parties" | "dates" | "payment_terms" | "termination" | "liability" | "ip_ownership" | "confidentiality" | "governing_law" | "penalties" | "renewal" | "warranties" | "dispute_resolution">;
+    flagRisks?: boolean;
+  }): Promise<ContractClauseExtractorResult> {
+    return this.call("contract-clause-extractor", input);
   }
 
   /** Analyze and improve an LLM prompt — scores clarity, specificity, structure, and completeness */

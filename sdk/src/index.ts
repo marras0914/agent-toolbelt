@@ -16,4 +16,8 @@ export type {
   MeetingActionItem,
   MeetingActionItemsResult,
   PromptOptimizerResult,
+  DocumentComparatorResult,
+  ContractClauseResult,
+  ContractRiskFlag,
+  ContractClauseExtractorResult,
 } from "./client.js";

@@ -560,6 +560,105 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Document Comparator -----
+server.registerTool(
+  "compare_documents",
+  {
+    title: "Document Comparator",
+    description:
+      "Compare two versions of a document and produce a semantic diff with additions, deletions, and modifications. " +
+      "Works with contracts, READMEs, policies, essays, or any text. Powered by Claude.",
+    inputSchema: {
+      original: z.string().describe("The original version of the document"),
+      revised: z.string().describe("The revised version of the document"),
+      mode: z.enum(["summary", "detailed", "structured"]).default("structured").describe("Output format"),
+      context: z.string().optional().describe("Document type for more relevant analysis"),
+    },
+  },
+  async ({ original, revised, mode, context }) => {
+    const result = await callToolApi("document-comparator", { original, revised, mode, context });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**Document Comparison** — ${r.overallAssessment?.toUpperCase()} changes`,
+      `**Summary:** ${r.summary}`,
+      `**Stats:** +${r.stats?.additions} additions, -${r.stats?.deletions} deletions, ~${r.stats?.modifications} modifications`,
+    ];
+
+    if (mode === "structured") {
+      if (r.additions?.length) {
+        lines.push("", "**Additions:**");
+        r.additions.forEach((a: any) => lines.push(`  [${a.significance}] ${a.description}\n  > ${a.content}`));
+      }
+      if (r.deletions?.length) {
+        lines.push("", "**Deletions:**");
+        r.deletions.forEach((d: any) => lines.push(`  [${d.significance}] ${d.description}\n  > ${d.content}`));
+      }
+      if (r.modifications?.length) {
+        lines.push("", "**Modifications:**");
+        r.modifications.forEach((m: any) => lines.push(`  [${m.significance}] ${m.description}\n  Before: ${m.before}\n  After:  ${m.after}`));
+      }
+    } else if (mode === "detailed" && r.analysis) {
+      lines.push("", "**Analysis:**", r.analysis);
+    }
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: Contract Clause Extractor -----
+server.registerTool(
+  "extract_contract_clauses",
+  {
+    title: "Contract Clause Extractor",
+    description:
+      "Extract key clauses from a contract — parties, payment terms, termination, liability, IP ownership, confidentiality, and more. " +
+      "Optionally flags risky or one-sided clauses with severity ratings. Powered by Claude.",
+    inputSchema: {
+      contract: z.string().describe("The contract or legal document text"),
+      clauses: z
+        .array(z.enum(["parties", "dates", "payment_terms", "termination", "liability", "ip_ownership", "confidentiality", "governing_law", "penalties", "renewal", "warranties", "dispute_resolution"]))
+        .default(["parties", "dates", "payment_terms", "termination", "liability", "ip_ownership", "confidentiality", "governing_law", "penalties", "renewal", "warranties", "dispute_resolution"])
+        .describe("Which clause types to extract"),
+      flagRisks: z.boolean().default(true).describe("Flag risky or unfavorable clauses"),
+    },
+  },
+  async ({ contract, clauses, flagRisks }) => {
+    const result = await callToolApi("contract-clause-extractor", { contract, clauses, flagRisks });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**${r.contractType}**`,
+      `**Clauses found:** ${r.clausesFound} of ${r.clausesRequested} requested`,
+    ];
+
+    if (r.clauses) {
+      lines.push("", "**Extracted Clauses:**");
+      for (const [key, val] of Object.entries(r.clauses) as any) {
+        if (val.found) {
+          lines.push(`\n**${key.replace(/_/g, " ").toUpperCase()}**`);
+          lines.push(`  ${val.summary}`);
+          if (val.excerpt) lines.push(`  _"${val.excerpt}"_`);
+        }
+      }
+    }
+
+    if (flagRisks && r.riskFlags?.length) {
+      lines.push("", "**⚠ Risk Flags:**");
+      r.riskFlags.forEach((f: any) =>
+        lines.push(`  [${f.severity.toUpperCase()}] ${f.clause.replace(/_/g, " ")}: ${f.issue}\n  > "${f.excerpt}"`)
+      );
+      if (r.riskSummary) lines.push("", `**Risk Summary:** ${r.riskSummary}`);
+    } else if (flagRisks) {
+      lines.push("", "**No significant risk flags found.**");
+    }
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Prompt Optimizer -----
 server.registerTool(
   "optimize_prompt",
