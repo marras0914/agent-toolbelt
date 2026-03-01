@@ -277,6 +277,36 @@ export interface ApiResponseMockerResult {
   schema: { type: string; title?: string };
 }
 
+export interface DependencyVulnerability {
+  id: string;
+  cves: string[];
+  summary: string;
+  severity: "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "UNKNOWN";
+  fixedIn: string[];
+  published?: string;
+  url: string;
+  cweIds?: string[];
+}
+
+export interface DependencyAuditorResult {
+  vulnerable: Array<{
+    package: string;
+    version?: string;
+    ecosystem: string;
+    vulnerabilities: DependencyVulnerability[];
+    highestSeverity: string;
+  }>;
+  clean: string[];
+  summary: {
+    totalPackages: number;
+    vulnerablePackages: number;
+    cleanPackages: number;
+    totalVulnerabilities: number;
+    bySeverity: Record<string, number>;
+    riskLevel: "NONE" | "MODERATE" | "HIGH" | "CRITICAL";
+  };
+}
+
 export interface ContextWindowPackerResult {
   packed: Array<{
     label?: string;
@@ -500,6 +530,17 @@ export class AgentToolbelt {
     seed?: number;
   }): Promise<ApiResponseMockerResult> {
     return this.call("api-response-mocker", input);
+  }
+
+  /** Audit npm and PyPI packages for known CVEs using the OSV database */
+  dependencyAuditor(input: {
+    packages?: Array<{ name: string; version?: string; ecosystem: "npm" | "pypi" }>;
+    manifest?: string;
+    manifestType?: "package.json" | "requirements.txt" | "auto";
+    includeDevDependencies?: boolean;
+    minSeverity?: "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+  }): Promise<DependencyAuditorResult> {
+    return this.call("dependency-auditor", input);
   }
 
   /** Pack content chunks into a token budget for LLM context windows */

@@ -416,5 +416,30 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
         return JSON.stringify(result);
       },
     }),
+
+    // ---- Dependency Auditor ----
+    new DynamicStructuredTool({
+      name: "audit_dependencies",
+      description:
+        "Audit npm and PyPI packages for known security vulnerabilities using the OSV database (same source as GitHub Dependabot). " +
+        "Pass a list of packages with versions, or paste raw package.json / requirements.txt content. " +
+        "Returns CVE IDs, severity ratings (CRITICAL/HIGH/MODERATE/LOW), fixed versions, and advisory links per package. " +
+        "Results are sorted by severity. Use this before suggesting dependency upgrades or when reviewing a project's security posture.",
+      schema: z.object({
+        packages: z.array(z.object({
+          name: z.string().describe("Package name"),
+          version: z.string().optional().describe("Version to check (e.g. '4.17.11')"),
+          ecosystem: z.enum(["npm", "pypi"]).describe("Package ecosystem"),
+        })).optional().describe("Packages to audit"),
+        manifest: z.string().optional().describe("Raw package.json or requirements.txt content"),
+        manifestType: z.enum(["package.json", "requirements.txt", "auto"]).default("auto").describe("Manifest format"),
+        includeDevDependencies: z.boolean().default(true).describe("Include devDependencies from package.json"),
+        minSeverity: z.enum(["LOW", "MODERATE", "HIGH", "CRITICAL"]).default("LOW").describe("Minimum severity to include"),
+      }),
+      func: async ({ packages, manifest, manifestType, includeDevDependencies, minSeverity }) => {
+        const result = await client.dependencyAuditor({ packages, manifest, manifestType, includeDevDependencies, minSeverity });
+        return JSON.stringify(result);
+      },
+    }),
   ];
 }

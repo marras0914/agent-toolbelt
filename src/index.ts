@@ -35,6 +35,7 @@ import "./tools/document-comparator";
 import "./tools/contract-clause-extractor";
 import "./tools/api-response-mocker";
 import "./tools/context-window-packer";
+import "./tools/dependency-auditor";
 
 // ----- App Setup -----
 const app = express();

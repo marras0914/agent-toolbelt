@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Agent Toolbelt",
-    "description": "18 focused API tools for AI agents and developers. Data extraction, token counting, document analysis, contract clause extraction, prompt optimization, meeting action items, mock data generation, and more. Rule-based tools from $0.0001/call. LLM-powered tools at $0.05–$0.10/call. Free tier: 1,000 calls/month.",
+    "description": "19 focused API tools for AI agents and developers. Data extraction, token counting, document analysis, contract clause extraction, prompt optimization, meeting action items, mock data generation, and more. Rule-based tools from $0.0001/call. LLM-powered tools at $0.05–$0.10/call. Free tier: 1,000 calls/month.",
     "version": "1.0.0",
     "contact": {
       "name": "Agent Toolbelt Support",
@@ -1312,6 +1312,48 @@
         },
         "responses": {
           "200": { "description": "Packed chunks, excluded chunks, and token stats" },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
+    "/api/tools/dependency-auditor": {
+      "post": {
+        "operationId": "auditDependencies",
+        "summary": "Audit npm/PyPI packages for known CVEs",
+        "description": "Check npm and PyPI packages for known security vulnerabilities using the OSV database (same source as GitHub Dependabot). Pass packages directly or paste raw package.json / requirements.txt content. Returns CVE IDs, severity (CRITICAL/HIGH/MODERATE/LOW), fixed versions, and advisory URLs per package, sorted by severity.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "packages": {
+                    "type": "array",
+                    "description": "Packages to audit.",
+                    "items": {
+                      "type": "object",
+                      "required": ["name", "ecosystem"],
+                      "properties": {
+                        "name": { "type": "string", "description": "Package name." },
+                        "version": { "type": "string", "description": "Version to check (e.g. '4.17.11'). Omit for all known vulns." },
+                        "ecosystem": { "type": "string", "enum": ["npm", "pypi"], "description": "Package ecosystem." }
+                      }
+                    }
+                  },
+                  "manifest": { "type": "string", "description": "Raw package.json or requirements.txt content. Parsed automatically." },
+                  "manifestType": { "type": "string", "enum": ["package.json", "requirements.txt", "auto"], "default": "auto" },
+                  "includeDevDependencies": { "type": "boolean", "default": true, "description": "Include devDependencies when parsing package.json." },
+                  "minSeverity": { "type": "string", "enum": ["LOW", "MODERATE", "HIGH", "CRITICAL"], "default": "LOW", "description": "Minimum severity to include in results." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Vulnerability report with per-package details and summary" },
           "400": { "description": "Validation error" },
           "401": { "description": "Missing or invalid API key" },
           "429": { "description": "Rate limit or quota exceeded" }

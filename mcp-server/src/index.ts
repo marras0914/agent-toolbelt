@@ -838,6 +838,63 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Dependency Auditor -----
+server.registerTool(
+  "audit_dependencies",
+  {
+    title: "Dependency Auditor",
+    description:
+      "Audit npm and PyPI packages for known CVEs using the OSV database (GitHub Dependabot's source). " +
+      "Pass packages directly or paste package.json / requirements.txt content.",
+    inputSchema: {
+      packages: z.array(z.object({
+        name: z.string(),
+        version: z.string().optional(),
+        ecosystem: z.enum(["npm", "pypi"]),
+      })).optional().describe("Packages to audit"),
+      manifest: z.string().optional().describe("Raw package.json or requirements.txt"),
+      manifestType: z.enum(["package.json", "requirements.txt", "auto"]).default("auto"),
+      includeDevDependencies: z.boolean().default(true),
+      minSeverity: z.enum(["LOW", "MODERATE", "HIGH", "CRITICAL"]).default("LOW"),
+    },
+  },
+  async ({ packages, manifest, manifestType, includeDevDependencies, minSeverity }) => {
+    const result = await callToolApi("dependency-auditor", { packages, manifest, manifestType, includeDevDependencies, minSeverity });
+    const data = result as any;
+    const r = data.result;
+
+    const riskEmoji: Record<string, string> = { NONE: "✅", MODERATE: "⚠️", HIGH: "🔴", CRITICAL: "🚨" };
+    const sevEmoji: Record<string, string> = { LOW: "🔵", MODERATE: "🟡", HIGH: "🔴", CRITICAL: "🚨" };
+
+    const lines = [
+      `${riskEmoji[r.summary.riskLevel] || "⚠️"} **Risk Level: ${r.summary.riskLevel}**`,
+      `**${r.summary.vulnerablePackages}/${r.summary.totalPackages} packages vulnerable** | ${r.summary.totalVulnerabilities} total vulnerabilities`,
+      Object.keys(r.summary.bySeverity).length > 0
+        ? `**By severity:** ${Object.entries(r.summary.bySeverity).map(([s, n]) => `${s}: ${n}`).join(", ")}`
+        : "",
+      "",
+    ];
+
+    for (const pkg of r.vulnerable) {
+      lines.push(`**${pkg.package}${pkg.version ? `@${pkg.version}` : ""} [${pkg.highestSeverity}]**`);
+      for (const v of pkg.vulnerabilities) {
+        const cve = v.cves[0] ? ` (${v.cves[0]})` : "";
+        const fix = v.fixedIn.length > 0 ? ` → fix: ${v.fixedIn[0]}` : "";
+        lines.push(`  ${sevEmoji[v.severity] || "•"} ${v.severity} ${v.id}${cve}${fix}`);
+        lines.push(`    ${v.summary}`);
+        lines.push(`    ${v.url}`);
+      }
+      lines.push("");
+    }
+
+    if (r.clean.length > 0) {
+      lines.push(`✅ **Clean packages:** ${r.clean.join(", ")}`);
+    }
+
+    return { content: [{ type: "text" as const, text: lines.filter(Boolean).join("\n") }] };
+  }
+);
+
 // ----- Tool: Context Window Packer -----
 server.registerTool(
   "pack_context_window",

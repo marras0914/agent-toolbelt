@@ -21,5 +21,7 @@ export type {
   ContractRiskFlag,
   ContractClauseExtractorResult,
   ApiResponseMockerResult,
+  DependencyVulnerability,
+  DependencyAuditorResult,
   ContextWindowPackerResult,
 } from "./client.js";
