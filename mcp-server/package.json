@@ -11,7 +11,15 @@
     "dev": "tsx src/index.ts",
     "inspector": "npx @modelcontextprotocol/inspector node build/index.js"
   },
-  "files": ["build"],
+  "files": ["build", "README.md"],
+  "keywords": ["mcp", "claude", "ai", "agent", "tools", "langchain", "llm", "anthropic", "model-context-protocol"],
+  "author": "Agent Toolbelt",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marras0914/agent-toolbelt"
+  },
+  "homepage": "https://agent-toolbelt-production.up.railway.app",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
     "zod": "^3.25.0"
