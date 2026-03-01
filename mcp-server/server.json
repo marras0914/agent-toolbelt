@@ -1,0 +1,26 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.marras0914/agent-toolbelt-mcp",
+  "description": "11 focused API tools for LLM agents — schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex builder, cron expressions, address normalization, color palettes, and brand kit.",
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registry_type": "npm",
+      "name": "agent-toolbelt-mcp",
+      "version": "1.0.0",
+      "runtime_arguments": [],
+      "environment_variables": [
+        {
+          "name": "AGENT_TOOLBELT_KEY",
+          "description": "Your Agent Toolbelt API key. Get one free at https://agent-toolbelt-production.up.railway.app",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/marras0914/agent-toolbelt",
+    "source": "https://github.com/marras0914/agent-toolbelt/tree/master/mcp-server"
+  },
+  "homepage": "https://agent-toolbelt-production.up.railway.app"
+}
