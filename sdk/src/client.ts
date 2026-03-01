@@ -271,6 +271,12 @@ export interface ImageMetadataStripperResult {
   strippedFields: string[];
 }
 
+export interface ApiResponseMockerResult {
+  data: unknown;
+  count: number;
+  schema: { type: string; title?: string };
+}
+
 // ----- Client -----
 export class AgentToolbelt {
   private apiKey: string;
@@ -450,5 +456,14 @@ export class AgentToolbelt {
     format?: "full" | "tokens" | "css" | "tailwind";
   }): Promise<BrandKitResult> {
     return this.call("brand-kit", input);
+  }
+
+  /** Generate realistic mock API responses from a JSON Schema */
+  apiResponseMocker(input: {
+    schema: Record<string, unknown>;
+    count?: number;
+    seed?: number;
+  }): Promise<ApiResponseMockerResult> {
+    return this.call("api-response-mocker", input);
   }
 }

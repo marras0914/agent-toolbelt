@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Agent Toolbelt",
-    "description": "16 focused API tools for AI agents and developers. Data extraction, token counting, document analysis, contract clause extraction, prompt optimization, meeting action items, and more. Rule-based tools from $0.0001/call. LLM-powered tools at $0.05–$0.10/call. Free tier: 1,000 calls/month.",
+    "description": "17 focused API tools for AI agents and developers. Data extraction, token counting, document analysis, contract clause extraction, prompt optimization, meeting action items, mock data generation, and more. Rule-based tools from $0.0001/call. LLM-powered tools at $0.05–$0.10/call. Free tier: 1,000 calls/month.",
     "version": "1.0.0",
     "contact": {
       "name": "Agent Toolbelt Support",
@@ -1216,6 +1216,57 @@
             }
           },
           "400": { "description": "Invalid image data or unsupported format" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
+    "/api/tools/api-response-mocker": {
+      "post": {
+        "operationId": "mockApiResponse",
+        "summary": "Generate realistic mock API responses from a JSON Schema",
+        "description": "Generate 1–100 realistic mock records from a JSON Schema. Supports nested objects, arrays, string formats (email, uuid, date-time, url, phone, ipv4), field-name heuristics (fields named 'email' get email addresses, 'createdAt' gets ISO timestamps, etc.), enums, and min/max constraints. Set seed for reproducible output. Perfect for test fixtures, dev database seeding, and prototype data.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["schema"],
+                "properties": {
+                  "schema": {
+                    "type": "object",
+                    "description": "JSON Schema object describing the shape of the mock data to generate.",
+                    "example": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "name": { "type": "string" },
+                        "email": { "type": "string", "format": "email" },
+                        "age": { "type": "integer", "minimum": 18, "maximum": 80 }
+                      },
+                      "required": ["id", "name", "email"]
+                    }
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 1,
+                    "description": "Number of mock records to generate (1–100)."
+                  },
+                  "seed": {
+                    "type": "integer",
+                    "description": "Optional seed for reproducible output. Same schema + same seed = same data."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Generated mock data matching the schema" },
+          "400": { "description": "Invalid schema" },
           "401": { "description": "Missing or invalid API key" },
           "429": { "description": "Rate limit or quota exceeded" }
         }

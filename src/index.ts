@@ -33,6 +33,7 @@ import "./tools/meeting-action-items";
 import "./tools/prompt-optimizer";
 import "./tools/document-comparator";
 import "./tools/contract-clause-extractor";
+import "./tools/api-response-mocker";
 
 // ----- App Setup -----
 const app = express();

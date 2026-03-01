@@ -805,6 +805,39 @@ server.registerTool(
   }
 );
 
+// ----- Tool: API Response Mocker -----
+server.registerTool(
+  "mock_api_response",
+  {
+    title: "API Response Mocker",
+    description:
+      "Generate realistic mock API responses from a JSON Schema. " +
+      "Supports nested objects, arrays, string formats (email, uuid, date-time, url), " +
+      "field-name heuristics, enums, and min/max constraints. " +
+      "Set seed for reproducible output. Returns 1–100 records.",
+    inputSchema: {
+      schema: z.record(z.unknown()).describe("JSON Schema object describing the shape of the mock data"),
+      count: z.number().int().min(1).max(100).default(1).describe("Number of mock records to generate (1–100)"),
+      seed: z.number().int().optional().describe("Optional seed for reproducible output"),
+    },
+  },
+  async ({ schema, count, seed }) => {
+    const result = await callToolApi("api-response-mocker", { schema, count, seed });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**Generated ${r.count} mock record${r.count !== 1 ? "s" : ""}** (schema type: ${r.schema.type})`,
+      "",
+      "```json",
+      JSON.stringify(r.data, null, 2),
+      "```",
+    ];
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Discover Tools -----
 server.registerTool(
   "list_tools",

@@ -365,5 +365,26 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
         return JSON.stringify(result);
       },
     }),
+
+    // ---- API Response Mocker ----
+    new DynamicStructuredTool({
+      name: "mock_api_response",
+      description:
+        "Generate realistic mock API responses from a JSON Schema. " +
+        "Use this when you need test fixtures, seed data, or sample payloads for development or testing. " +
+        "Supports nested objects, arrays, string formats (email, uuid, date-time, url, phone), " +
+        "field-name heuristics (a field named 'email' gets an email, 'createdAt' gets an ISO timestamp), " +
+        "enums, and min/max constraints. " +
+        "Set seed for reproducible output. Returns 1–100 records matching the schema.",
+      schema: z.object({
+        schema: z.record(z.unknown()).describe("JSON Schema object describing the shape of the mock data"),
+        count: z.number().int().min(1).max(100).default(1).describe("Number of mock records to generate (1–100)"),
+        seed: z.number().int().optional().describe("Optional seed for reproducible output"),
+      }),
+      func: async ({ schema, count, seed }) => {
+        const result = await client.apiResponseMocker({ schema, count, seed });
+        return JSON.stringify(result);
+      },
+    }),
   ];
 }

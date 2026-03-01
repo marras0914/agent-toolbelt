@@ -20,4 +20,5 @@ export type {
   ContractClauseResult,
   ContractRiskFlag,
   ContractClauseExtractorResult,
+  ApiResponseMockerResult,
 } from "./client.js";
