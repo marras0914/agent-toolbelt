@@ -25,4 +25,7 @@ export const config = {
 
   // Admin
   adminSecret: process.env.ADMIN_SECRET || "",
+
+  // LLM
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
 };

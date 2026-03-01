@@ -13,4 +13,6 @@ export type {
   ColorPaletteResult,
   BrandKitResult,
   ImageMetadataStripperResult,
+  MeetingActionItem,
+  MeetingActionItemsResult,
 } from "./client.js";

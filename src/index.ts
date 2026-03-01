@@ -29,6 +29,7 @@ import "./tools/csv-to-json";
 import "./tools/address-normalizer";
 import "./tools/color-palette";
 import "./tools/image-metadata-stripper";
+import "./tools/meeting-action-items";
 
 // ----- App Setup -----
 const app = express();

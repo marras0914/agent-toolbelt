@@ -560,6 +560,54 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Meeting Action Items -----
+server.registerTool(
+  "extract_meeting_action_items",
+  {
+    title: "Meeting Action Items",
+    description:
+      "Extract structured action items, decisions, and a summary from meeting notes or transcripts. " +
+      "Identifies task owners, deadlines, and priorities. Powered by Claude.",
+    inputSchema: {
+      notes: z.string().describe("Meeting notes or transcript"),
+      format: z
+        .enum(["action_items_only", "full"])
+        .default("full")
+        .describe("'full' includes summary and decisions; 'action_items_only' returns just the task list"),
+      participants: z
+        .array(z.string())
+        .optional()
+        .describe("Known participant names to help with owner attribution"),
+    },
+  },
+  async ({ notes, format, participants }) => {
+    const result = await callToolApi("meeting-action-items", { notes, format, participants });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**${r.meetingTitle}**`,
+      `**Action Items (${r.actionItemCount}):**`,
+      "",
+      ...r.actionItems.map((item: any) => {
+        const deadline = item.deadline ? ` | due: ${item.deadline}` : "";
+        const context = item.context ? `\n     _${item.context}_` : "";
+        return `${item.id}. [${item.priority.toUpperCase()}] **${item.owner}** — ${item.task}${deadline}${context}`;
+      }),
+    ];
+
+    if (format === "full" && r.summary) {
+      lines.push("", `**Summary:** ${r.summary}`);
+    }
+
+    if (format === "full" && r.decisions?.length) {
+      lines.push("", "**Decisions:**", ...r.decisions.map((d: string) => `- ${d}`));
+    }
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Image Metadata Stripper -----
 server.registerTool(
   "strip_image_metadata",

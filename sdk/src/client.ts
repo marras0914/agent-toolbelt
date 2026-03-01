@@ -174,6 +174,23 @@ export interface BrandKitResult {
   fonts?: { display: string; body: string; googleFontsUrl?: string };
 }
 
+export interface MeetingActionItem {
+  id: number;
+  owner: string;
+  task: string;
+  deadline?: string;
+  priority: "high" | "medium" | "low";
+  context?: string;
+}
+
+export interface MeetingActionItemsResult {
+  meetingTitle: string;
+  actionItems: MeetingActionItem[];
+  actionItemCount: number;
+  summary?: string;
+  decisions?: string[];
+}
+
 export interface ImageMetadataStripperResult {
   image: string;
   outputFormat: string;
@@ -320,6 +337,15 @@ export class AgentToolbelt {
     includeShades?: boolean;
   }): Promise<ColorPaletteResult> {
     return this.call("color-palette", input);
+  }
+
+  /** Extract action items, decisions, and summary from meeting notes or transcripts */
+  meetingActionItems(input: {
+    notes: string;
+    format?: "action_items_only" | "full";
+    participants?: string[];
+  }): Promise<MeetingActionItemsResult> {
+    return this.call("meeting-action-items", input);
   }
 
   /** Strip EXIF, GPS, ICC, IPTC, and XMP metadata from a base64-encoded image */

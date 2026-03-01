@@ -892,6 +892,88 @@
         }
       }
     },
+    "/api/tools/meeting-action-items": {
+      "post": {
+        "operationId": "extractMeetingActionItems",
+        "summary": "Extract action items from meeting notes",
+        "description": "Parse meeting notes or transcripts and extract structured action items with owners, deadlines, and priorities. The 'full' format also returns a summary and list of key decisions. Powered by Claude.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["notes"],
+                "properties": {
+                  "notes": {
+                    "type": "string",
+                    "description": "Meeting notes or transcript (up to 50,000 characters)."
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": ["action_items_only", "full"],
+                    "default": "full",
+                    "description": "'full' returns action items + summary + decisions. 'action_items_only' returns just the task list."
+                  },
+                  "participants": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Known participant names to improve owner attribution (optional)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Extracted action items and meeting analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "durationMs": { "type": "integer" },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "meetingTitle": { "type": "string" },
+                        "actionItemCount": { "type": "integer" },
+                        "actionItems": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "integer" },
+                              "owner": { "type": "string" },
+                              "task": { "type": "string" },
+                              "deadline": { "type": "string" },
+                              "priority": { "type": "string", "enum": ["high", "medium", "low"] },
+                              "context": { "type": "string" }
+                            }
+                          }
+                        },
+                        "summary": { "type": "string", "description": "Present when format=full" },
+                        "decisions": {
+                          "type": "array",
+                          "items": { "type": "string" },
+                          "description": "Present when format=full"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
     "/api/tools/image-metadata-stripper": {
       "post": {
         "operationId": "stripImageMetadata",

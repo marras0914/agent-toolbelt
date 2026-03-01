@@ -226,6 +226,32 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
       },
     }),
 
+    // ---- Meeting Action Items ----
+    new DynamicStructuredTool({
+      name: "extract_meeting_action_items",
+      description:
+        "Extract structured action items, key decisions, and a summary from meeting notes or transcripts. " +
+        "Use this after a meeting to automatically generate a task list with owners, deadlines, and priorities. " +
+        "Works with raw transcripts, bullet-point notes, or any free-form meeting text. " +
+        "Returns each action item with the responsible person, what needs to be done, deadline (if mentioned), and priority level. " +
+        "The 'full' format also includes a meeting summary and list of decisions made.",
+      schema: z.object({
+        notes: z.string().describe("Meeting notes or transcript to extract action items from"),
+        format: z
+          .enum(["action_items_only", "full"])
+          .default("full")
+          .describe("'full' includes summary and decisions; 'action_items_only' returns just the task list"),
+        participants: z
+          .array(z.string())
+          .optional()
+          .describe("Known participant names to help with owner attribution"),
+      }),
+      func: async ({ notes, format, participants }) => {
+        const result = await client.meetingActionItems({ notes, format, participants });
+        return JSON.stringify(result);
+      },
+    }),
+
     // ---- Image Metadata Stripper ----
     new DynamicStructuredTool({
       name: "strip_image_metadata",
