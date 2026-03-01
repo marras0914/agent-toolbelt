@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Agent Toolbelt",
-    "description": "API microservices for AI agents. Generate schemas, extract structured data from text, and more. Each tool is focused, fast, and billed per call.",
+    "description": "16 focused API tools for AI agents and developers. Data extraction, token counting, document analysis, contract clause extraction, prompt optimization, meeting action items, and more. Rule-based tools from $0.0001/call. LLM-powered tools at $0.05–$0.10/call. Free tier: 1,000 calls/month.",
     "version": "1.0.0",
     "contact": {
       "name": "Agent Toolbelt Support",
