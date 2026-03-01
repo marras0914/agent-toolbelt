@@ -277,6 +277,41 @@ export interface ApiResponseMockerResult {
   schema: { type: string; title?: string };
 }
 
+export interface ContextWindowPackerResult {
+  packed: Array<{
+    label?: string;
+    priority: number;
+    tokens: number;
+    text: string;
+    metadata?: Record<string, unknown>;
+    originalIndex: number;
+  }>;
+  excluded: Array<{
+    label?: string;
+    priority: number;
+    tokens: number;
+    text: string;
+    metadata?: Record<string, unknown>;
+    originalIndex: number;
+    reason: "chunk_too_large" | "budget_exhausted";
+  }>;
+  packedText: string;
+  stats: {
+    tokenBudget: number;
+    systemPromptTokens: number;
+    reservedForOutput: number;
+    effectiveBudget: number;
+    tokensUsed: number;
+    tokensRemaining: number;
+    chunksTotal: number;
+    chunksPacked: number;
+    chunksExcluded: number;
+    utilizationPercent: number;
+  };
+  model: string;
+  strategy: string;
+}
+
 // ----- Client -----
 export class AgentToolbelt {
   private apiKey: string;
@@ -465,5 +500,18 @@ export class AgentToolbelt {
     seed?: number;
   }): Promise<ApiResponseMockerResult> {
     return this.call("api-response-mocker", input);
+  }
+
+  /** Pack content chunks into a token budget for LLM context windows */
+  contextWindowPacker(input: {
+    chunks: Array<{ text: string; label?: string; priority?: number; metadata?: Record<string, unknown> }>;
+    tokenBudget: number;
+    model?: string;
+    strategy?: "priority" | "greedy" | "balanced";
+    separator?: string;
+    systemPrompt?: string;
+    reserveForOutput?: number;
+  }): Promise<ContextWindowPackerResult> {
+    return this.call("context-window-packer", input);
   }
 }

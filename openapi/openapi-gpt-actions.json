@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Agent Toolbelt",
-    "description": "17 focused API tools for AI agents and developers. Data extraction, token counting, document analysis, contract clause extraction, prompt optimization, meeting action items, mock data generation, and more. Rule-based tools from $0.0001/call. LLM-powered tools at $0.05–$0.10/call. Free tier: 1,000 calls/month.",
+    "description": "18 focused API tools for AI agents and developers. Data extraction, token counting, document analysis, contract clause extraction, prompt optimization, meeting action items, mock data generation, and more. Rule-based tools from $0.0001/call. LLM-powered tools at $0.05–$0.10/call. Free tier: 1,000 calls/month.",
     "version": "1.0.0",
     "contact": {
       "name": "Agent Toolbelt Support",
@@ -1267,6 +1267,52 @@
         "responses": {
           "200": { "description": "Generated mock data matching the schema" },
           "400": { "description": "Invalid schema" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
+    "/api/tools/context-window-packer": {
+      "post": {
+        "operationId": "packContextWindow",
+        "summary": "Pack content chunks into a token budget",
+        "description": "Intelligently select and pack content chunks to fit within a token budget. Three strategies: 'priority' (highest priority first), 'greedy' (input order), 'balanced' (most value-per-token). Returns packed chunks in original order, excluded chunks with reasons, the concatenated packed text, and token usage stats.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["chunks", "tokenBudget"],
+                "properties": {
+                  "chunks": {
+                    "type": "array",
+                    "description": "Content chunks to pack into the context window.",
+                    "items": {
+                      "type": "object",
+                      "required": ["text"],
+                      "properties": {
+                        "text": { "type": "string", "description": "The content of this chunk." },
+                        "label": { "type": "string", "description": "Optional identifier/label." },
+                        "priority": { "type": "number", "minimum": 0, "maximum": 10, "default": 5, "description": "Importance score 0–10 (default 5)." },
+                        "metadata": { "type": "object", "description": "Optional passthrough metadata." }
+                      }
+                    }
+                  },
+                  "tokenBudget": { "type": "integer", "description": "Maximum tokens allowed in the packed output." },
+                  "model": { "type": "string", "default": "gpt-4o", "description": "Target model for tokenization (e.g. 'gpt-4o', 'claude-3-5-sonnet', 'gpt-4')." },
+                  "strategy": { "type": "string", "enum": ["priority", "greedy", "balanced"], "default": "priority", "description": "Packing strategy." },
+                  "separator": { "type": "string", "default": "\n\n", "description": "Text inserted between chunks. Counts toward budget." },
+                  "systemPrompt": { "type": "string", "description": "System prompt to reserve tokens for (subtracted from budget before packing)." },
+                  "reserveForOutput": { "type": "integer", "minimum": 0, "default": 0, "description": "Tokens to reserve for model output." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Packed chunks, excluded chunks, and token stats" },
+          "400": { "description": "Validation error" },
           "401": { "description": "Missing or invalid API key" },
           "429": { "description": "Rate limit or quota exceeded" }
         }

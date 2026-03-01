@@ -838,6 +838,49 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Context Window Packer -----
+server.registerTool(
+  "pack_context_window",
+  {
+    title: "Context Window Packer",
+    description:
+      "Pack content chunks into a token budget for an LLM context window. " +
+      "Selects the best subset of chunks that fits within the token limit using priority, greedy, or balanced strategies. " +
+      "Use when you have more content than fits in the context window.",
+    inputSchema: {
+      chunks: z.array(z.object({
+        text: z.string().describe("Content of this chunk"),
+        label: z.string().optional().describe("Optional identifier"),
+        priority: z.number().min(0).max(10).default(5).describe("Importance 0–10"),
+        metadata: z.record(z.unknown()).optional(),
+      })).describe("Content chunks to pack"),
+      tokenBudget: z.number().int().describe("Maximum tokens allowed"),
+      model: z.string().default("gpt-4o").describe("Target model for tokenization"),
+      strategy: z.enum(["priority", "greedy", "balanced"]).default("priority").describe("Packing strategy"),
+      separator: z.string().default("\n\n").describe("Text between chunks"),
+      systemPrompt: z.string().optional().describe("System prompt to reserve tokens for"),
+      reserveForOutput: z.number().int().min(0).default(0).describe("Tokens to reserve for output"),
+    },
+  },
+  async ({ chunks, tokenBudget, model, strategy, separator, systemPrompt, reserveForOutput }) => {
+    const result = await callToolApi("context-window-packer", { chunks, tokenBudget, model, strategy, separator, systemPrompt, reserveForOutput });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**Packed ${r.stats.chunksPacked}/${r.stats.chunksTotal} chunks** | ${r.stats.tokensUsed}/${r.stats.effectiveBudget} tokens (${r.stats.utilizationPercent}% utilized)`,
+      `**Strategy:** ${r.strategy} | **Model:** ${r.model}`,
+      r.stats.systemPromptTokens > 0 ? `**System prompt:** ${r.stats.systemPromptTokens} tokens reserved` : "",
+      r.stats.reservedForOutput > 0 ? `**Output reservation:** ${r.stats.reservedForOutput} tokens` : "",
+      "",
+      r.packed.length > 0 ? `**Packed chunks:**\n${r.packed.map((p: any) => `- ${p.label || `chunk[${p.originalIndex}]`} (priority ${p.priority}, ${p.tokens} tokens)`).join("\n")}` : "",
+      r.excluded.length > 0 ? `\n**Excluded chunks:**\n${r.excluded.map((e: any) => `- ${e.label || `chunk[${e.originalIndex}]`} (${e.tokens} tokens, ${e.reason})`).join("\n")}` : "",
+    ].filter(Boolean);
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Discover Tools -----
 server.registerTool(
   "list_tools",

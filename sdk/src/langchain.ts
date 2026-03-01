@@ -386,5 +386,35 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
         return JSON.stringify(result);
       },
     }),
+
+    // ---- Context Window Packer ----
+    new DynamicStructuredTool({
+      name: "pack_context_window",
+      description:
+        "Pack content chunks into a token budget for an LLM context window. " +
+        "Use this when you have more content than fits in the context window and need to select the most important pieces. " +
+        "Three strategies: 'priority' (highest-priority chunks first), 'greedy' (input order, skip what doesn't fit), " +
+        "'balanced' (most priority-per-token — maximizes value density). " +
+        "Chunks are always returned in original input order to preserve reading flow. " +
+        "Returns packed chunks, excluded chunks with reasons, the concatenated packed text, and detailed token stats.",
+      schema: z.object({
+        chunks: z.array(z.object({
+          text: z.string().describe("Content of this chunk"),
+          label: z.string().optional().describe("Optional identifier for this chunk"),
+          priority: z.number().min(0).max(10).default(5).describe("Importance score 0–10 (higher = more important)"),
+          metadata: z.record(z.unknown()).optional().describe("Optional passthrough metadata"),
+        })).describe("Content chunks to pack"),
+        tokenBudget: z.number().int().describe("Maximum tokens allowed in the output"),
+        model: z.string().default("gpt-4o").describe("Target model for tokenization (e.g. 'gpt-4o', 'claude-3-5-sonnet')"),
+        strategy: z.enum(["priority", "greedy", "balanced"]).default("priority").describe("Packing strategy"),
+        separator: z.string().default("\n\n").describe("Text between packed chunks (counts toward budget)"),
+        systemPrompt: z.string().optional().describe("System prompt to reserve tokens for (subtracted from budget)"),
+        reserveForOutput: z.number().int().min(0).default(0).describe("Tokens to reserve for model output"),
+      }),
+      func: async ({ chunks, tokenBudget, model, strategy, separator, systemPrompt, reserveForOutput }) => {
+        const result = await client.contextWindowPacker({ chunks, tokenBudget, model, strategy, separator, systemPrompt, reserveForOutput });
+        return JSON.stringify(result);
+      },
+    }),
   ];
 }

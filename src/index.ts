@@ -34,6 +34,7 @@ import "./tools/prompt-optimizer";
 import "./tools/document-comparator";
 import "./tools/contract-clause-extractor";
 import "./tools/api-response-mocker";
+import "./tools/context-window-packer";
 
 // ----- App Setup -----
 const app = express();
