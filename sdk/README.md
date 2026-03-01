@@ -2,7 +2,7 @@
 
 Official SDK for [Agent Toolbelt](https://agent-toolbelt-production.up.railway.app) — a suite of focused API tools for AI agents and developers.
 
-**Typed client + LangChain tool wrappers** for schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, and color palette generation.
+**Typed client + LangChain tool wrappers** for schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, color palette generation, and brand kit creation.
 
 ## Install
 
@@ -118,6 +118,9 @@ await client.addressNormalizer({ address: "123 main st apt 4b, springfield, il 6
 
 // Generate color palettes from descriptions or hex colors
 await client.colorPalette({ description: "calm fintech blue", count: 5 });
+
+// Generate a full brand kit — colors, typography, CSS/Tailwind tokens
+await client.brandKit({ name: "Solaris Health", industry: "healthcare", vibe: ["modern", "trustworthy"], format: "full" });
 ```
 
 ---
@@ -159,6 +162,7 @@ const result = await agent.invoke({
 | `build_cron` | Convert schedule descriptions to cron expressions |
 | `normalize_address` | Normalize US addresses to USPS format |
 | `generate_color_palette` | Generate color palettes with WCAG scores and CSS variables |
+| `generate_brand_kit` | Generate full brand kit — colors, typography, CSS/Tailwind tokens |
 
 ---
 
@@ -176,6 +180,7 @@ const result = await agent.invoke({
 | `cron-builder` | $0.0005 / call |
 | `address-normalizer` | $0.0005 / call |
 | `color-palette` | $0.0005 / call |
+| `brand-kit` | $0.001 / call |
 
 ## License
 

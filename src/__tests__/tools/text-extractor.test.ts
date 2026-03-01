@@ -61,7 +61,7 @@ describe("text-extractor", () => {
   describe("currencies", () => {
     it("extracts dollar amounts", async () => {
       const r = await handler({ text: "Budget is $1,500.00 USD", extractors: ["currencies"], deduplicate: true });
-      expect(r.extracted.currencies.some((c) => c.includes("1,500") || c.includes("USD"))).toBe(true);
+      expect(r.extracted.currencies.some((c: string) => c.includes("1,500") || c.includes("USD"))).toBe(true);
     });
 
     it("extracts euro amounts", async () => {

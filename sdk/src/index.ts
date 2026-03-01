@@ -12,4 +12,5 @@ export type {
   AddressNormalizerResult,
   ColorPaletteResult,
   BrandKitResult,
+  ImageMetadataStripperResult,
 } from "./client.js";

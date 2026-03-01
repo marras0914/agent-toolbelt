@@ -891,6 +891,97 @@
           "429": { "description": "Rate limit or quota exceeded" }
         }
       }
+    },
+    "/api/tools/image-metadata-stripper": {
+      "post": {
+        "operationId": "stripImageMetadata",
+        "summary": "Strip EXIF/GPS/IPTC/XMP metadata from an image",
+        "description": "Remove all embedded metadata from an image for privacy. Strips EXIF (camera settings, GPS coordinates, timestamps), IPTC (copyright, captions), XMP (editing history), and ICC color profiles. Accepts base64-encoded JPEG, PNG, WebP, or TIFF. Returns a cleaned base64 image with a report of what was removed and the file size reduction.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "description": "Base64-encoded image data (JPEG, PNG, WebP, or TIFF). Do not include the data URI prefix (e.g. 'data:image/jpeg;base64,')."
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": ["jpeg", "png", "webp", "preserve"],
+                    "default": "preserve",
+                    "description": "Output format. 'preserve' keeps the original image format."
+                  },
+                  "quality": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 90,
+                    "description": "Output quality for lossy formats (JPEG, WebP). 1-100."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cleaned image with metadata removal report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "tool": { "type": "string" },
+                    "durationMs": { "type": "integer" },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "image": { "type": "string", "description": "Cleaned image as base64" },
+                        "outputFormat": { "type": "string" },
+                        "original": {
+                          "type": "object",
+                          "properties": {
+                            "sizeBytes": { "type": "integer" },
+                            "format": { "type": "string" },
+                            "width": { "type": "integer" },
+                            "height": { "type": "integer" },
+                            "hasExif": { "type": "boolean" },
+                            "hasIcc": { "type": "boolean" },
+                            "hasIptc": { "type": "boolean" },
+                            "hasXmp": { "type": "boolean" }
+                          }
+                        },
+                        "output": {
+                          "type": "object",
+                          "properties": {
+                            "sizeBytes": { "type": "integer" },
+                            "reductionBytes": { "type": "integer" },
+                            "reductionPercent": { "type": "number" }
+                          }
+                        },
+                        "metadataStripped": { "type": "boolean" },
+                        "strippedFields": {
+                          "type": "array",
+                          "items": { "type": "string" },
+                          "description": "Human-readable list of metadata types that were removed"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid image data or unsupported format" },
+          "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
     }
   },
   "components": {

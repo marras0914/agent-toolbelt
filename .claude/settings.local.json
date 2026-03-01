@@ -10,7 +10,11 @@
       "Bash(git:*)",
       "Bash(npm install:*)",
       "Bash(npm audit:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm publish:*)",
+      "WebFetch(domain:glama.ai)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:modelcontextprotocol.info)"
     ]
   }
 }

@@ -560,6 +560,42 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Image Metadata Stripper -----
+server.registerTool(
+  "strip_image_metadata",
+  {
+    title: "Image Metadata Stripper",
+    description:
+      "Strip EXIF, GPS, IPTC, XMP, and ICC metadata from an image for privacy. " +
+      "Use before uploading or sharing images to remove sensitive embedded data like GPS coordinates, " +
+      "camera model, timestamps, and editing history. " +
+      "Accepts base64-encoded JPEG, PNG, WebP, or TIFF. Returns cleaned base64 image with a removal report.",
+    inputSchema: {
+      image: z.string().describe("Base64-encoded image (JPEG, PNG, WebP, TIFF). No data URI prefix."),
+      format: z.enum(["jpeg", "png", "webp", "preserve"]).default("preserve").describe("Output format ('preserve' keeps original)"),
+      quality: z.number().int().min(1).max(100).default(90).describe("Quality for lossy formats (1-100)"),
+    },
+  },
+  async ({ image, format, quality }) => {
+    const result = await callToolApi("image-metadata-stripper", { image, format, quality });
+    const data = result as any;
+    const r = data.result;
+
+    const lines = [
+      `**Metadata stripped:** ${r.metadataStripped ? "Yes" : "No (no metadata found)"}`,
+      r.strippedFields.length > 0 ? `**Removed:** ${r.strippedFields.join(", ")}` : "",
+      "",
+      `**Original:** ${(r.original.sizeBytes / 1024).toFixed(1)} KB | ${r.original.width}×${r.original.height} | ${r.original.format}`,
+      `**Output:** ${(r.output.sizeBytes / 1024).toFixed(1)} KB | format: ${r.outputFormat}`,
+      `**Size reduction:** ${r.output.reductionBytes > 0 ? `${(r.output.reductionBytes / 1024).toFixed(1)} KB (${r.output.reductionPercent}%)` : "none"}`,
+      "",
+      "_Cleaned image returned as base64 in the API response. Use the SDK or raw API to access the image data._",
+    ].filter(Boolean);
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Discover Tools -----
 server.registerTool(
   "list_tools",

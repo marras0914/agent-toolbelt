@@ -12,19 +12,18 @@ const inputSchema = z.object({
     .object({
       headingStyle: z
         .enum(["atx", "setext"])
-        .default("atx")
+        .optional()
         .describe("Markdown heading style: atx (#) or setext (underline)"),
       bulletListMarker: z
         .enum(["-", "*", "+"])
-        .default("-")
+        .optional()
         .describe("Bullet list marker character"),
       codeBlockStyle: z
         .enum(["fenced", "indented"])
-        .default("fenced")
+        .optional()
         .describe("Code block style in markdown output"),
     })
-    .optional()
-    .default({}),
+    .optional(),
 });
 
 type Input = z.infer<typeof inputSchema>;

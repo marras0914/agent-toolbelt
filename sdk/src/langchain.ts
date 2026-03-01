@@ -226,6 +226,26 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
       },
     }),
 
+    // ---- Image Metadata Stripper ----
+    new DynamicStructuredTool({
+      name: "strip_image_metadata",
+      description:
+        "Strip EXIF, GPS location, IPTC, XMP, and ICC metadata from an image for privacy protection. " +
+        "Use this before uploading or sharing images to remove sensitive embedded data like GPS coordinates, " +
+        "camera model, timestamps, copyright notices, and editing history. " +
+        "Accepts base64-encoded JPEG, PNG, WebP, or TIFF images. " +
+        "Returns the cleaned image as base64 along with a report of what was removed and the file size reduction.",
+      schema: z.object({
+        image: z.string().describe("Base64-encoded image data (JPEG, PNG, WebP, or TIFF). Do not include the data URI prefix."),
+        format: z.enum(["jpeg", "png", "webp", "preserve"]).default("preserve").describe("Output format. 'preserve' keeps the original format."),
+        quality: z.number().int().min(1).max(100).default(90).describe("Output quality for lossy formats (1-100)"),
+      }),
+      func: async ({ image, format, quality }) => {
+        const result = await client.imageMetadataStripper({ image, format, quality });
+        return JSON.stringify(result);
+      },
+    }),
+
     // ---- Brand Kit ----
     new DynamicStructuredTool({
       name: "generate_brand_kit",

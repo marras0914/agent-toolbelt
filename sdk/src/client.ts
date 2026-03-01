@@ -174,6 +174,31 @@ export interface BrandKitResult {
   fonts?: { display: string; body: string; googleFontsUrl?: string };
 }
 
+export interface ImageMetadataStripperResult {
+  image: string;
+  outputFormat: string;
+  original: {
+    sizeBytes: number;
+    format?: string;
+    width?: number;
+    height?: number;
+    channels?: number;
+    hasExif?: boolean;
+    hasIcc?: boolean;
+    hasIptc?: boolean;
+    hasXmp?: boolean;
+    orientation?: number;
+    density?: number;
+  };
+  output: {
+    sizeBytes: number;
+    reductionBytes: number;
+    reductionPercent: number;
+  };
+  metadataStripped: boolean;
+  strippedFields: string[];
+}
+
 // ----- Client -----
 export class AgentToolbelt {
   private apiKey: string;
@@ -295,6 +320,15 @@ export class AgentToolbelt {
     includeShades?: boolean;
   }): Promise<ColorPaletteResult> {
     return this.call("color-palette", input);
+  }
+
+  /** Strip EXIF, GPS, ICC, IPTC, and XMP metadata from a base64-encoded image */
+  imageMetadataStripper(input: {
+    image: string;
+    format?: "jpeg" | "png" | "webp" | "preserve";
+    quality?: number;
+  }): Promise<ImageMetadataStripperResult> {
+    return this.call("image-metadata-stripper", input);
   }
 
   /** Generate a full brand kit — color palette, typography, CSS/Tailwind tokens */

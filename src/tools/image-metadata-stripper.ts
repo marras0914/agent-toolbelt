@@ -62,12 +62,9 @@ async function handler(input: Input) {
   // Determine output format
   const outputFormat = format === "preserve" ? (originalMeta.format as string || "jpeg") : format;
 
-  // Strip all metadata and re-encode
+  // Strip all metadata and re-encode (sharp strips metadata by default when not calling withMetadata)
   let stripped: sharp.Sharp;
   try {
-    stripped = sharp(buffer).withMetadata({ exif: {}, icc: undefined, iptc: undefined, xmp: undefined });
-
-    // Force strip by not calling withMetadata at all — sharp strips by default
     stripped = sharp(buffer);
 
     switch (outputFormat) {

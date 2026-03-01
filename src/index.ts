@@ -28,6 +28,7 @@ import "./tools/token-counter";
 import "./tools/csv-to-json";
 import "./tools/address-normalizer";
 import "./tools/color-palette";
+import "./tools/image-metadata-stripper";
 
 // ----- App Setup -----
 const app = express();
