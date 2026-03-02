@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schema Generator API — Agent Toolbelt</title>
+  <meta name="description" content="Generate JSON Schema and TypeScript interfaces from any JSON example. One API call, no setup." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .code { font-family: 'Courier New', Courier, monospace; }
+    pre { overflow-x: auto; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <nav class="border-b border-gray-800 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
+    <a href="https://agent-toolbelt-production.up.railway.app" class="text-sm text-gray-400 hover:text-white transition-colors">← Agent Toolbelt</a>
+    <a href="https://agent-toolbelt-production.up.railway.app" class="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Get API Key</a>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-6 py-20">
+
+    <div class="mb-16">
+      <div class="inline-flex items-center gap-2 bg-violet-950 border border-violet-800 text-violet-300 text-xs px-3 py-1 rounded-full mb-6">
+        <span class="w-1.5 h-1.5 bg-violet-400 rounded-full"></span>
+        JSON Schema · TypeScript · Zod
+      </div>
+      <h1 class="text-5xl font-bold tracking-tight mb-6">
+        Schema Generator API
+      </h1>
+      <p class="text-xl text-gray-400 leading-relaxed max-w-2xl">
+        Paste a JSON example, get a JSON Schema or TypeScript interface back instantly. No more writing schemas by hand.
+      </p>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-4">The problem it solves</h2>
+      <p class="text-gray-400 mb-4">
+        You have example data. You need a schema. You shouldn't have to write it manually — field by field, type by type, nested object by nested object.
+      </p>
+      <p class="text-gray-400">
+        This is especially painful when validating LLM output, documenting undocumented APIs, or bootstrapping TypeScript interfaces from third-party responses.
+      </p>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">How it works</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Request</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>POST /api/tools/schema-generator
+
+{
+  "input": {
+    "userId": "usr_123",
+    "email": "user@example.com",
+    "plan": "pro",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "active": true
+  },
+  "format": "typescript"
+}</code></pre>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Response</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>{
+  "schema": "interface Output {\n
+    userId: string;\n
+    email: string;\n
+    plan: string;\n
+    createdAt: string;\n
+    active: boolean;\n
+  }",
+  "format": "typescript"
+}</code></pre>
+        </div>
+      </div>
+      <p class="text-sm text-gray-500 mt-4">
+        Switch <code class="bg-gray-800 px-1 rounded">format</code> to <code class="bg-gray-800 px-1 rounded">"json-schema"</code> for full JSON Schema draft-07 output with format inference, required fields, and nested object support.
+      </p>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">What it detects automatically</h2>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="flex items-start gap-3 bg-gray-900 border border-gray-800 rounded-xl p-4">
+          <span class="text-green-400 mt-0.5">✓</span>
+          <div>
+            <p class="font-medium text-sm">Email &amp; date formats</p>
+            <p class="text-xs text-gray-500">Infers <code>format: "email"</code> and <code>format: "date-time"</code> from values</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 bg-gray-900 border border-gray-800 rounded-xl p-4">
+          <span class="text-green-400 mt-0.5">✓</span>
+          <div>
+            <p class="font-medium text-sm">Nested objects &amp; arrays</p>
+            <p class="text-xs text-gray-500">Recursively generates schemas for complex structures</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 bg-gray-900 border border-gray-800 rounded-xl p-4">
+          <span class="text-green-400 mt-0.5">✓</span>
+          <div>
+            <p class="font-medium text-sm">integer vs number</p>
+            <p class="text-xs text-gray-500">Correctly distinguishes integer and floating-point fields</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 bg-gray-900 border border-gray-800 rounded-xl p-4">
+          <span class="text-green-400 mt-0.5">✓</span>
+          <div>
+            <p class="font-medium text-sm">Required fields</p>
+            <p class="text-xs text-gray-500">Populates <code>required</code> array based on present keys</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">TypeScript SDK</h2>
+      <pre class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-sm code text-gray-300 overflow-x-auto"><code>import { AgentToolbelt } from "agent-toolbelt";
+
+const toolbelt = new AgentToolbelt({ apiKey: process.env.TOOLBELT_KEY });
+
+// Validate LLM output against a generated schema
+const llmOutput = await callLLM(prompt);
+const { schema } = await toolbelt.schemaGenerator({
+  input: exampleOutput,
+  format: "json-schema",
+});
+
+const valid = ajv.validate(schema, llmOutput);
+if (!valid) throw new Error("LLM output didn't match expected shape");</code></pre>
+    </div>
+
+    <div class="mb-16 bg-gray-900 border border-gray-800 rounded-xl p-8 flex items-center justify-between flex-wrap gap-6">
+      <div>
+        <p class="text-gray-400 text-sm mb-1">Pricing</p>
+        <p class="text-3xl font-bold">Fractions of a cent <span class="text-gray-500 text-lg font-normal">per call</span></p>
+      </div>
+      <a href="https://agent-toolbelt-production.up.railway.app" class="bg-violet-600 hover:bg-violet-500 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+        Get API Key →
+      </a>
+    </div>
+
+    <p class="text-center text-gray-600 text-sm">
+      Part of <a href="https://agent-toolbelt-production.up.railway.app" class="text-gray-500 hover:text-gray-400">Agent Toolbelt</a> — 14 focused API tools for AI developers
+    </p>
+
+  </main>
+</body>
+</html>

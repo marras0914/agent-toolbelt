@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meeting Action Items API — Agent Toolbelt</title>
+  <meta name="description" content="Paste raw meeting notes. Get structured action items with owners and deadlines. Plug directly into Jira, Notion, Slack, or any workflow." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .code { font-family: 'Courier New', Courier, monospace; }
+    pre { overflow-x: auto; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <nav class="border-b border-gray-800 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
+    <a href="https://agent-toolbelt-production.up.railway.app" class="text-sm text-gray-400 hover:text-white transition-colors">← Agent Toolbelt</a>
+    <a href="https://agent-toolbelt-production.up.railway.app" class="bg-sky-600 hover:bg-sky-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Get API Key</a>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-6 py-20">
+
+    <div class="mb-16">
+      <div class="inline-flex items-center gap-2 bg-sky-950 border border-sky-800 text-sky-300 text-xs px-3 py-1 rounded-full mb-6">
+        <span class="w-1.5 h-1.5 bg-sky-400 rounded-full"></span>
+        Powered by Claude · $0.05 per call
+      </div>
+      <h1 class="text-5xl font-bold tracking-tight mb-6">
+        Meeting Action Items API
+      </h1>
+      <p class="text-xl text-gray-400 leading-relaxed max-w-2xl">
+        Paste messy meeting notes. Get back structured action items with owners and deadlines — ready to plug into Jira, Notion, Slack, or any automation.
+      </p>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-4">The problem it solves</h2>
+      <p class="text-gray-400 mb-4">
+        Every meeting ends the same way: someone has notes, nobody has tasks. The gap between "notes from the call" and "tickets in your tracker" is always a human doing slow, manual extraction.
+      </p>
+      <p class="text-gray-400">
+        This API closes that gap in one call — and returns structured data you can route to any system programmatically.
+      </p>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">How it works</h2>
+      <div class="space-y-4">
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Request — raw meeting notes (as messy as they come)</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>POST /api/tools/meeting-action-items
+
+{
+  "notes": "Sprint planning with the team. Decided to delay billing to next sprint. Alex needs to refactor auth by Thursday. Jamie will write the onboarding flow specs before Friday sync. I should review Q4 metrics and send report to leadership by EOW. Still undecided on Stripe vs Braintree — Alex will evaluate and report back."
+}</code></pre>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Response — structured, pluggable data</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>{
+  "actionItems": [
+    { "task": "Refactor auth module", "owner": "Alex", "deadline": "Thursday" },
+    { "task": "Write onboarding flow specs", "owner": "Jamie", "deadline": "Before Friday sync" },
+    { "task": "Review Q4 metrics and send report", "owner": "You", "deadline": "End of week" },
+    { "task": "Evaluate Stripe vs Braintree", "owner": "Alex", "deadline": null }
+  ],
+  "summary": "Billing delayed to next sprint. Four action items across two owners. Payment decision pending Alex's evaluation."
+}</code></pre>
+        </div>
+      </div>
+      <div class="mt-4 bg-sky-950 border border-sky-800 rounded-xl p-4 text-sm text-sky-300">
+        Notice: <code>deadline</code> is <code>null</code> when none was stated — no hallucinated dates.
+      </div>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">Plug it into your stack</h2>
+      <pre class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-sm code text-gray-300 overflow-x-auto"><code>import { AgentToolbelt } from "agent-toolbelt";
+
+const toolbelt = new AgentToolbelt({ apiKey: process.env.TOOLBELT_KEY });
+
+const { actionItems, summary } = await toolbelt.meetingActionItems({
+  notes: rawMeetingNotes,
+});
+
+// Auto-create Jira tickets
+for (const item of actionItems) {
+  await jira.createIssue({
+    summary: item.task,
+    assignee: resolveJiraUser(item.owner),
+    dueDate: parseDeadline(item.deadline),
+  });
+}
+
+// Post summary to Slack
+await slack.postMessage({ channel: "#team-updates", text: summary });
+
+// Add to Notion project tracker
+await notion.createTasks(actionItems);</code></pre>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">Built for automation</h2>
+      <div class="grid md:grid-cols-4 gap-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">🎯</div>
+          <p class="text-sm font-medium">Jira</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">📝</div>
+          <p class="text-sm font-medium">Notion</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">💬</div>
+          <p class="text-sm font-medium">Slack</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
+          <div class="text-2xl mb-2">⚡</div>
+          <p class="text-sm font-medium">Zapier / Make</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-16 bg-gray-900 border border-gray-800 rounded-xl p-8 flex items-center justify-between flex-wrap gap-6">
+      <div>
+        <p class="text-gray-400 text-sm mb-1">Pricing</p>
+        <p class="text-3xl font-bold">$0.05 <span class="text-gray-500 text-lg font-normal">per call</span></p>
+        <p class="text-sm text-gray-500 mt-1">Less than the cost of 2 minutes of anyone's time</p>
+      </div>
+      <a href="https://agent-toolbelt-production.up.railway.app" class="bg-sky-600 hover:bg-sky-500 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+        Get API Key →
+      </a>
+    </div>
+
+    <p class="text-center text-gray-600 text-sm">
+      Part of <a href="https://agent-toolbelt-production.up.railway.app" class="text-gray-500 hover:text-gray-400">Agent Toolbelt</a> — 14 focused API tools for AI developers
+    </p>
+
+  </main>
+</body>
+</html>

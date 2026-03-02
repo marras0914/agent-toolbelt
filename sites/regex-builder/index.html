@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Regex Builder API — Agent Toolbelt</title>
+  <meta name="description" content="Describe what you want to match in plain English. Get a working regex pattern with an explanation. No more debugging character classes." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .code { font-family: 'Courier New', Courier, monospace; }
+    pre { overflow-x: auto; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <nav class="border-b border-gray-800 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
+    <a href="https://agent-toolbelt-production.up.railway.app" class="text-sm text-gray-400 hover:text-white transition-colors">← Agent Toolbelt</a>
+    <a href="https://agent-toolbelt-production.up.railway.app" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Get API Key</a>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-6 py-20">
+
+    <div class="mb-16">
+      <div class="inline-flex items-center gap-2 bg-emerald-950 border border-emerald-800 text-emerald-300 text-xs px-3 py-1 rounded-full mb-6">
+        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+        Describe it · Get the pattern · Move on
+      </div>
+      <h1 class="text-5xl font-bold tracking-tight mb-6">
+        Regex Builder API
+      </h1>
+      <p class="text-xl text-gray-400 leading-relaxed max-w-2xl">
+        Describe what you want to match in plain English. Get a working regex with an explanation of how it works. Stop spending 30 minutes on character classes.
+      </p>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-4">The problem it solves</h2>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-4">
+        <p class="code text-emerald-400 text-sm mb-2">^[\w.+-]+@[\w-]+\.[\w.-]+$</p>
+        <p class="text-gray-500 text-sm">Readable? No. Debuggable in 5 minutes? Also no.</p>
+      </div>
+      <p class="text-gray-400">
+        Regex is write-once-debug-forever. The pattern that works in isolation fails in production because of a format variant you didn't consider. Describing what you want in English forces you to be precise — which surfaces edge cases earlier.
+      </p>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">How it works</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Request</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>POST /api/tools/regex-builder
+
+{
+  "description": "Match US phone numbers
+    in formats like (555) 123-4567,
+    555-123-4567, or 5551234567",
+  "testString": "Call us at (555) 123-4567
+    or 555.987.6543"
+}</code></pre>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Response</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>{
+  "pattern": "\\(?\\d{3}\\)?[\\s.\\-]?
+    \\d{3}[\\s.\\-]?\\d{4}",
+  "flags": "g",
+  "explanation": "Matches US phone
+    numbers with optional parentheses,
+    separated by spaces, dots,
+    or hyphens",
+  "matches": [
+    "(555) 123-4567",
+    "555.987.6543"
+  ]
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-4">The <code class="bg-gray-800 px-2 py-0.5 rounded text-emerald-400">explanation</code> field matters</h2>
+      <p class="text-gray-400 mb-6">
+        Every response includes a plain-English explanation of what the pattern does. This lets you verify the pattern matches your mental model — and iterate on the description if not. It's also useful for code review, documentation, and teaching junior devs.
+      </p>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div class="text-2xl mb-3">🔍</div>
+          <h3 class="font-semibold mb-2 text-sm">Data Extraction</h3>
+          <p class="text-xs text-gray-400">Pull structured values from unstructured text — dates, IDs, amounts, codes.</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div class="text-2xl mb-3">✅</div>
+          <h3 class="font-semibold mb-2 text-sm">Input Validation</h3>
+          <p class="text-xs text-gray-400">Describe the valid format for your domain-specific identifiers and get the validator.</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div class="text-2xl mb-3">🤖</div>
+          <h3 class="font-semibold mb-2 text-sm">Agent Tools</h3>
+          <p class="text-xs text-gray-400">Give agents a regex tool — they describe what to match, get the pattern, apply it.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">TypeScript SDK</h2>
+      <pre class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-sm code text-gray-300 overflow-x-auto"><code>import { AgentToolbelt } from "agent-toolbelt";
+
+const toolbelt = new AgentToolbelt({ apiKey: process.env.TOOLBELT_KEY });
+
+const { pattern, flags, matches } = await toolbelt.regexBuilder({
+  description: "Extract ISO 8601 dates from log lines",
+  testString: "[2024-03-15T14:22:01Z] ERROR: connection refused",
+});
+
+const regex = new RegExp(pattern, flags);
+const dates = logLines.flatMap(line => line.match(regex) ?? []);</code></pre>
+    </div>
+
+    <div class="mb-16 bg-gray-900 border border-gray-800 rounded-xl p-8 flex items-center justify-between flex-wrap gap-6">
+      <div>
+        <p class="text-gray-400 text-sm mb-1">Pricing</p>
+        <p class="text-3xl font-bold">Fractions of a cent <span class="text-gray-500 text-lg font-normal">per call</span></p>
+      </div>
+      <a href="https://agent-toolbelt-production.up.railway.app" class="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+        Get API Key →
+      </a>
+    </div>
+
+    <p class="text-center text-gray-600 text-sm">
+      Part of <a href="https://agent-toolbelt-production.up.railway.app" class="text-gray-500 hover:text-gray-400">Agent Toolbelt</a> — 14 focused API tools for AI developers
+    </p>
+
+  </main>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Token Counter API — Agent Toolbelt</title>
+  <meta name="description" content="Count LLM tokens accurately for any model before you make the API call. No library, no setup — one POST request." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .code { font-family: 'Courier New', Courier, monospace; }
+    pre { overflow-x: auto; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <!-- Nav -->
+  <nav class="border-b border-gray-800 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
+    <a href="https://agent-toolbelt-production.up.railway.app" class="text-sm text-gray-400 hover:text-white transition-colors">← Agent Toolbelt</a>
+    <a href="https://agent-toolbelt-production.up.railway.app" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Get API Key</a>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-6 py-20">
+
+    <!-- Hero -->
+    <div class="mb-16">
+      <div class="inline-flex items-center gap-2 bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs px-3 py-1 rounded-full mb-6">
+        <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
+        Per-call pricing · No setup
+      </div>
+      <h1 class="text-5xl font-bold tracking-tight mb-6">
+        Token Counter API
+      </h1>
+      <p class="text-xl text-gray-400 leading-relaxed max-w-2xl">
+        Know exactly how many tokens your text uses before calling an LLM. Supports GPT-4o, Claude, Gemini, and more. One POST request. No library installs.
+      </p>
+    </div>
+
+    <!-- Problem -->
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-4">The problem it solves</h2>
+      <div class="bg-red-950 border border-red-800 rounded-xl p-6 code text-sm text-red-300 mb-4">
+        openai.BadRequestError: This model's maximum context length is 128000 tokens.<br/>
+        However, your messages resulted in 134,521 tokens.
+      </div>
+      <p class="text-gray-400">
+        Context overflows kill agent runs at the worst moment. Counting tokens correctly means knowing when to summarize, chunk, or truncate — before the call fails.
+      </p>
+    </div>
+
+    <!-- Example -->
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">How it works</h2>
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Request</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>POST /api/tools/token-counter
+
+{
+  "text": "Analyze this document and
+           extract key action items...",
+  "model": "gpt-4o"
+}</code></pre>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Response</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>{
+  "tokens": 14,
+  "model": "gpt-4o",
+  "limit": 128000,
+  "remaining": 127986,
+  "percentUsed": 0.01
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Use cases -->
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">Common use cases</h2>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div class="text-2xl mb-3">🤖</div>
+          <h3 class="font-semibold mb-2">AI Agents</h3>
+          <p class="text-sm text-gray-400">Check before every LLM call. Summarize or chunk context when approaching limits.</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div class="text-2xl mb-3">📄</div>
+          <h3 class="font-semibold mb-2">Document Processing</h3>
+          <p class="text-sm text-gray-400">Decide how to split large documents before sending them to the model.</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div class="text-2xl mb-3">💰</div>
+          <h3 class="font-semibold mb-2">Cost Estimation</h3>
+          <p class="text-sm text-gray-400">Estimate API costs before processing large batches of text.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Code example -->
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">TypeScript SDK</h2>
+      <pre class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-sm code text-gray-300 overflow-x-auto"><code>import { AgentToolbelt } from "agent-toolbelt";
+
+const toolbelt = new AgentToolbelt({ apiKey: process.env.TOOLBELT_KEY });
+
+async function prepareContext(history: Message[], doc: string) {
+  const { percentUsed, remaining } = await toolbelt.tokenCounter({
+    text: buildContext(history, doc),
+    model: "gpt-4o",
+  });
+
+  if (percentUsed > 80) {
+    return summarizeHistory(history, remaining);
+  }
+
+  return buildContext(history, doc);
+}</code></pre>
+    </div>
+
+    <!-- Pricing -->
+    <div class="mb-16 bg-gray-900 border border-gray-800 rounded-xl p-8 flex items-center justify-between flex-wrap gap-6">
+      <div>
+        <p class="text-gray-400 text-sm mb-1">Pricing</p>
+        <p class="text-3xl font-bold">Fractions of a cent <span class="text-gray-500 text-lg font-normal">per call</span></p>
+      </div>
+      <a href="https://agent-toolbelt-production.up.railway.app" class="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+        Get API Key →
+      </a>
+    </div>
+
+    <!-- Footer -->
+    <p class="text-center text-gray-600 text-sm">
+      Part of <a href="https://agent-toolbelt-production.up.railway.app" class="text-gray-500 hover:text-gray-400">Agent Toolbelt</a> — 14 focused API tools for AI developers
+    </p>
+
+  </main>
+</body>
+</html>

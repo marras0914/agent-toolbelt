@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt Optimizer API — Agent Toolbelt</title>
+  <meta name="description" content="Pass a prompt and a goal. Get back a better prompt, with an explanation of every change. Powered by Claude." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .code { font-family: 'Courier New', Courier, monospace; }
+    pre { overflow-x: auto; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <nav class="border-b border-gray-800 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
+    <a href="https://agent-toolbelt-production.up.railway.app" class="text-sm text-gray-400 hover:text-white transition-colors">← Agent Toolbelt</a>
+    <a href="https://agent-toolbelt-production.up.railway.app" class="bg-amber-600 hover:bg-amber-500 text-white text-sm px-4 py-2 rounded-lg transition-colors">Get API Key</a>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-6 py-20">
+
+    <div class="mb-16">
+      <div class="inline-flex items-center gap-2 bg-amber-950 border border-amber-800 text-amber-300 text-xs px-3 py-1 rounded-full mb-6">
+        <span class="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>
+        Powered by Claude · $0.05 per call
+      </div>
+      <h1 class="text-5xl font-bold tracking-tight mb-6">
+        Prompt Optimizer API
+      </h1>
+      <p class="text-xl text-gray-400 leading-relaxed max-w-2xl">
+        Your prompt, plus your goal. Back comes a better prompt with a full explanation of every change and why it improves output quality.
+      </p>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-4">The problem it solves</h2>
+      <p class="text-gray-400 mb-4">
+        Most prompts in production agents are the first draft. They work "well enough," never get revisited, and silently underperform for months. Prompt engineering is a craft — but you don't always have time to do it from scratch for every LLM call.
+      </p>
+      <p class="text-gray-400">
+        This API applies established prompt engineering principles automatically, with explanations so you understand what changed.
+      </p>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">How it works</h2>
+      <div class="space-y-4 mb-8">
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Request</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>POST /api/tools/prompt-optimizer
+
+{
+  "prompt": "Summarize this document",
+  "goal": "Extract key decisions and action items for a project manager"
+}</code></pre>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">Response</p>
+          <pre class="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm code text-gray-300"><code>{
+  "optimizedPrompt": "You are a project management assistant. Review the following document and produce a structured summary that includes:\n(1) Key decisions made, with context\n(2) Action items with owner and deadline if mentioned\n(3) Open questions requiring follow-up\n\nFormat your response as a bulleted list under each section.",
+
+  "changes": [
+    "Added a clear role/persona to orient the model",
+    "Made the output format explicit with three specific sections",
+    "Specified structured formatting to ensure consistent, parseable output"
+  ],
+
+  "estimatedImprovement": "High — original prompt was ambiguous about scope and format"
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-4">The <code class="bg-gray-800 px-2 py-0.5 rounded text-amber-400">changes</code> field is the best part</h2>
+      <p class="text-gray-400 mb-6">
+        It's not just a better prompt — it's an explanation of which prompt engineering principles were applied and why. Over time, this teaches you to write better prompts natively.
+      </p>
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <p class="text-xs text-gray-500 mb-2">Principle applied</p>
+          <p class="font-medium text-sm">Role assignment</p>
+          <p class="text-xs text-gray-400 mt-1">"You are a [expert]..." orients the model and improves output register</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <p class="text-xs text-gray-500 mb-2">Principle applied</p>
+          <p class="font-medium text-sm">Explicit output format</p>
+          <p class="text-xs text-gray-400 mt-1">Structured format requirements make output consistent and parseable</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <p class="text-xs text-gray-500 mb-2">Principle applied</p>
+          <p class="font-medium text-sm">Scope definition</p>
+          <p class="text-xs text-gray-400 mt-1">Explicit inclusion/exclusion removes ambiguity and reduces hallucination</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-16">
+      <h2 class="text-2xl font-semibold mb-6">TypeScript SDK</h2>
+      <pre class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-sm code text-gray-300 overflow-x-auto"><code>import { AgentToolbelt } from "agent-toolbelt";
+
+const toolbelt = new AgentToolbelt({ apiKey: process.env.TOOLBELT_KEY });
+
+// Optimize before deploying to production
+const { optimizedPrompt, changes, estimatedImprovement } =
+  await toolbelt.promptOptimizer({
+    prompt: draftPrompt,
+    goal: "Extract structured contact info from business card text",
+  });
+
+console.log("Changes made:", changes);
+// → Use optimizedPrompt in your agent</code></pre>
+    </div>
+
+    <div class="mb-16 bg-gray-900 border border-gray-800 rounded-xl p-8 flex items-center justify-between flex-wrap gap-6">
+      <div>
+        <p class="text-gray-400 text-sm mb-1">Pricing</p>
+        <p class="text-3xl font-bold">$0.05 <span class="text-gray-500 text-lg font-normal">per call</span></p>
+        <p class="text-sm text-gray-500 mt-1">Powered by Claude — the cheapest prompt engineering review you can get</p>
+      </div>
+      <a href="https://agent-toolbelt-production.up.railway.app" class="bg-amber-600 hover:bg-amber-500 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+        Get API Key →
+      </a>
+    </div>
+
+    <p class="text-center text-gray-600 text-sm">
+      Part of <a href="https://agent-toolbelt-production.up.railway.app" class="text-gray-500 hover:text-gray-400">Agent Toolbelt</a> — 14 focused API tools for AI developers
+    </p>
+
+  </main>
+</body>
+</html>
