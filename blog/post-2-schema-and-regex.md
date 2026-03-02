@@ -14,7 +14,7 @@ I solved this by turning both into API calls. Here's how.
 
 ---
 
-## The JSON Schema Problem
+## The JSON Schema Problem — [schema.elephanttortoise.com](https://schema.elephanttortoise.com)
 
 If you're building APIs, validating LLM output, or defining TypeScript interfaces, you're writing JSON schemas. Manually. From example data that you already have.
 
@@ -128,7 +128,7 @@ interface Output {
 
 ---
 
-## The Regex Problem
+## The Regex Problem — [regex.elephanttortoise.com](https://regex.elephanttortoise.com)
 
 Regex is write-once-debug-forever. The pattern that works in isolation fails in production because of a format variant you didn't consider. Then you're back in regex101, debugging character classes.
 
@@ -227,7 +227,7 @@ The best developer tools are the ones that handle the mechanics so you can think
 
 Both tools are available with the same API key. Pricing is fractions of a cent per call. No setup, no library to install (unless you want the TypeScript SDK), no configuration.
 
-**Get started:** [agent-toolbelt-production.up.railway.app](https://agent-toolbelt-production.up.railway.app)
+**Get started:** [schema.elephanttortoise.com](https://schema.elephanttortoise.com) · [regex.elephanttortoise.com](https://regex.elephanttortoise.com)
 
 ---
 

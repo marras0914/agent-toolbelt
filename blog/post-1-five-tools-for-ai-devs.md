@@ -14,7 +14,7 @@ I built Agent Toolbelt to eliminate that tax. Each tool is a focused, pay-per-ca
 
 ---
 
-## 1. Token Counter — Know Your Context Limits Before You Hit Them
+## 1. [Token Counter](https://tokens.elephanttortoise.com) — Know Your Context Limits Before You Hit Them
 
 If you've ever gotten a `context_length_exceeded` error mid-agent-run, you know the pain. Token counting feels like it should be trivial, but every model counts differently, and the `tiktoken` library has non-obvious behavior for different models.
 
@@ -44,7 +44,7 @@ I use this before every LLM call in my agents to decide whether to summarize con
 
 ---
 
-## 2. Schema Generator — Stop Writing JSON Schemas by Hand
+## 2. [Schema Generator](https://schema.elephanttortoise.com) — Stop Writing JSON Schemas by Hand
 
 JSON Schema is powerful and absolutely miserable to write. TypeScript interfaces are better, but converting between them is a chore. This tool takes a sample JSON object and generates both.
 
@@ -76,7 +76,7 @@ This is especially useful when you're working with undocumented APIs or extracti
 
 ---
 
-## 3. Regex Builder — Describe It in English, Get the Pattern
+## 3. [Regex Builder](https://regex.elephanttortoise.com) — Describe It in English, Get the Pattern
 
 Regex is one of those things where the write-once-debug-forever rule really applies. `^[\w.]+@[\w]+\.[\w.]+$` is not readable. The regex builder lets you describe what you want in plain English and get a working pattern with an explanation.
 
@@ -105,7 +105,7 @@ In agent workflows, I use this for data extraction and validation. Tell the agen
 
 ---
 
-## 4. Prompt Optimizer — Make Your Prompts Actually Work
+## 4. [Prompt Optimizer](https://prompts.elephanttortoise.com) — Make Your Prompts Actually Work
 
 This one is powered by Claude and it has saved my agents from a lot of mediocre output. You pass it a prompt and it returns an improved version with an explanation of what changed and why.
 
@@ -137,7 +137,7 @@ I run new prompts through this before adding them to production agents. The `cha
 
 ---
 
-## 5. Meeting Action Items — Turn Notes into Tasks Instantly
+## 5. [Meeting Action Items](https://meetings.elephanttortoise.com) — Turn Notes into Tasks Instantly
 
 This is the one non-developers ask me about most. Paste raw meeting notes — however messy — and get back structured action items with owners and deadlines. Also Claude-powered.
 

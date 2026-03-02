@@ -12,7 +12,7 @@ Three tools in my stack handle the most common versions of these problems. Here'
 
 ---
 
-## Problem 1: Context Overflows (Token Counter)
+## Problem 1: Context Overflows — [Token Counter](https://tokens.elephanttortoise.com)
 
 If you're building any agent that processes documents, maintains conversation history, or chains multiple LLM calls, you've hit this error:
 
@@ -85,7 +85,7 @@ I check token counts at three points in any agent that handles variable-length i
 
 ---
 
-## Problem 2: Weak Prompts (Prompt Optimizer)
+## Problem 2: Weak Prompts — [Prompt Optimizer](https://prompts.elephanttortoise.com)
 
 Here's an uncomfortable truth: most prompts in production agents are not good. Not because the developer is bad at writing prompts, but because:
 
@@ -157,7 +157,7 @@ At $0.05/call, running every significant prompt through this once is the cheapes
 
 ---
 
-## Problem 3: Meeting Notes to Action Items (Meeting Action Items)
+## Problem 3: Meeting Notes to Action Items — [meetings.elephanttortoise.com](https://meetings.elephanttortoise.com)
 
 This one isn't strictly an LLM-workflow problem — it's a general productivity problem. But it shows up constantly in agent builds because meeting notes are one of the most common forms of unstructured text that needs to become structured data.
 
@@ -259,7 +259,7 @@ await toolbelt.promptOptimizer({ prompt, goal });
 await toolbelt.meetingActionItems({ notes });
 ```
 
-**Get started:** [agent-toolbelt-production.up.railway.app](https://agent-toolbelt-production.up.railway.app)
+**Get started:** [tokens.elephanttortoise.com](https://tokens.elephanttortoise.com) · [prompts.elephanttortoise.com](https://prompts.elephanttortoise.com) · [meetings.elephanttortoise.com](https://meetings.elephanttortoise.com)
 
 ---
 
