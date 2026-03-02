@@ -25,6 +25,7 @@ db.exec(`
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
     stripe_subscription_item_id TEXT,
+    credit_balance_micros INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -56,6 +57,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_apikeys_hash ON api_keys(key_hash);
   CREATE INDEX IF NOT EXISTS idx_apikeys_client ON api_keys(client_id);
 `);
+
+// Migrate existing tables (safe — no-op if column already exists)
+try { db.exec(`ALTER TABLE clients ADD COLUMN credit_balance_micros INTEGER NOT NULL DEFAULT 0`); } catch { /* already exists */ }
 
 // ----- Prepared Statements -----
 const stmts = {
@@ -91,6 +95,11 @@ const stmts = {
     FROM usage_records WHERE client_id = ? AND created_at >= ?
     GROUP BY tool_name
   `),
+  // Credits (PAYG)
+  addCredits: db.prepare(`UPDATE clients SET credit_balance_micros = credit_balance_micros + ?, updated_at = datetime('now') WHERE id = ?`),
+  deductCredits: db.prepare(`UPDATE clients SET credit_balance_micros = credit_balance_micros - ?, updated_at = datetime('now') WHERE id = ? AND credit_balance_micros >= ?`),
+  getBalance: db.prepare(`SELECT credit_balance_micros FROM clients WHERE id = ?`),
+
   getMonthlyCallCount: db.prepare(`
     SELECT COUNT(*) as count FROM usage_records
     WHERE client_id = ? AND created_at >= date('now', 'start of month')
@@ -121,10 +130,11 @@ export interface Client {
   id: string;
   email: string;
   name: string | null;
-  tier: "free" | "starter" | "pro" | "enterprise";
+  tier: "free" | "payg" | "starter" | "pro" | "enterprise";
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   stripe_subscription_item_id: string | null;
+  credit_balance_micros: number;
   created_at: string;
   updated_at: string;
 }
@@ -236,17 +246,33 @@ export function getToolStats(since: string): any[] {
   return stmts.getToolStats.all(since);
 }
 
+// ----- Credit Operations (PAYG) -----
+export function addCredits(clientId: string, micros: number): void {
+  stmts.addCredits.run(micros, clientId);
+}
+
+export function deductCredits(clientId: string, micros: number): boolean {
+  const result = stmts.deductCredits.run(micros, clientId, micros) as { changes: number };
+  return result.changes > 0;
+}
+
+export function getClientBalance(clientId: string): number {
+  const row = stmts.getBalance.get(clientId) as { credit_balance_micros: number } | undefined;
+  return row?.credit_balance_micros ?? 0;
+}
+
 // ----- Tier Limit Checking -----
 export function checkTierLimit(clientId: string, tier: Client["tier"]): { allowed: boolean; used: number; limit: number } {
   const LIMITS: Record<string, number> = {
     free: 1_000,
+    payg: Infinity,   // no monthly cap — gated by credit balance instead
     starter: 50_000,
     pro: 500_000,
     enterprise: 5_000_000,
   };
 
   const used = getMonthlyCallCount(clientId);
-  const limit = LIMITS[tier] || 1_000;
+  const limit = LIMITS[tier] ?? 1_000;
 
   return { allowed: used < limit, used, limit };
 }

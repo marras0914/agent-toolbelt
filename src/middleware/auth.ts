@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { validateApiKey, checkTierLimit, Client } from "../db";
+import { validateApiKey, checkTierLimit, getClientBalance, Client } from "../db";
 
 // ----- Types -----
 export interface AuthenticatedClient {
@@ -20,6 +20,7 @@ declare global {
 // ----- Tier Limits -----
 export const TIER_LIMITS: Record<Client["tier"], { requestsPerMinute: number; monthlyRequests: number }> = {
   free: { requestsPerMinute: 10, monthlyRequests: 1_000 },
+  payg: { requestsPerMinute: 60, monthlyRequests: Infinity },
   starter: { requestsPerMinute: 60, monthlyRequests: 50_000 },
   pro: { requestsPerMinute: 300, monthlyRequests: 500_000 },
   enterprise: { requestsPerMinute: 1_000, monthlyRequests: 5_000_000 },
@@ -81,6 +82,20 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
       tier: client.tier,
     });
     return;
+  }
+
+  // PAYG: require positive credit balance
+  if (client.tier === "payg") {
+    const balance = getClientBalance(client.id);
+    if (balance <= 0) {
+      res.status(402).json({
+        error: "insufficient_credits",
+        message: "Your credit balance is empty. Top up at POST /billing/topup",
+        balanceMicros: balance,
+        topupUrl: "/billing/topup",
+      });
+      return;
+    }
   }
 
   // Check per-minute rate limit

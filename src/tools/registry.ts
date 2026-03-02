@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { ZodType, ZodTypeDef } from "zod";
 import { authenticate } from "../middleware/auth";
 import { trackUsage } from "../middleware/usage";
+import { deductCredits } from "../db";
 
 // ----- Tool Definition Interface -----
 export interface ToolDefinition<TInput = any, TOutput = any> {
@@ -21,6 +22,7 @@ export interface ToolDefinition<TInput = any, TOutput = any> {
     exampleInput?: TInput;
     exampleOutput?: TOutput;
     pricing?: string; // e.g. "$0.001 per call"
+    pricingMicros?: number; // pricing in microdollars (1 USD = 1,000,000)
   };
 }
 
@@ -34,6 +36,14 @@ export function registerTool(tool: ToolDefinition): void {
 
 export function getRegisteredTools(): ToolDefinition[] {
   return Array.from(registeredTools.values());
+}
+
+// Parse pricing string like "$0.005 per call" → microdollars
+function parsePricingMicros(pricing?: string): number {
+  if (!pricing) return 1_000; // default $0.001
+  const match = pricing.match(/\$([\d.]+)/);
+  if (!match) return 1_000;
+  return Math.round(parseFloat(match[1]) * 1_000_000);
 }
 
 // ----- Build Express Router from registered tools -----
@@ -75,6 +85,12 @@ export function buildToolRouter(): Router {
           const startTime = Date.now();
           const result = await tool.handler(parsed.data);
           const durationMs = Date.now() - startTime;
+
+          // Deduct credits for PAYG clients
+          if (req.client?.tier === "payg") {
+            const micros = tool.metadata?.pricingMicros ?? parsePricingMicros(tool.metadata?.pricing);
+            deductCredits(req.client.clientId, micros);
+          }
 
           res.json({
             success: true,

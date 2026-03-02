@@ -6,6 +6,8 @@ import {
   getClientByStripeId,
   updateClientStripe,
   updateClientTier,
+  addCredits,
+  getClientBalance,
   Client,
 } from "../db";
 
@@ -13,6 +15,20 @@ import {
 const stripe = config.stripeSecretKey
   ? new Stripe(config.stripeSecretKey, { apiVersion: "2024-12-18.acacia" as any })
   : null;
+
+// ----- PAYG Credit Packs -----
+// Amount in cents → label
+export const CREDIT_PACKS: Record<number, string> = {
+  500:  "$5 — 5,000,000 credits (~50,000 cheap calls / ~50 contract extractions)",
+  1000: "$10 — 10,000,000 credits",
+  2500: "$25 — 25,000,000 credits",
+  5000: "$50 — 50,000,000 credits",
+};
+
+// 1 USD = 1,000,000 microdollars. $1 spent → 1,000,000 microdollars.
+function centsToMicros(cents: number): number {
+  return cents * 10_000; // $0.01 = 10,000 microdollars
+}
 
 // ----- Pricing Configuration -----
 // Set these in your .env after creating products in Stripe Dashboard
@@ -104,10 +120,16 @@ export function buildStripeWebhookRouter(): Router {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        const { clientId, tier } = session.metadata || {};
+        const { clientId, tier, type, creditsMicros } = session.metadata || {};
 
-        if (clientId && tier && session.subscription && session.customer) {
-          // Retrieve subscription to get the subscription item ID (for usage metering)
+        if (type === "topup" && clientId && creditsMicros) {
+          // PAYG credit top-up
+          addCredits(clientId, parseInt(creditsMicros, 10));
+          // Upgrade tier to payg if still on free
+          updateClientTier(clientId, "payg");
+          console.log(`💳 Credits added: ${clientId} +${creditsMicros} micros`);
+        } else if (clientId && tier && session.subscription && session.customer) {
+          // Subscription checkout
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
           const subscriptionItemId = subscription.items.data[0]?.id || "";
 
@@ -226,6 +248,76 @@ export function buildBillingRouter(): Router {
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  // PAYG credit top-up
+  router.post("/topup", async (req: Request, res: Response) => {
+    const { clientId, email, amountCents } = req.body;
+
+    if (!clientId || !email || !amountCents) {
+      res.status(400).json({ error: "clientId, email, and amountCents are required" });
+      return;
+    }
+
+    const cents = parseInt(amountCents, 10);
+    if (![500, 1000, 2500, 5000].includes(cents)) {
+      res.status(400).json({ error: "amountCents must be one of: 500, 1000, 2500, 5000 ($5, $10, $25, $50)" });
+      return;
+    }
+
+    if (!stripe) {
+      res.status(503).json({ error: "Billing not configured" });
+      return;
+    }
+
+    try {
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const micros = centsToMicros(cents);
+
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        customer_email: email,
+        line_items: [{
+          price_data: {
+            currency: "usd",
+            unit_amount: cents,
+            product_data: {
+              name: "Agent Toolbelt Credits",
+              description: CREDIT_PACKS[cents] || `${micros.toLocaleString()} credits`,
+            },
+          },
+          quantity: 1,
+        }],
+        metadata: { clientId, type: "topup", creditsMicros: String(micros) },
+        success_url: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/billing/cancel`,
+      });
+
+      res.json({
+        checkoutUrl: session.url,
+        creditsMicros: micros,
+        amountUsd: cents / 100,
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Credit balance check
+  router.get("/balance/:clientId", (req: Request, res: Response) => {
+    const balance = getClientBalance(req.params.clientId);
+    res.json({
+      clientId: req.params.clientId,
+      creditsMicros: balance,
+      creditsUsd: (balance / 1_000_000).toFixed(6),
+      approximateCalls: {
+        cheapTools: Math.floor(balance / 100),    // $0.0001 tools
+        midTools: Math.floor(balance / 1_000),    // $0.001 tools
+        llmTools: Math.floor(balance / 50_000),   // $0.05 tools
+        contractExtractor: Math.floor(balance / 100_000), // $0.10
+      },
+    });
   });
 
   // Success/cancel pages
