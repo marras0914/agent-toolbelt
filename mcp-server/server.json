@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
   "name": "io.github.marras0914/agent-toolbelt-mcp",
-  "description": "11 focused API tools for LLM agents — schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex builder, cron expressions, address normalization, color palettes, and brand kit.",
+  "description": "19 focused API tools for AI agents and developers. Contract clause extraction ($0.10/call), prompt optimization, document comparison, meeting action items, context window packing, dependency auditing (CVE/OSV), mock data generation, token counting, and 11 rule-based utilities. Free tier: 1,000 calls/month, no credit card.",
   "version": "1.0.0",
   "packages": [
     {
