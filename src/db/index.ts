@@ -4,10 +4,14 @@ import { nanoid } from "nanoid";
 import { config } from "../config";
 
 // ----- Database Setup -----
-const DB_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), "data", "toolbelt.db");
+import fs from "fs";
+// Use /data if a persistent volume is mounted there (Railway), otherwise local ./data/
+const DEFAULT_DB_PATH = fs.existsSync("/data")
+  ? "/data/toolbelt.db"
+  : path.join(process.cwd(), "data", "toolbelt.db");
+const DB_PATH = process.env.DATABASE_PATH || DEFAULT_DB_PATH;
 
 // Ensure data directory exists
-import fs from "fs";
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 const db: SQLiteDatabase = new Database(DB_PATH);
