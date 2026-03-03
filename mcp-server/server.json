@@ -1,26 +1,31 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.marras0914/agent-toolbelt-mcp",
-  "description": "19 focused API tools for AI agents and developers. Contract clause extraction ($0.10/call), prompt optimization, document comparison, meeting action items, context window packing, dependency auditing (CVE/OSV), mock data generation, token counting, and 11 rule-based utilities. Free tier: 1,000 calls/month, no credit card.",
+  "description": "19 focused API tools for AI agents: contract review, prompt optimizer, context packing, and more.",
+  "repository": {
+    "url": "https://github.com/marras0914/agent-toolbelt",
+    "source": "github",
+    "subfolder": "mcp-server"
+  },
+  "homepage": "https://agent-toolbelt-production.up.railway.app",
   "version": "1.0.0",
   "packages": [
     {
-      "registry_type": "npm",
-      "name": "agent-toolbelt-mcp",
-      "version": "1.0.0",
-      "runtime_arguments": [],
-      "environment_variables": [
+      "registryType": "npm",
+      "identifier": "agent-toolbelt-mcp",
+      "version": "1.0.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtimeArguments": [],
+      "environmentVariables": [
         {
           "name": "AGENT_TOOLBELT_KEY",
           "description": "Your Agent Toolbelt API key. Get one free at https://agent-toolbelt-production.up.railway.app",
-          "required": true
+          "isRequired": true,
+          "isSecret": true
         }
       ]
     }
-  ],
-  "repository": {
-    "url": "https://github.com/marras0914/agent-toolbelt",
-    "source": "https://github.com/marras0914/agent-toolbelt/tree/master/mcp-server"
-  },
-  "homepage": "https://agent-toolbelt-production.up.railway.app"
+  ]
 }
