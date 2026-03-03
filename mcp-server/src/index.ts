@@ -22,7 +22,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 // ----- Configuration -----
-const API_BASE_URL = process.env.AGENT_TOOLBELT_URL || "http://localhost:3000";
+const API_BASE_URL = process.env.AGENT_TOOLBELT_URL || "https://agent-toolbelt-production.up.railway.app";
 const API_KEY = process.env.AGENT_TOOLBELT_KEY || "";
 
 // ----- HTTP helper -----
