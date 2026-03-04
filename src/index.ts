@@ -14,6 +14,7 @@ import {
   getClientByEmail,
   getClientApiKeys,
   revokeApiKey,
+  getAllClients,
 } from "./db";
 
 // ----- Import tools (auto-registers via side effect) -----
@@ -212,6 +213,12 @@ app.delete("/admin/clients/:clientId/keys/:keyId", (req, res) => {
 // Client usage
 app.get("/admin/clients/:clientId/usage", (req, res) => {
   res.json(getClientUsageSummary(req.params.clientId));
+});
+
+// List all clients
+app.get("/admin/clients", (_req, res) => {
+  const clients = getAllClients();
+  res.json({ total: clients.length, clients });
 });
 
 // Global usage dashboard

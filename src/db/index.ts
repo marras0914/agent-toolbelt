@@ -104,6 +104,11 @@ const stmts = {
   deductCredits: db.prepare(`UPDATE clients SET credit_balance_micros = credit_balance_micros - ?, updated_at = datetime('now') WHERE id = ? AND credit_balance_micros >= ?`),
   getBalance: db.prepare(`SELECT credit_balance_micros FROM clients WHERE id = ?`),
 
+  getAllClients: db.prepare(`
+    SELECT id, email, name, tier, credit_balance_micros, created_at, updated_at
+    FROM clients ORDER BY created_at DESC
+  `),
+
   getMonthlyCallCount: db.prepare(`
     SELECT COUNT(*) as count FROM usage_records
     WHERE client_id = ? AND created_at >= date('now', 'start of month')
@@ -155,6 +160,10 @@ export function getClientById(id: string): Client | undefined {
 
 export function getClientByEmail(email: string): Client | undefined {
   return stmts.getClientByEmail.get(email) as Client | undefined;
+}
+
+export function getAllClients(): Omit<Client, "stripe_customer_id" | "stripe_subscription_id" | "stripe_subscription_item_id">[] {
+  return stmts.getAllClients.all() as any[];
 }
 
 export function getClientByStripeId(stripeCustomerId: string): Client | undefined {
