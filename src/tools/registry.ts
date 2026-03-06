@@ -52,13 +52,16 @@ export function buildToolRouter(): Router {
 
   // Tool catalog endpoint (public — agents use this for discovery)
   router.get("/catalog", (_req: Request, res: Response) => {
-    const catalog = getRegisteredTools().map((t) => ({
-      name: t.name,
-      description: t.description,
-      version: t.version,
-      endpoint: `/api/tools/${t.name}`,
-      metadata: t.metadata || {},
-    }));
+    const catalog = getRegisteredTools().map((t) => {
+      const { pricing, pricingMicros, ...publicMetadata } = t.metadata || {};
+      return {
+        name: t.name,
+        description: t.description,
+        version: t.version,
+        endpoint: `/api/tools/${t.name}`,
+        metadata: publicMetadata,
+      };
+    });
     res.json({ tools: catalog, count: catalog.length });
   });
 

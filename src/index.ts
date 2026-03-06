@@ -263,19 +263,16 @@ app.get("/api/docs", (req, res) => {
       "POST /api/clients/register": "Register + get API key",
       "POST /billing/checkout": "Upgrade subscription",
     },
-    tools: tools.map((t) => ({
-      name: t.name,
-      description: t.description,
-      version: t.version,
-      endpoint: `POST /api/tools/${t.name}`,
-      metadata: t.metadata,
-    })),
-    tiers: {
-      free: { price: "$0/mo", monthlyRequests: "1,000", rateLimit: "10/min" },
-      starter: { price: "$29/mo", monthlyRequests: "50,000", rateLimit: "60/min" },
-      pro: { price: "$99/mo", monthlyRequests: "500,000", rateLimit: "300/min" },
-      enterprise: { price: "Custom", monthlyRequests: "5,000,000", rateLimit: "1,000/min" },
-    },
+    tools: tools.map((t) => {
+      const { pricing, pricingMicros, ...publicMetadata } = t.metadata || {};
+      return {
+        name: t.name,
+        description: t.description,
+        version: t.version,
+        endpoint: `POST /api/tools/${t.name}`,
+        metadata: publicMetadata,
+      };
+    }),
   });
 });
 
