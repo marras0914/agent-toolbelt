@@ -6,6 +6,7 @@ import path from "path";
 import { config } from "./config";
 import { getUsageSummary, getClientUsageSummary } from "./middleware/usage";
 import { buildToolRouter, getRegisteredTools } from "./tools/registry";
+import { handleMcpRequest } from "./mcp-http";
 import { buildBillingRouter, buildStripeWebhookRouter } from "./middleware/billing";
 import {
   createClient,
@@ -119,6 +120,17 @@ app.get("/api", (_req, res) => {
 
 // Tool catalog + tool endpoints
 app.use("/api/tools", buildToolRouter());
+
+// MCP HTTP endpoint (Streamable HTTP transport — for Smithery and browser-based MCP clients)
+app.all("/mcp", async (req, res) => {
+  try {
+    await handleMcpRequest(req, res);
+  } catch (err: any) {
+    if (!res.headersSent) {
+      res.status(500).json({ error: "mcp_error", message: err.message });
+    }
+  }
+});
 
 // ----- Guest Try Endpoint (no auth, IP-limited) -----
 const GUEST_DAILY_LIMIT = 10;

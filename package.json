@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@faker-js/faker": "^10.3.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "better-sqlite3": "^11.6.0",
     "cheerio": "^1.2.0",
     "cors": "^2.8.5",

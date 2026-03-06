@@ -48,11 +48,12 @@ async function callToolApi(toolName: string, input: Record<string, unknown>): Pr
   return response.json();
 }
 
-// ----- Create MCP Server -----
-const server = new McpServer({
-  name: "agent-toolbelt",
-  version: "1.0.0",
-});
+// ----- Server factory (creates a fresh instance with all tools registered) -----
+function createServer() {
+  const server = new McpServer({
+    name: "agent-toolbelt",
+    version: "1.0.0",
+  });
 
 // ----- Tool: Schema Generator -----
 server.registerTool(
@@ -1072,8 +1073,17 @@ server.registerPrompt(
   })
 );
 
+  return server;
+}
+
+// ----- Smithery sandbox export (allows capability scanning without real credentials) -----
+export function createSandboxServer() {
+  return createServer();
+}
+
 // ----- Connect via stdio transport -----
 async function main() {
+  const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
@@ -1083,7 +1093,17 @@ async function main() {
   console.error(`  Key: ${API_KEY ? API_KEY.slice(0, 12) + "..." : "not set"}`);
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
-  process.exit(1);
-});
+// Only run when executed directly (not when imported for scanning).
+// Wrapped in try/catch because Smithery bundles to CJS where import.meta.url is undefined.
+let _isMain = false;
+try {
+  _isMain = !!import.meta.url && import.meta.url.includes(process.argv[1]?.replace(/\\/g, "/") ?? "___");
+} catch (_) {
+  _isMain = false;
+}
+if (_isMain) {
+  main().catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  });
+}
