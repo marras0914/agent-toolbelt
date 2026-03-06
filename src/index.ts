@@ -120,6 +120,64 @@ app.get("/api", (_req, res) => {
 // Tool catalog + tool endpoints
 app.use("/api/tools", buildToolRouter());
 
+// ----- Guest Try Endpoint (no auth, IP-limited) -----
+const GUEST_DAILY_LIMIT = 10;
+const guestBuckets: Map<string, { count: number; date: string }> = new Map();
+
+app.post("/api/try/:toolName", async (req, res) => {
+  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.ip || "unknown";
+  const today = new Date().toISOString().split("T")[0];
+
+  const bucket = guestBuckets.get(ip);
+  if (bucket && bucket.date === today && bucket.count >= GUEST_DAILY_LIMIT) {
+    res.status(429).json({
+      error: "guest_limit_reached",
+      message: `Free trial limit reached (${GUEST_DAILY_LIMIT} tries/day). Register for 1,000 free calls/month.`,
+      registerUrl: "/api/clients/register",
+    });
+    return;
+  }
+
+  if (!bucket || bucket.date !== today) {
+    guestBuckets.set(ip, { count: 1, date: today });
+  } else {
+    bucket.count++;
+  }
+  const used = guestBuckets.get(ip)!.count;
+  const remaining = GUEST_DAILY_LIMIT - used;
+
+  const tool = getRegisteredTools().find((t) => t.name === req.params.toolName);
+  if (!tool) {
+    res.status(404).json({ error: "not_found", message: `Tool '${req.params.toolName}' not found.` });
+    return;
+  }
+
+  const parsed = tool.inputSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "validation_error", details: parsed.error.flatten() });
+    return;
+  }
+
+  try {
+    const startTime = Date.now();
+    const result = await tool.handler(parsed.data);
+    const durationMs = Date.now() - startTime;
+    res.json({
+      success: true,
+      tool: tool.name,
+      durationMs,
+      result,
+      guest: true,
+      trialCallsRemaining: remaining,
+      ...(remaining <= 3 && {
+        nudge: `${remaining} free tries left today. Register for 1,000 free calls/month → POST /api/clients/register`,
+      }),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: "tool_error", message: err.message });
+  }
+});
+
 // Billing routes
 app.use("/billing", buildBillingRouter());
 

@@ -313,11 +313,80 @@
       border: 1px solid var(--border);
     }
 
-    .tool-price {
+    .tool-try-btn {
       font-family: var(--mono);
       font-size: 0.75rem;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(0, 229, 160, 0.2);
+      padding: 5px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 14px;
+      display: inline-block;
+      transition: all 0.2s;
+    }
+    .tool-try-btn:hover { background: var(--accent-glow); }
+
+    .tool-try-panel {
+      display: none;
+      margin-top: 14px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+    .tool-try-panel.open { display: block; }
+
+    .tool-try-panel textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      padding: 10px;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .tool-try-panel textarea:focus { border-color: rgba(0, 229, 160, 0.4); }
+
+    .tool-try-run {
+      margin-top: 8px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 6px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tool-try-run:disabled { opacity: 0.5; cursor: default; }
+
+    .tool-try-result {
+      margin-top: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--text-dim);
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      display: none;
+    }
+
+    .tool-try-nudge {
+      margin-top: 8px;
+      font-size: 0.78rem;
       color: var(--orange);
-      margin-top: 12px;
+      font-family: var(--mono);
     }
 
     /* Pricing */
@@ -596,7 +665,7 @@
         <div class="step">
           <div class="step-num">01</div>
           <h3>Discover</h3>
-          <p>Agents hit <code>/api/tools/catalog</code> to see what tools are available, with descriptions, input schemas, and pricing.</p>
+          <p>Agents hit <code>/api/tools/catalog</code> to see what tools are available, with descriptions and input schemas.</p>
         </div>
         <div class="step">
           <div class="step-num">02</div>
@@ -731,20 +800,88 @@
       try {
         const res = await fetch('/api/tools/catalog');
         const data = await res.json();
-        grid.innerHTML = data.tools.map(tool => `
-          <div class="tool-card">
-            <div class="tool-name">${tool.name}</div>
-            <div class="tool-desc">${tool.description}</div>
-            <div class="tool-tags">
-              ${(tool.metadata?.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}
+        grid.innerHTML = data.tools.map(tool => {
+          const exampleJson = tool.metadata?.exampleInput
+            ? JSON.stringify(tool.metadata.exampleInput, null, 2)
+            : '{}';
+          const cardId = 'tool-' + tool.name;
+          return `
+            <div class="tool-card" id="${cardId}">
+              <div class="tool-name">${tool.name}</div>
+              <div class="tool-desc">${tool.description}</div>
+              <div class="tool-tags">
+                ${(tool.metadata?.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}
+              </div>
+              <button class="tool-try-btn" onclick="toggleTry('${tool.name}')">Try it →</button>
+              <div class="tool-try-panel" id="panel-${tool.name}">
+                <textarea id="input-${tool.name}">${exampleJson}</textarea>
+                <button class="tool-try-run" id="run-${tool.name}" onclick="runTry('${tool.name}')">Run</button>
+                <div class="tool-try-result" id="result-${tool.name}"></div>
+                <div class="tool-try-nudge" id="nudge-${tool.name}"></div>
+              </div>
             </div>
-            ${tool.metadata?.pricing ? `<div class="tool-price">${tool.metadata.pricing}</div>` : ''}
-          </div>
-        `).join('');
+          `;
+        }).join('');
       } catch (e) {
-        grid.innerHTML = '<div class="tool-card"><div class="tool-name">Could not load catalog</div></div>';
+        grid.innerHTML = '<div class="tool-card"><div class="tool-name" style="color:var(--orange)">Could not load catalog. Is the server running?</div></div>';
       }
     }
+
+    function toggleTry(toolName) {
+      const panel = document.getElementById('panel-' + toolName);
+      panel.classList.toggle('open');
+    }
+
+    async function runTry(toolName) {
+      const inputEl = document.getElementById('input-' + toolName);
+      const resultEl = document.getElementById('result-' + toolName);
+      const nudgeEl = document.getElementById('nudge-' + toolName);
+      const runBtn = document.getElementById('run-' + toolName);
+
+      let body;
+      try {
+        body = JSON.parse(inputEl.value);
+      } catch (e) {
+        resultEl.style.display = 'block';
+        resultEl.textContent = 'Invalid JSON input.';
+        resultEl.style.color = 'var(--orange)';
+        return;
+      }
+
+      runBtn.disabled = true;
+      runBtn.textContent = '...';
+      resultEl.style.display = 'none';
+      nudgeEl.textContent = '';
+
+      try {
+        const res = await fetch('/api/try/' + toolName, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        resultEl.style.display = 'block';
+        if (res.status === 429) {
+          resultEl.style.color = 'var(--orange)';
+          resultEl.textContent = data.message + '\n\nRegister below for 1,000 free calls/month →';
+        } else if (!res.ok) {
+          resultEl.style.color = 'var(--orange)';
+          resultEl.textContent = JSON.stringify(data, null, 2);
+        } else {
+          resultEl.style.color = 'var(--text-dim)';
+          resultEl.textContent = JSON.stringify(data.result, null, 2);
+          if (data.nudge) nudgeEl.textContent = data.nudge;
+        }
+      } catch (e) {
+        resultEl.style.display = 'block';
+        resultEl.style.color = 'var(--orange)';
+        resultEl.textContent = 'Network error.';
+      }
+
+      runBtn.disabled = false;
+      runBtn.textContent = 'Run';
+    }
+
     loadCatalog();
   </script>
 </body>
