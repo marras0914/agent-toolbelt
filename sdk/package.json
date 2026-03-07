@@ -1,6 +1,6 @@
 {
   "name": "agent-toolbelt",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Official SDK for Agent Toolbelt — typed API client and LangChain tool wrappers for schema generation, text extraction, token counting, CSV conversion, and more.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

@@ -172,27 +172,39 @@ const result = await agent.invoke({
 | `strip_image_metadata` | Strip EXIF/GPS/IPTC/XMP metadata from images for privacy |
 | `extract_meeting_action_items` | Extract action items, decisions, and summary from meeting notes |
 | `optimize_prompt` | Analyze and improve LLM prompts with scores and rewrite |
+| `compare_documents` | Semantic diff between two document versions |
+| `extract_contract_clauses` | Extract key clauses and flag risks from contracts |
+| `mock_api_response` | Generate realistic mock data from a JSON Schema |
+| `pack_context_window` | Select the best content subset that fits a token budget |
+| `audit_dependencies` | Check npm/PyPI packages for known CVEs |
 
 ---
 
 ## All tools
 
-| Tool | Pricing |
+19 tools available. Free tier included — paid tiers available for higher volume. See [pricing](https://agent-toolbelt-production.up.railway.app/#pricing).
+
+| Tool | Description |
 |---|---|
-| `schema-generator` | $0.001 / call |
-| `text-extractor` | $0.0005 / call |
-| `token-counter` | $0.0001 / call |
-| `csv-to-json` | $0.0005 / call |
-| `markdown-converter` | $0.0005 / call |
-| `url-metadata` | $0.001 / call |
-| `regex-builder` | $0.0005 / call |
-| `cron-builder` | $0.0005 / call |
-| `address-normalizer` | $0.0005 / call |
-| `color-palette` | $0.0005 / call |
-| `brand-kit` | $0.001 / call |
-| `image-metadata-stripper` | $0.001 / call |
-| `meeting-action-items` | $0.05 / call |
-| `prompt-optimizer` | $0.05 / call |
+| `schema-generator` | JSON Schema / TypeScript / Zod from natural language |
+| `text-extractor` | Extract emails, URLs, phones, dates, currencies from text |
+| `token-counter` | Token counts and cost estimates across LLM models |
+| `csv-to-json` | CSV to typed JSON with auto type detection |
+| `markdown-converter` | HTML ↔ Markdown conversion |
+| `url-metadata` | Title, description, OG tags, favicon from a URL |
+| `regex-builder` | Natural language → tested regex with code snippets |
+| `cron-builder` | Natural language → cron expression with next run times |
+| `address-normalizer` | Normalize US addresses to USPS format |
+| `color-palette` | Color palettes with WCAG scores and CSS variables |
+| `brand-kit` | Full brand kit — colors, typography, CSS/Tailwind tokens |
+| `image-metadata-stripper` | Strip EXIF/GPS/IPTC/XMP metadata from images |
+| `meeting-action-items` | Extract action items and decisions from meeting notes |
+| `prompt-optimizer` | Analyze and improve LLM prompts |
+| `document-comparator` | Semantic diff between two document versions |
+| `contract-clause-extractor` | Extract clauses and flag risks from contracts |
+| `api-response-mocker` | Generate realistic mock data from a JSON Schema |
+| `context-window-packer` | Pack content into a token budget optimally |
+| `dependency-auditor` | Audit npm/PyPI packages for CVEs |
 
 ## License
 
