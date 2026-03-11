@@ -28,4 +28,8 @@ export const config = {
 
   // LLM
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || "",
+
+  // Email (SendGrid)
+  sendgridApiKey: process.env.SENDGRID_API_KEY || "",
+  emailFrom: process.env.EMAIL_FROM || "hello@elephanttortoise.com",
 };
