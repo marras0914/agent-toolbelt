@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get API Key — Agent Toolbelt</title>
+  <meta name="description" content="Register for a free Agent Toolbelt API key. 1,000 calls/month, no credit card required.">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface-2: #1a1a26;
+      --border: #2a2a3a;
+      --text: #e8e8ef;
+      --text-dim: #8888a0;
+      --accent: #00e5a0;
+      --accent-dim: #00e5a020;
+      --accent-glow: #00e5a040;
+      --orange: #ff6b35;
+      --red: #ff4d4d;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .logo {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo::before {
+      content: '>';
+      opacity: 0.5;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+
+    .subtitle span {
+      color: var(--accent);
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.4rem;
+    }
+
+    input {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.7rem 0.9rem;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    input::placeholder {
+      color: var(--text-dim);
+    }
+
+    button {
+      width: 100%;
+      background: var(--accent);
+      color: #0a0a0f;
+      border: none;
+      border-radius: 6px;
+      padding: 0.8rem;
+      font-family: var(--sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error {
+      background: #ff4d4d15;
+      border: 1px solid #ff4d4d40;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      color: var(--red);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .result {
+      display: none;
+    }
+
+    .result h2 {
+      font-size: 1.2rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .result .welcome {
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .key-box {
+      background: var(--surface-2);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 0.9rem 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .key-value {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--accent);
+      word-break: break-all;
+      flex: 1;
+    }
+
+    .copy-btn {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 4px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.75rem;
+      font-family: var(--mono);
+      cursor: pointer;
+      white-space: nowrap;
+      width: auto;
+      transition: background 0.15s;
+    }
+
+    .copy-btn:hover { background: var(--accent-glow); }
+
+    .warning {
+      font-size: 0.8rem;
+      color: var(--orange);
+      margin-bottom: 1.5rem;
+    }
+
+    .next-steps {
+      border-top: 1px solid var(--border);
+      padding-top: 1.25rem;
+    }
+
+    .next-steps h3 {
+      font-size: 0.8rem;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    .step {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-bottom: 0.5rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .step .highlight { color: var(--accent); }
+
+    .fine-print {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 1.5rem;
+    }
+
+    .fine-print a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">agent-toolbelt</div>
+
+    <!-- Registration form -->
+    <div id="form-view">
+      <h1>Get your free API key</h1>
+      <p class="subtitle"><span>1,000 calls/month</span> — no credit card required.</p>
+
+      <div class="error" id="error-msg"></div>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+
+      <label for="name">Name <span style="color:var(--text-dim);text-transform:none;font-family:var(--sans);font-size:0.8rem;">(optional)</span></label>
+      <input type="text" id="name" placeholder="Your name or project name" autocomplete="name">
+
+      <button id="register-btn" onclick="register()">Get API key</button>
+    </div>
+
+    <!-- Success view -->
+    <div class="result" id="result-view">
+      <h2>You're in.</h2>
+      <p class="welcome">Your key is below — store it somewhere safe.</p>
+
+      <div class="key-box">
+        <span class="key-value" id="key-display"></span>
+        <button class="copy-btn" onclick="copyKey()">copy</button>
+      </div>
+      <p class="warning">This is the only time your key will be shown.</p>
+
+      <div class="next-steps">
+        <h3>Next steps</h3>
+        <div class="step" id="step-sdk"></div>
+        <div class="step" id="step-mcp"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="fine-print">
+    <a href="/">Back to Agent Toolbelt</a> &nbsp;&middot;&nbsp;
+    <a href="https://agent-toolbelt-production.up.railway.app/api/tools/catalog">Browse tools</a>
+  </p>
+
+  <script>
+    async function register() {
+      const email = document.getElementById('email').value.trim();
+      const name = document.getElementById('name').value.trim();
+      const btn = document.getElementById('register-btn');
+      const errorEl = document.getElementById('error-msg');
+
+      errorEl.style.display = 'none';
+
+      if (!email) {
+        showError('Email is required.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Registering...';
+
+      try {
+        const res = await fetch('/api/clients/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name: name || undefined }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showError(data.error || 'Registration failed. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Get API key';
+          return;
+        }
+
+        showResult(data);
+      } catch (e) {
+        showError('Network error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Get API key';
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function showResult(data) {
+      const key = data.apiKey.key;
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('result-view').style.display = 'block';
+      document.getElementById('key-display').textContent = key;
+
+      document.getElementById('step-sdk').innerHTML =
+        `<span class="highlight"># npm SDK</span>\nnpm install agent-toolbelt\nAGENT_TOOLBELT_KEY=${key} node your-script.js`;
+
+      document.getElementById('step-mcp').innerHTML =
+        `<span class="highlight"># Claude Code MCP</span>\nclaude mcp add agent-toolbelt-mcp \\\n  -e AGENT_TOOLBELT_KEY=${key} \\\n  -- npx -y agent-toolbelt-mcp`;
+    }
+
+    function copyKey() {
+      const key = document.getElementById('key-display').textContent;
+      navigator.clipboard.writeText(key).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'copied!';
+        setTimeout(() => btn.textContent = 'copy', 2000);
+      });
+    }
+
+    // Allow Enter key to submit
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && document.getElementById('form-view').style.display !== 'none') {
+        register();
+      }
+    });
+  </script>
+</body>
+</html>

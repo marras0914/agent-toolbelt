@@ -1,7 +1,7 @@
 {
   "name": "agent-toolbelt-mcp",
   "mcpName": "io.github.marras0914/agent-toolbelt-mcp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "MCP server that exposes Agent Toolbelt API tools to Claude Desktop, Claude Code, VS Code, and other MCP clients",
   "type": "module",
   "bin": {
@@ -10,9 +10,10 @@
   "scripts": {
     "build": "tsc && chmod 755 build/index.js",
     "dev": "tsx src/index.ts",
-    "inspector": "npx @modelcontextprotocol/inspector node build/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
+    "postinstall": "node scripts/postinstall.js"
   },
-  "files": ["build", "README.md"],
+  "files": ["build", "README.md", "scripts"],
   "keywords": ["mcp", "claude", "ai", "agent", "tools", "langchain", "llm", "anthropic", "model-context-protocol"],
   "author": "Agent Toolbelt",
   "license": "MIT",

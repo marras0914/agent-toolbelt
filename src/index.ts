@@ -222,7 +222,7 @@ app.post("/api/clients/register", (req, res) => {
     .catch((err) => console.error("[email] Failed to send onboarding email:", err.message));
 
   res.status(201).json({
-    message: "Welcome to Agent Toolbelt! Store your API key securely — it won't be shown again.",
+    message: "Welcome to Agent Toolbelt! Store your API key securely - it won't be shown again.",
     client: {
       id: client.id,
       email: client.email,
@@ -350,6 +350,11 @@ app.get("/api/docs", (req, res) => {
       };
     }),
   });
+});
+
+// ----- Registration page -----
+app.get("/register", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "register.html"));
 });
 
 // ----- Catch-all: serve landing page for non-API routes -----
