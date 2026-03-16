@@ -342,6 +342,22 @@ export interface ContextWindowPackerResult {
   strategy: string;
 }
 
+export interface WebSummarizerResult {
+  url: string;
+  finalUrl: string;
+  statusCode: number | null;
+  truncated: boolean;
+  characterCount: number;
+  content?: string;
+  summary?: {
+    title: string | null;
+    summary: string;
+    keyPoints: string[];
+    contentType: string;
+  };
+  error?: string;
+}
+
 // ----- Client -----
 export class AgentToolbelt {
   private apiKey: string;
@@ -541,6 +557,17 @@ export class AgentToolbelt {
     minSeverity?: "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
   }): Promise<DependencyAuditorResult> {
     return this.call("dependency-auditor", input);
+  }
+
+  /** Fetch a URL, extract main content as clean Markdown, and generate an AI summary with key points */
+  webSummarizer(input: {
+    url: string;
+    mode?: "summary" | "content" | "both";
+    focus?: string;
+    maxContentLength?: number;
+    timeout?: number;
+  }): Promise<WebSummarizerResult> {
+    return this.call("web-summarizer", input);
   }
 
   /** Pack content chunks into a token budget for LLM context windows */

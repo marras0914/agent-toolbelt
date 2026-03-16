@@ -2,7 +2,7 @@
 
 Official SDK for [Agent Toolbelt](https://agent-toolbelt-production.up.railway.app) — a suite of focused API tools for AI agents and developers.
 
-**Typed client + LangChain tool wrappers** for schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, color palette generation, brand kit creation, meeting action item extraction, and prompt optimization.
+**Typed client + LangChain tool wrappers** for schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, color palette generation, brand kit creation, meeting action item extraction, prompt optimization, web summarization, and more — 20 tools total.
 
 ## Install
 
@@ -127,6 +127,12 @@ await client.meetingActionItems({ notes: transcript, format: "full", participant
 
 // Analyze and improve an LLM prompt
 await client.promptOptimizer({ prompt: "Summarize this and tell me the main points.", model: "gpt-4o", mode: "both" });
+
+// Fetch a URL, strip boilerplate, return clean Markdown + AI summary
+await client.webSummarizer({ url: "https://example.com/article", mode: "both", focus: "key arguments" });
+// result.content           → clean Markdown
+// result.summary.summary   → "2-4 sentence summary..."
+// result.summary.keyPoints → ["point 1", "point 2", ...]
 ```
 
 ---
@@ -177,12 +183,13 @@ const result = await agent.invoke({
 | `mock_api_response` | Generate realistic mock data from a JSON Schema |
 | `pack_context_window` | Select the best content subset that fits a token budget |
 | `audit_dependencies` | Check npm/PyPI packages for known CVEs |
+| `summarize_web_page` | Fetch a URL, extract clean Markdown, generate AI summary with key points |
 
 ---
 
 ## All tools
 
-19 tools available. Free tier included — paid tiers available for higher volume. See [pricing](https://agent-toolbelt-production.up.railway.app/#pricing).
+20 tools available. Free tier included — paid tiers available for higher volume. See [pricing](https://agent-toolbelt-production.up.railway.app/#pricing).
 
 | Tool | Description |
 |---|---|
@@ -205,6 +212,7 @@ const result = await agent.invoke({
 | `api-response-mocker` | Generate realistic mock data from a JSON Schema |
 | `context-window-packer` | Pack content into a token budget optimally |
 | `dependency-auditor` | Audit npm/PyPI packages for CVEs |
+| `web-summarizer` | Fetch a URL, extract clean Markdown, generate AI summary with key points |
 
 ## License
 

@@ -417,6 +417,26 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
       },
     }),
 
+    // ---- Web Summarizer ----
+    new DynamicStructuredTool({
+      name: "summarize_web_page",
+      description:
+        "Fetch a URL, strip navigation/ads/boilerplate, and return clean Markdown content plus an AI-generated summary with key points. " +
+        "Use this for research, content ingestion, competitive analysis, or feeding web content to an LLM without noise. " +
+        "Returns the page title, a 2-4 sentence summary, up to 5 key points, and content type classification. Powered by Claude.",
+      schema: z.object({
+        url: z.string().url().describe("The URL to fetch and summarize"),
+        mode: z.enum(["summary", "content", "both"]).default("both").describe("'summary' = AI summary only, 'content' = clean markdown only, 'both' = full content + summary"),
+        focus: z.string().optional().describe("What to focus the summary on, e.g. 'pricing', 'technical architecture', 'key arguments'"),
+        maxContentLength: z.number().int().min(500).max(50000).default(20000).describe("Max characters of page content to process"),
+        timeout: z.number().int().min(1000).max(20000).default(10000).describe("Request timeout in milliseconds"),
+      }),
+      func: async ({ url, mode, focus, maxContentLength, timeout }) => {
+        const result = await client.webSummarizer({ url, mode, focus, maxContentLength, timeout });
+        return JSON.stringify(result);
+      },
+    }),
+
     // ---- Dependency Auditor ----
     new DynamicStructuredTool({
       name: "audit_dependencies",
