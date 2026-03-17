@@ -61,10 +61,10 @@ jobs:
             -d '{"email": "ci@test.com"}')
           KEY=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['apiKey']['key'])")
 
-          curl -sf -X POST http://localhost:3333/api/tools/schema-generator \
+          curl -sf -X POST http://localhost:3333/api/tools/token-counter \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $KEY" \
-            -d '{"description": "a test user"}' | grep -q '"success":true'
+            -d '{"text": "hello world", "models": ["gpt-4o"]}' | grep -q '"success":true'
           echo "✓ Tool execution working"
 
           kill %1 || true
