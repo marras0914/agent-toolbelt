@@ -6,13 +6,12 @@ import { config } from "../config";
 // ----- Database Setup -----
 import fs from "fs";
 // Use /app/data if Railway volume is mounted there, then /data, then local ./data/
-console.log("[db] /app/data exists:", fs.existsSync("/app/data"), "| /data exists:", fs.existsSync("/data"), "| cwd:", process.cwd());
 const DEFAULT_DB_PATH = fs.existsSync("/app/data")
   ? "/app/data/toolbelt.db"
   : fs.existsSync("/data")
   ? "/data/toolbelt.db"
   : path.join(process.cwd(), "data", "toolbelt.db");
-const DB_PATH = process.env.DATABASE_PATH || DEFAULT_DB_PATH;
+export const DB_PATH = process.env.DATABASE_PATH || DEFAULT_DB_PATH;
 
 // Ensure data directory exists
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });

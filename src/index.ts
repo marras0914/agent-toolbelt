@@ -16,6 +16,7 @@ import {
   getClientApiKeys,
   revokeApiKey,
   getAllClients,
+  DB_PATH,
 } from "./db";
 import { sendOnboardingEmail } from "./email";
 
@@ -373,7 +374,7 @@ app.listen(config.port, () => {
 ║  Env:     ${config.nodeEnv.padEnd(41)}║
 ║  Tools:   ${String(tools.length).padEnd(41)}║
 ║  Stripe:  ${(config.stripeSecretKey ? "Connected ✅" : "Not configured (dev mode)").padEnd(41)}║
-║  DB:      SQLite (./data/toolbelt.db)${" ".repeat(14)}║
+║  DB:      SQLite (${DB_PATH.padEnd(32)})║
 ╠═══════════════════════════════════════════════════╣
 ║  Public:                                           ║
 ║    GET  /                      Landing page        ║
