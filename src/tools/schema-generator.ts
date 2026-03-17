@@ -83,7 +83,8 @@ const schemaGeneratorTool: ToolDefinition<Input> = {
   handler,
   metadata: {
     tags: ["schema", "validation", "code-generation"],
-    pricing: "$0.001 per call",
+    pricing: "$0.005 per call",
+    pricingMicros: 5_000,
     exampleInput: {
       description: "A user profile with name, email, and signup date",
       format: "json_schema",
