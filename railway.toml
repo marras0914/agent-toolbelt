@@ -10,4 +10,4 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 
 [[mounts]]
-mountPath = "/data"
+mountPath = "/app/data"

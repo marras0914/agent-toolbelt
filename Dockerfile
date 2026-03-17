@@ -28,6 +28,9 @@ COPY --from=builder /app/dist ./dist
 COPY public/ ./public/
 COPY openapi/ ./openapi/
 
+# Create data directory for SQLite (must happen before chown)
+RUN mkdir -p /app/data
+
 # Non-root user for security
 RUN addgroup --system appgroup && adduser --system appuser --ingroup appgroup
 RUN chown -R appuser:appgroup /app

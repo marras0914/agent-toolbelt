@@ -5,8 +5,10 @@ import { config } from "../config";
 
 // ----- Database Setup -----
 import fs from "fs";
-// Use /data if a persistent volume is mounted there (Railway), otherwise local ./data/
-const DEFAULT_DB_PATH = fs.existsSync("/data")
+// Use /app/data if Railway volume is mounted there, then /data, then local ./data/
+const DEFAULT_DB_PATH = fs.existsSync("/app/data")
+  ? "/app/data/toolbelt.db"
+  : fs.existsSync("/data")
   ? "/data/toolbelt.db"
   : path.join(process.cwd(), "data", "toolbelt.db");
 const DB_PATH = process.env.DATABASE_PATH || DEFAULT_DB_PATH;
