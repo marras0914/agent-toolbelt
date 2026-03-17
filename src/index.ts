@@ -218,7 +218,7 @@ app.post("/api/clients/register", (req, res) => {
   const { key, record } = createApiKey(client.id, "default");
 
   // Send onboarding email (fire-and-forget — don't block the response)
-  sendOnboardingEmail({ email: client.email, name: client.name, apiKey: key, clientId: client.id })
+  sendOnboardingEmail({ email: client.email, name: client.name, apiKey: key, keyPrefix: record.key_prefix, clientId: client.id })
     .catch((err) => console.error("[email] Failed to send onboarding email:", err.message));
 
   res.status(201).json({

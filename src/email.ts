@@ -5,6 +5,7 @@ export async function sendOnboardingEmail(params: {
   email: string;
   name?: string | null;
   apiKey: string;
+  keyPrefix: string;
   clientId: string;
 }): Promise<void> {
   if (!config.sendgridApiKey) {
@@ -14,7 +15,7 @@ export async function sendOnboardingEmail(params: {
 
   sgMail.setApiKey(config.sendgridApiKey);
 
-  const { email, name, apiKey, clientId } = params;
+  const { email, name, keyPrefix, clientId } = params;
   const greeting = name ? `Hi ${name}` : "Hi there";
   const docsUrl = "https://agent-toolbelt-production.up.railway.app/api/docs";
   const catalogUrl = "https://agent-toolbelt-production.up.railway.app/api/tools/catalog";
@@ -48,24 +49,24 @@ export async function sendOnboardingEmail(params: {
     </div>
     <div class="body">
       <p>${greeting}, welcome to Agent Toolbelt.</p>
-      <p>Your account is set up and your API key is ready. Save it somewhere safe — <strong>it won't be shown again.</strong></p>
+      <p>Your account is set up. Your API key was shown once at registration — if you saved it, you're all set.</p>
 
       <div class="key-box">
-        <div class="label">Your API Key</div>
-        <code>${apiKey}</code>
-        <div class="warning">Store this securely. It won't be shown again.</div>
+        <div class="label">Key prefix (for reference)</div>
+        <code>${keyPrefix}...</code>
+        <div class="warning">The full key is not included in this email. If you lost it, reply here and we'll issue a new one.</div>
       </div>
 
       <h2>Quick start</h2>
       <pre>curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/schema-generator \\
-  -H "Authorization: Bearer ${apiKey}" \\
+  -H "Authorization: Bearer &lt;your-key&gt;" \\
   -H "Content-Type: application/json" \\
   -d '{"description": "a SaaS user with name, email, and plan"}'</pre>
 
       <p>Or with the TypeScript SDK:</p>
       <pre>npm install agent-toolbelt</pre>
       <pre>import { AgentToolbelt } from "agent-toolbelt";
-const toolbelt = new AgentToolbelt({ apiKey: "${apiKey}" });
+const toolbelt = new AgentToolbelt({ apiKey: process.env.AGENT_TOOLBELT_KEY });
 
 const { schema } = await toolbelt.schemaGenerator({
   description: "a SaaS user with name, email, and plan",
@@ -92,12 +93,13 @@ const { schema } = await toolbelt.schemaGenerator({
 
   const text = `${greeting}, welcome to Agent Toolbelt.
 
-Your API key (save this — it won't be shown again):
-${apiKey}
+Your API key was shown once at registration. Key prefix for reference: ${keyPrefix}...
+
+If you lost your key, reply to this email and we'll issue a new one.
 
 Quick start:
 curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/schema-generator \\
-  -H "Authorization: Bearer ${apiKey}" \\
+  -H "Authorization: Bearer <your-key>" \\
   -H "Content-Type: application/json" \\
   -d '{"description": "a SaaS user with name, email, and plan"}'
 
