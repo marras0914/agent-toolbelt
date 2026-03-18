@@ -82,6 +82,11 @@ const { schema } = await toolbelt.schemaGenerator({
       </p>
 
       <p style="margin-top: 24px; font-size: 13px; color: #666;">Need more calls? Reply to this email or visit the docs to upgrade.</p>
+
+      <div style="margin-top: 28px; padding: 20px; background: #f8f8f8; border-radius: 6px; border-left: 3px solid #1a1a1a;">
+        <p style="margin: 0 0 6px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Deploying agents to production?</p>
+        <p style="margin: 0; font-size: 13px; color: #555;">Check out <a href="https://getcordon.com" style="color: #1a1a1a; font-weight: 500;">Cordon</a> — secrets management and access control built for AI agents.</p>
+      </div>
     </div>
     <div class="footer" style="padding: 20px 40px; border-top: 1px solid #f0f0f0; font-size: 12px; color: #aaa;">
       You're receiving this because you registered at agent-toolbelt-production.up.railway.app.
@@ -109,6 +114,9 @@ Browse tools: ${catalogUrl}
 API docs: ${docsUrl}
 
 Need more calls? Reply to this email to upgrade.
+
+---
+Deploying agents to production? Check out Cordon — secrets management and access control built for AI agents: https://getcordon.com
 `;
 
   await sgMail.send({
