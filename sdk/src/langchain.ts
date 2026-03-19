@@ -461,5 +461,90 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
         return JSON.stringify(result);
       },
     }),
+
+    // ---- Stock Thesis ----
+    new DynamicStructuredTool({
+      name: "stock_thesis",
+      description:
+        "Generate a long-term investment thesis for any stock in the style of The Motley Fool. " +
+        "Pulls live financials, valuation metrics, insider trades, and analyst ratings from Polygon, Finnhub, and FMP, " +
+        "then synthesizes them with Claude into a structured research note. " +
+        "Returns: bullish/neutral/bearish verdict, thesis paragraphs, key strengths, key risks, valuation read, insider read, analyst read, and what to watch next. " +
+        "Use when a user asks about a stock's investment case, wants a fundamental analysis, or is deciding whether to buy/hold/sell.",
+      schema: z.object({
+        ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+        timeHorizon: z.enum(["1-2 years", "3-5 years", "5+ years"]).default("3-5 years").describe("Investment time horizon"),
+      }),
+      func: async ({ ticker, timeHorizon }) => {
+        const result = await client.stockThesis({ ticker, timeHorizon });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Earnings Analysis ----
+    new DynamicStructuredTool({
+      name: "earnings_analysis",
+      description:
+        "Analyze a stock's earnings track record — EPS beat/miss history, revenue trend, and what it means for long-term investors. " +
+        "Returns: verdict (strong_compounder/consistent/mixed/volatile/deteriorating), beat rate, revenue trend, " +
+        "last quarter summary, long-term read, and what to watch in the next earnings report. " +
+        "Use when a user asks about a company's earnings quality, consistency, or wants to know how reliable the business is.",
+      schema: z.object({
+        ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+      }),
+      func: async ({ ticker }) => {
+        const result = await client.earningsAnalysis({ ticker });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Insider Signal ----
+    new DynamicStructuredTool({
+      name: "insider_signal",
+      description:
+        "Interpret insider trading activity for any stock. Distinguishes meaningful open-market purchases from routine sales and award exercises. " +
+        "Returns: signal (strong_buy/buy/neutral/sell/strong_sell), confidence, interpretation, notable trades with context, and a plain-English verdict. " +
+        "Use when a user asks whether insiders are buying or selling, or wants to know if insider activity is a positive or negative signal.",
+      schema: z.object({
+        ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+      }),
+      func: async ({ ticker }) => {
+        const result = await client.insiderSignal({ ticker });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Valuation Snapshot ----
+    new DynamicStructuredTool({
+      name: "valuation_snapshot",
+      description:
+        "Assess whether a stock is cheap, fair, or expensive. Pulls P/E, P/S, EV/EBITDA, FCF yield, ROE, and margins, " +
+        "then synthesizes them into a verdict with a specific buy zone price level. " +
+        "Returns: verdict (very_cheap/cheap/fair/expensive/very_expensive), P/E read, multiples summary, quality read, growth context, buy zone, and bottom line. " +
+        "Use when a user asks if a stock is overvalued, fairly priced, or a bargain.",
+      schema: z.object({
+        ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+      }),
+      func: async ({ ticker }) => {
+        const result = await client.valuationSnapshot({ ticker });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Bear vs Bull ----
+    new DynamicStructuredTool({
+      name: "bear_vs_bull",
+      description:
+        "Generate a structured bull vs. bear case for any stock. Steelmans both sides with specific data — 3 bull arguments and 3 bear arguments — " +
+        "then delivers a net verdict, the key debate question investors must answer, and who the stock suits. " +
+        "Use when a user wants a balanced view before investing, wants to stress-test a thesis, or asks 'what's the bear case on X?'",
+      schema: z.object({
+        ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+      }),
+      func: async ({ ticker }) => {
+        const result = await client.bearVsBull({ ticker });
+        return JSON.stringify(result);
+      },
+    }),
   ];
 }
