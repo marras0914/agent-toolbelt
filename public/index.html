@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agent Toolbelt — API Tools for AI Agents</title>
-  <meta name="description" content="Plug-and-play API microservices that AI agents can discover and call. Schema generation, data extraction, and more.">
+  <title>Agent Toolbelt — Stock Research Tools for AI Agents</title>
+  <meta name="description" content="AI-powered stock analysis tools for agents and investors. Investment theses, earnings analysis, insider signals, and valuation snapshots — one API, per-call pricing.">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -544,9 +544,9 @@
 
   <section class="hero">
     <div class="container">
-      <div class="hero-badge">BUILT FOR THE AGENT ECONOMY</div>
-      <h1>API tools that<br><span class="highlight">agents pay to use</span></h1>
-      <p>Plug-and-play microservices for AI agents. Schema generation, data extraction, validation, and more — discoverable via catalog, billed per call.</p>
+      <div class="hero-badge">STOCK RESEARCH · POWERED BY CLAUDE</div>
+      <h1>AI stock analysis<br><span class="highlight">built for agents</span></h1>
+      <p>Investment theses, earnings track records, insider signals, and valuation snapshots — live financial data synthesized by Claude into structured research. One API key, $0.05 per analysis.</p>
       <div class="hero-actions">
         <a href="#get-started" class="btn btn-primary">Start Free →</a>
         <a href="/#tools" class="btn btn-ghost">View Catalog</a>
@@ -560,20 +560,20 @@
           <span class="terminal-title">bash</span>
         </div>
         <div class="terminal-body">
-          <span class="comment"># 1. Register and get your API key</span><br>
-          <span class="prompt">$</span> <span class="cmd">curl -X POST /api/clients/register \</span><br>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">-d </span><span class="string">'{"email": "agent@example.com"}'</span><br>
-          <br>
-          <span class="comment"># 2. Discover available tools</span><br>
-          <span class="prompt">$</span> <span class="cmd">curl /api/tools/catalog</span><br>
-          <span class="comment"># → {"tools": [{"name": "schema-generator", ...}, ...]}</span><br>
-          <br>
-          <span class="comment"># 3. Call a tool</span><br>
-          <span class="prompt">$</span> <span class="cmd">curl -X POST /api/tools/schema-generator \</span><br>
+          <span class="comment"># Get a full investment thesis on NVDA</span><br>
+          <span class="prompt">$</span> <span class="cmd">curl -X POST /api/tools/stock-thesis \</span><br>
           &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">-H </span><span class="string">"Authorization: Bearer atb_..."</span> <span class="cmd">\</span><br>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">-d </span><span class="string">'{"description": "a user profile", "format": "json_schema"}'</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">-d </span><span class="string">'{"ticker": "NVDA", "timeHorizon": "3-5 years"}'</span><br>
           <br>
-          <span class="comment"># → {</span><span class="key">"success"</span><span class="comment">: true, </span><span class="key">"durationMs"</span><span class="comment">: 3, </span><span class="key">"result"</span><span class="comment">: {...}}</span>
+          <span class="comment"># → </span><span class="key">"verdict"</span><span class="comment">: </span><span class="string">"bullish"</span><br>
+          <span class="comment"># → </span><span class="key">"oneLiner"</span><span class="comment">: </span><span class="string">"Nvidia owns the essential infrastructure</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for the AI revolution with a defensible</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;software moat..."</span><br>
+          <span class="comment"># → </span><span class="key">"keyStrengths"</span><span class="comment">: [</span><span class="string">"CUDA moat"</span><span class="comment">, </span><span class="string">"10,005% 3Y CAGR"</span><span class="comment">, ...]</span><br>
+          <span class="comment"># → </span><span class="key">"insiderRead"</span><span class="comment">: </span><span class="string">"Mixed — cluster buys from</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;two executives offset routine sales..."</span><br>
+          <span class="comment"># → </span><span class="key">"watchFor"</span><span class="comment">: </span><span class="string">"Data center revenue growth rate</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and gross margin in next earnings"</span>
         </div>
       </div>
     </div>
@@ -647,8 +647,8 @@
 
   <section id="tools">
     <div class="container">
-      <h2>Available Tools</h2>
-      <p class="section-sub">Each tool is a focused microservice — validated input, structured output, usage-tracked.</p>
+      <h2>Stock Analysis Tools</h2>
+      <p class="section-sub">Five focused tools that turn live financial data into structured research — the way a Motley Fool analyst would read it.</p>
       <div class="tools-grid" id="tools-grid">
         <div class="tool-card" style="opacity:0.4;">
           <div class="tool-name">Loading catalog...</div>
@@ -660,22 +660,22 @@
   <section>
     <div class="container">
       <h2>How It Works</h2>
-      <p class="section-sub">Three steps. Five minutes. Start earning per-call revenue from AI agents.</p>
+      <p class="section-sub">Pass a ticker. Get research-grade analysis in seconds. Works in any agent framework.</p>
       <div class="steps">
         <div class="step">
           <div class="step-num">01</div>
-          <h3>Discover</h3>
-          <p>Agents hit <code>/api/tools/catalog</code> to see what tools are available, with descriptions and input schemas.</p>
+          <h3>Register</h3>
+          <p>Get a free API key in 10 seconds. 1,000 free calls/month. No credit card required.</p>
         </div>
         <div class="step">
           <div class="step-num">02</div>
-          <h3>Authenticate</h3>
-          <p>Register for a free API key. Pass it as a Bearer token. Upgrade to a paid tier when you need more volume.</p>
+          <h3>Call with a ticker</h3>
+          <p>POST any ticker to <code>stock-thesis</code>, <code>earnings-analysis</code>, <code>insider-signal</code>, or <code>valuation-snapshot</code>. We pull live data from Polygon, Finnhub, and FMP.</p>
         </div>
         <div class="step">
           <div class="step-num">03</div>
-          <h3>Call</h3>
-          <p>POST to any tool endpoint with JSON input. Get validated, structured output in milliseconds. Usage is tracked and billed automatically.</p>
+          <h3>Get structured analysis</h3>
+          <p>Claude synthesizes the data into a structured JSON response — verdict, thesis, key strengths, risks, valuation read. Ready to display or act on.</p>
         </div>
       </div>
     </div>
@@ -684,42 +684,44 @@
   <section id="pricing">
     <div class="container">
       <h2>Pricing</h2>
-      <p class="section-sub">Start free. Scale when your agents need it.</p>
+      <p class="section-sub">Start free. Pay $0.05 per analysis when you need more.</p>
       <div class="pricing-grid">
         <div class="price-card">
           <div class="price-tier">Free</div>
           <div class="price-amount">$0<span>/mo</span></div>
-          <div class="price-detail">1,000 calls/month</div>
+          <div class="price-detail">1,000 calls/month included</div>
           <ul class="price-features">
-            <li>All tools included</li>
+            <li>All 5 stock analysis tools</li>
+            <li>All 20 utility tools</li>
             <li>10 requests/min</li>
-            <li>Community support</li>
+            <li>No credit card required</li>
           </ul>
           <a href="#get-started" class="btn btn-ghost" style="width:100%;text-align:center;">Get Started</a>
         </div>
         <div class="price-card featured">
-          <div class="price-tier">Pro</div>
-          <div class="price-amount">$99<span>/mo</span></div>
-          <div class="price-detail">500,000 calls/month</div>
+          <div class="price-tier">Pay As You Go</div>
+          <div class="price-amount">$0.05<span>/analysis</span></div>
+          <div class="price-detail">Prepaid credits — no subscription</div>
           <ul class="price-features">
-            <li>All tools included</li>
-            <li>300 requests/min</li>
-            <li>Priority support</li>
-            <li>Usage analytics</li>
+            <li>$5 / $10 / $25 / $50 packs</li>
+            <li>Stock analysis tools: $0.05/call</li>
+            <li>Utility tools: $0.001–$0.02/call</li>
+            <li>60 requests/min</li>
+            <li>Credits never expire</li>
           </ul>
-          <a href="#get-started" class="btn btn-primary" style="width:100%;text-align:center;">Subscribe</a>
+          <a href="#get-started" class="btn btn-primary" style="width:100%;text-align:center;">Buy Credits</a>
         </div>
         <div class="price-card">
-          <div class="price-tier">Enterprise</div>
-          <div class="price-amount">Custom</div>
-          <div class="price-detail">5M+ calls/month</div>
+          <div class="price-tier">Starter</div>
+          <div class="price-amount">$29<span>/mo</span></div>
+          <div class="price-detail">50,000 calls/month</div>
           <ul class="price-features">
+            <li>~1,000 stock analyses/month</li>
             <li>All tools included</li>
-            <li>1,000+ requests/min</li>
-            <li>Dedicated support</li>
-            <li>Custom tools & SLA</li>
+            <li>60 requests/min</li>
+            <li>Priority support</li>
           </ul>
-          <a href="mailto:hello@agenttoolbelt.com" class="btn btn-ghost" style="width:100%;text-align:center;">Contact Us</a>
+          <a href="#get-started" class="btn btn-ghost" style="width:100%;text-align:center;">Subscribe</a>
         </div>
       </div>
     </div>
@@ -728,7 +730,7 @@
   <section class="cta" id="get-started">
     <div class="container">
       <h2>Get your API key in 10 seconds</h2>
-      <p>Register with your email. Start calling tools immediately.</p>
+      <p>Register with your email. 1,000 free calls included. Start analyzing stocks immediately.</p>
       <div style="max-width: 480px; margin: 0 auto;">
         <div style="display: flex; gap: 12px;">
           <input type="email" id="email-input" placeholder="agent@example.com"

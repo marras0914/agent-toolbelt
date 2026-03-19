@@ -164,6 +164,7 @@ const insiderSignalTool: ToolDefinition<Input> = {
   metadata: {
     tags: ["stocks", "investing", "finance", "insider-trading", "llm"],
     pricing: "$0.05 per call",
+    pricingMicros: 50_000,
     exampleInput: { ticker: "NVDA" },
   },
 };
