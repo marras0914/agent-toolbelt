@@ -896,6 +896,202 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Earnings Analysis -----
+server.registerTool(
+  "earnings_analysis",
+  {
+    title: "Earnings Analysis",
+    description:
+      "Analyze a stock's earnings track record — EPS beat/miss history, revenue trend, and what it means " +
+      "for long-term investors. Returns verdict, beat rate, revenue trajectory, last quarter summary, and what to watch next.",
+    inputSchema: {
+      ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+    },
+  },
+  async ({ ticker }) => {
+    const result = await callToolApi("earnings-analysis", { ticker });
+    const data = result as any;
+    const r = data.result;
+
+    const verdictIcon = {
+      strong_compounder: "★ STRONG COMPOUNDER",
+      consistent: "✓ CONSISTENT",
+      mixed: "~ MIXED",
+      volatile: "⚡ VOLATILE",
+      deteriorating: "▼ DETERIORATING",
+    }[r.verdict as string] || r.verdict;
+
+    const lines = [
+      `**${r.ticker}** Earnings — ${verdictIcon}`,
+      `_${r.oneLiner}_`,
+      "",
+      `**Beat Rate:** ${r.beatRate}`,
+      `**Revenue Trend:** ${r.revenueTrend}`,
+      "",
+      `**Revenue Read:** ${r.revenueRead}`,
+      `**EPS Read:** ${r.epsRead}`,
+      "",
+      `**Last Quarter:** ${r.lastQuarterSummary}`,
+      "",
+      `**Long-Term Read:** ${r.longTermRead}`,
+      `**Watch For Next:** ${r.watchForNext}`,
+    ];
+
+    if (r.upcomingDate) lines.push("", `_Next earnings: ${r.upcomingDate}_`);
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: Insider Signal -----
+server.registerTool(
+  "insider_signal",
+  {
+    title: "Insider Signal",
+    description:
+      "Interpret insider trading activity for any stock. Classifies open-market purchases vs. routine sales/awards, " +
+      "identifies cluster buying, and explains whether the activity is a meaningful signal. " +
+      "Returns signal strength (strong_buy → strong_sell) and a plain-English verdict.",
+    inputSchema: {
+      ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+    },
+  },
+  async ({ ticker }) => {
+    const result = await callToolApi("insider-signal", { ticker });
+    const data = result as any;
+    const r = data.result;
+
+    const signalIcon = {
+      strong_buy: "▲▲ STRONG BUY SIGNAL",
+      buy: "▲ BUY SIGNAL",
+      neutral: "◆ NEUTRAL",
+      sell: "▼ SELL SIGNAL",
+      strong_sell: "▼▼ STRONG SELL SIGNAL",
+    }[r.signal as string] || r.signal;
+
+    const lines = [
+      `**${r.ticker}** Insider Activity — ${signalIcon} (${r.confidence} confidence)`,
+      `_${r.oneLiner}_`,
+      "",
+      r.interpretation,
+      "",
+      `**Buying:** ${r.buyingPressure}`,
+      `**Selling:** ${r.sellingPressure}`,
+    ];
+
+    if (r.notableTrades?.length) {
+      lines.push("", "**Notable Trades:**");
+      for (const t of r.notableTrades) {
+        lines.push(`- **${t.who}** — ${t.action}`, `  _${t.significance}_`);
+      }
+    }
+
+    lines.push("", `**Verdict:** ${r.verdict}`);
+
+    const d = r.rawData;
+    lines.push("", `_${d.transactionsAnalyzed} transactions analyzed | ${d.openMarketPurchases} purchases, ${d.openMarketSales} sales, ${d.routineTransactions} routine_`);
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: Valuation Snapshot -----
+server.registerTool(
+  "valuation_snapshot",
+  {
+    title: "Valuation Snapshot",
+    description:
+      "Assess whether a stock is cheap, fair, or expensive. Pulls P/E, P/S, EV/EBITDA, FCF yield, ROE, and margins, " +
+      "then synthesizes them into a verdict with a specific buy zone price level.",
+    inputSchema: {
+      ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+    },
+  },
+  async ({ ticker }) => {
+    const result = await callToolApi("valuation-snapshot", { ticker });
+    const data = result as any;
+    const r = data.result;
+
+    const verdictIcon = {
+      very_cheap: "🟢🟢 VERY CHEAP",
+      cheap: "🟢 CHEAP",
+      fair: "🟡 FAIR VALUE",
+      expensive: "🟠 EXPENSIVE",
+      very_expensive: "🔴 VERY EXPENSIVE",
+    }[r.verdict as string] || r.verdict;
+
+    const m = r.metrics;
+    const metricParts: string[] = [];
+    if (m.peRatio) metricParts.push(`P/E: ${m.peRatio}x`);
+    if (m.psRatio) metricParts.push(`P/S: ${m.psRatio}x`);
+    if (m.evEbitda) metricParts.push(`EV/EBITDA: ${m.evEbitda}x`);
+    if (m.fcfYield) metricParts.push(`FCF Yield: ${m.fcfYield}%`);
+    if (m.roe) metricParts.push(`ROE: ${m.roe}%`);
+    if (m.netMargin) metricParts.push(`Net Margin: ${m.netMargin}%`);
+
+    const lines = [
+      `**${r.companyName} (${r.ticker})** — ${verdictIcon}`,
+      `_${r.oneLiner}_`,
+      "",
+      metricParts.length ? `_${metricParts.join(" | ")}_` : "",
+      "",
+      `**Valuation:** ${r.multiplesSummary}`,
+      `**P/E Read:** ${r.peRead}`,
+      `**Quality:** ${r.qualityRead}`,
+      `**Growth Context:** ${r.growthContext}`,
+      "",
+      `**Buy Zone:** ${r.buyZone}`,
+      `**Bottom Line:** ${r.bottomLine}`,
+    ].filter(Boolean);
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: Bear vs Bull -----
+server.registerTool(
+  "bear_vs_bull",
+  {
+    title: "Bear vs Bull",
+    description:
+      "Generate a structured bull vs. bear case for any stock. Steelmans both sides with specific data, " +
+      "then delivers a net verdict and the key question investors need to answer before buying.",
+    inputSchema: {
+      ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+    },
+  },
+  async ({ ticker }) => {
+    const result = await callToolApi("bear-vs-bull", { ticker });
+    const data = result as any;
+    const r = data.result;
+
+    const verdictIcon = {
+      bull_wins: "▲ BULL WINS",
+      slight_bull: "↗ SLIGHT BULL EDGE",
+      too_close: "◆ TOO CLOSE TO CALL",
+      slight_bear: "↘ SLIGHT BEAR EDGE",
+      bear_wins: "▼ BEAR WINS",
+    }[r.verdict as string] || r.verdict;
+
+    const lines = [
+      `**${r.companyName} (${r.ticker})** — ${verdictIcon}`,
+      "",
+      "## 🟢 Bull Case",
+      ...r.bullCase.map((c: any, i: number) => `**${i + 1}. ${c.argument}**\n${c.detail}`),
+      "",
+      "## 🔴 Bear Case",
+      ...r.bearCase.map((c: any, i: number) => `**${i + 1}. ${c.argument}**\n${c.detail}`),
+      "",
+      `**Verdict:** ${r.verdictRationale}`,
+      "",
+      `**Key Question:** ${r.keyDebate}`,
+      `**Best For:** ${r.forInvestorsWho}`,
+    ];
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Stock Thesis -----
 server.registerTool(
   "stock_thesis",

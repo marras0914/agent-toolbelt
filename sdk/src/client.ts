@@ -342,6 +342,82 @@ export interface ContextWindowPackerResult {
   strategy: string;
 }
 
+export interface EarningsAnalysisResult {
+  ticker: string;
+  verdict: "strong_compounder" | "consistent" | "mixed" | "volatile" | "deteriorating";
+  oneLiner: string;
+  beatRate: string;
+  revenueTrend: "accelerating" | "stable" | "decelerating" | "declining";
+  revenueRead: string;
+  epsRead: string;
+  lastQuarterSummary: string;
+  longTermRead: string;
+  watchForNext: string;
+  upcomingDate: string | null;
+  rawData: {
+    quartersAnalyzed: number;
+    beatsTotal: number;
+    upcomingEarnings: Record<string, unknown> | null;
+  };
+  generatedAt: string;
+}
+
+export interface InsiderSignalResult {
+  ticker: string;
+  signal: "strong_buy" | "buy" | "neutral" | "sell" | "strong_sell";
+  confidence: "high" | "medium" | "low";
+  oneLiner: string;
+  interpretation: string;
+  notableTrades: Array<{ who: string; action: string; significance: string }>;
+  buyingPressure: string;
+  sellingPressure: string;
+  verdict: string;
+  rawData: {
+    transactionsAnalyzed: number;
+    openMarketPurchases: number;
+    openMarketSales: number;
+    routineTransactions: number;
+    netSharesPurchased: number;
+  };
+  generatedAt: string;
+}
+
+export interface ValuationSnapshotResult {
+  ticker: string;
+  companyName: string;
+  verdict: "very_cheap" | "cheap" | "fair" | "expensive" | "very_expensive";
+  oneLiner: string;
+  peRead: string;
+  multiplesSummary: string;
+  qualityRead: string;
+  growthContext: string;
+  buyZone: string;
+  bottomLine: string;
+  metrics: {
+    peRatio: number | null;
+    psRatio: number | null;
+    pbRatio: number | null;
+    evEbitda: number | null;
+    fcfYield: number | null;
+    roe: number | null;
+    netMargin: number | null;
+    debtToEquity: number | null;
+  };
+  generatedAt: string;
+}
+
+export interface BearVsBullResult {
+  ticker: string;
+  companyName: string;
+  bullCase: Array<{ argument: string; detail: string }>;
+  bearCase: Array<{ argument: string; detail: string }>;
+  verdict: "bull_wins" | "slight_bull" | "too_close" | "slight_bear" | "bear_wins";
+  verdictRationale: string;
+  keyDebate: string;
+  forInvestorsWho: string;
+  generatedAt: string;
+}
+
 export interface StockThesisResult {
   ticker: string;
   companyName: string;
@@ -580,6 +656,26 @@ export class AgentToolbelt {
     minSeverity?: "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
   }): Promise<DependencyAuditorResult> {
     return this.call("dependency-auditor", input);
+  }
+
+  /** Analyze earnings beat/miss history and what it means for long-term investors */
+  earningsAnalysis(input: { ticker: string }): Promise<EarningsAnalysisResult> {
+    return this.call("earnings-analysis", input);
+  }
+
+  /** Interpret insider trading activity — meaningful signal or routine noise? */
+  insiderSignal(input: { ticker: string }): Promise<InsiderSignalResult> {
+    return this.call("insider-signal", input);
+  }
+
+  /** Assess whether a stock is cheap, fair, or expensive with a specific buy zone */
+  valuationSnapshot(input: { ticker: string }): Promise<ValuationSnapshotResult> {
+    return this.call("valuation-snapshot", input);
+  }
+
+  /** Generate a structured bull vs. bear case with a net verdict */
+  bearVsBull(input: { ticker: string }): Promise<BearVsBullResult> {
+    return this.call("bear-vs-bull", input);
   }
 
   /** Generate a Motley Fool-style investment thesis for any stock using live financial data */

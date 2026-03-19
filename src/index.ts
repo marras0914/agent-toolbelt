@@ -42,6 +42,10 @@ import "./tools/context-window-packer";
 import "./tools/dependency-auditor";
 import "./tools/web-summarizer";
 import "./tools/stock-thesis";
+import "./tools/earnings-analysis";
+import "./tools/insider-signal";
+import "./tools/valuation-snapshot";
+import "./tools/bear-vs-bull";
 
 // ----- App Setup -----
 const app = express();
