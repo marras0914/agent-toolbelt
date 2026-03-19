@@ -1,19 +1,19 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.marras0914/agent-toolbelt-mcp",
-  "description": "19 focused API tools for AI agents: contract review, prompt optimizer, context packing, and more.",
+  "description": "AI-powered stock research tools for Claude — investment theses, earnings analysis, insider signals, and valuation snapshots. Plus 20 utility tools for developers. One API key, per-call pricing.",
   "repository": {
     "url": "https://github.com/marras0914/agent-toolbelt",
     "source": "github",
     "subfolder": "mcp-server"
   },
   "homepage": "https://agent-toolbelt-production.up.railway.app",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "agent-toolbelt-mcp",
-      "version": "1.0.1",
+      "version": "1.0.5",
       "transport": {
         "type": "stdio"
       },
