@@ -41,6 +41,7 @@ import "./tools/api-response-mocker";
 import "./tools/context-window-packer";
 import "./tools/dependency-auditor";
 import "./tools/web-summarizer";
+import "./tools/stock-thesis";
 
 // ----- App Setup -----
 const app = express();

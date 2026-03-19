@@ -342,6 +342,29 @@ export interface ContextWindowPackerResult {
   strategy: string;
 }
 
+export interface StockThesisResult {
+  ticker: string;
+  companyName: string;
+  sector: string;
+  verdict: "bullish" | "neutral" | "bearish";
+  oneLiner: string;
+  thesis: string;
+  keyStrengths: string[];
+  keyRisks: string[];
+  valuation: string;
+  insiderRead: string;
+  analystRead: string;
+  watchFor: string;
+  timeHorizon: string;
+  dataSnapshot: {
+    marketCapBillions: number | null;
+    currentPrice: number | null;
+    peRatio: number | null;
+    analystConsensus: { buy: number; hold: number; sell: number } | null;
+  };
+  generatedAt: string;
+}
+
 export interface WebSummarizerResult {
   url: string;
   finalUrl: string;
@@ -557,6 +580,14 @@ export class AgentToolbelt {
     minSeverity?: "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
   }): Promise<DependencyAuditorResult> {
     return this.call("dependency-auditor", input);
+  }
+
+  /** Generate a Motley Fool-style investment thesis for any stock using live financial data */
+  stockThesis(input: {
+    ticker: string;
+    timeHorizon?: "1-2 years" | "3-5 years" | "5+ years";
+  }): Promise<StockThesisResult> {
+    return this.call("stock-thesis", input);
   }
 
   /** Fetch a URL, extract main content as clean Markdown, and generate an AI summary with key points */

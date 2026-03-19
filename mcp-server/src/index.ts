@@ -896,6 +896,68 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Stock Thesis -----
+server.registerTool(
+  "stock_thesis",
+  {
+    title: "Stock Investment Thesis",
+    description:
+      "Generate a long-term investment thesis for any stock. Pulls live financials, valuation metrics, " +
+      "insider trades, and analyst ratings, then synthesizes them into a Motley Fool-style research note. " +
+      "Returns a bullish/neutral/bearish verdict, thesis paragraphs, key strengths, risks, and valuation read. " +
+      "Use when you want fundamental analysis of a stock for long-term investing.",
+    inputSchema: {
+      ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+      timeHorizon: z
+        .enum(["1-2 years", "3-5 years", "5+ years"])
+        .default("3-5 years")
+        .describe("Investment time horizon"),
+    },
+  },
+  async ({ ticker, timeHorizon }) => {
+    const result = await callToolApi("stock-thesis", { ticker, timeHorizon });
+    const data = result as any;
+    const r = data.result;
+
+    const verdictIcon = r.verdict === "bullish" ? "▲ BULLISH" : r.verdict === "bearish" ? "▼ BEARISH" : "◆ NEUTRAL";
+
+    const lines = [
+      `**${r.companyName} (${r.ticker})** — ${verdictIcon}`,
+      `_${r.oneLiner}_`,
+      "",
+      r.thesis,
+      "",
+      "**Key Strengths:**",
+      ...r.keyStrengths.map((s: string) => `- ${s}`),
+      "",
+      "**Key Risks:**",
+      ...r.keyRisks.map((s: string) => `- ${s}`),
+      "",
+      `**Valuation:** ${r.valuation}`,
+      `**Insider Activity:** ${r.insiderRead}`,
+      `**Analyst Consensus:** ${r.analystRead}`,
+      `**Watch For:** ${r.watchFor}`,
+    ];
+
+    if (r.dataSnapshot) {
+      const d = r.dataSnapshot;
+      const parts: string[] = [];
+      if (d.currentPrice) parts.push(`Price: $${d.currentPrice}`);
+      if (d.marketCapBillions) parts.push(`Market Cap: $${d.marketCapBillions}B`);
+      if (d.peRatio) parts.push(`P/E: ${d.peRatio}`);
+      if (d.analystConsensus) {
+        const c = d.analystConsensus;
+        parts.push(`Analysts: ${c.buy}B / ${c.hold}H / ${c.sell}S`);
+      }
+      if (parts.length) lines.push("", `_${parts.join(" | ")}_`);
+    }
+
+    lines.push("", `_Time horizon: ${r.timeHorizon} | Generated ${new Date(r.generatedAt).toLocaleDateString()}_`);
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Context Window Packer -----
 server.registerTool(
   "pack_context_window",
