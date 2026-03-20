@@ -83,21 +83,40 @@ async function handler(input: Input) {
   const fh = finnhubMetrics as any;
   const ov = overview as any;
 
-  // Collect metrics with fallbacks
-  const pe = km.peRatioTTM ?? fh.peNormalizedAnnual;
-  const ps = km.priceToSalesRatioTTM ?? rt.priceToSalesRatioTTM;
-  const pb = km.pbRatioTTM ?? rt.pbRatioTTM;
-  const evEbitda = km.evToEbitdaTTM ?? rt.enterpriseValueMultipleTTM;
-  const fcfYield = km.freeCashFlowYieldTTM;
-  const dividendYield = rt.dividendYieldTTM ?? fh.dividendYieldIndicatedAnnual;
-  const roe = km.roeTTM ?? rt.returnOnEquityTTM;
-  const roic = km.roicTTM ?? rt.returnOnCapitalEmployedTTM;
-  const debtToEquity = km.debtToEquityTTM ?? rt.debtEquityRatioTTM;
-  const currentRatio = km.currentRatioTTM ?? rt.currentRatioTTM;
-  const grossMargin = rt.grossProfitMarginTTM;
-  const netMargin = rt.netProfitMarginTTM;
-  const revenueGrowth3Y = fh.revenueGrowth3Y;
-  const epsGrowth3Y = fh.epsGrowth3Y;
+  // Helper: Finnhub returns quality metrics as percentages (e.g. 35.5 = 35.5%), convert to decimal
+  const fhPct = (v: unknown) => (v != null && isFinite(Number(v)) ? Number(v) / 100 : undefined);
+  // Sanity-check a ratio value — returns null if it looks like bad data
+  const sanity = (v: unknown, min: number, max: number): number | null => {
+    const n = Number(v);
+    return v != null && isFinite(n) && n >= min && n <= max ? n : null;
+  };
+
+  // Collect metrics with fallbacks across FMP key-metrics, FMP ratios, and Finnhub
+  const pe = sanity(km.peRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
+  const ps = sanity(km.priceToSalesRatioTTM ?? rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
+  const pb = sanity(km.pbRatioTTM ?? rt.pbRatioTTM ?? fh.pbAnnual, 0, 500);
+  // evEbitdaTTM from Finnhub is a raw multiple (not a percentage)
+  const evEbitda = sanity(km.evToEbitdaTTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500);
+  // FCF yield: prefer FMP direct; derive from Finnhub's price/FCF ratio if missing
+  const pfcfTTM = Number(fh.pfcfShareTTM);
+  const fcfYieldFromFh = pfcfTTM > 0 && isFinite(pfcfTTM) ? 1 / pfcfTTM : undefined;
+  const fcfYield = sanity(km.freeCashFlowYieldTTM ?? fcfYieldFromFh, -1, 1);
+
+  // Dividend yield: FMP ratios-ttm returns as decimal (0.007), Finnhub as decimal — cap at 30%
+  const rawDividendYield = rt.dividendYieldTTM ?? fh.dividendYieldIndicatedAnnual;
+  const dividendYield = sanity(rawDividendYield, 0, 0.30);
+
+  // Quality metrics — Finnhub returns as percentage, convert to decimal for consistency
+  const roe = sanity(km.roeTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
+  const roic = sanity(km.roicTTM ?? rt.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);
+  const debtToEquity = sanity(km.debtToEquityTTM ?? rt.debtEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
+  const currentRatio = sanity(km.currentRatioTTM ?? rt.currentRatioTTM ?? fh.currentRatioAnnual, 0, 50);
+  const grossMargin = sanity(rt.grossProfitMarginTTM ?? fhPct(fh.grossMarginTTM), -1, 1);
+  const netMargin = sanity(rt.netProfitMarginTTM ?? fhPct(fh.netProfitMarginTTM), -1, 1);
+
+  // Growth — Finnhub returns as percentage, convert to decimal
+  const revenueGrowth3Y = sanity(fhPct(fh.revenueGrowth3Y), -1, 10);
+  const epsGrowth3Y = sanity(fhPct(fh.epsGrowth3Y), -5, 50);
 
   // Historical P/E range from Finnhub
   const peHigh5Y = fh["pe5Y"];

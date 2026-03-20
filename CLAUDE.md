@@ -1,6 +1,6 @@
 # Agent Toolbelt
 
-API microservices for AI agents and developers. Each tool is focused, fast, and billed per call.
+LLM-powered stock research tools for AI agents. Per-call billing. 25 tools total (5 stock analysis + 20 utility).
 
 ## Project structure
 
@@ -29,9 +29,10 @@ blog/                   # Blog posts (dev.to / Medium)
   post-1-five-tools-for-ai-devs.md
   post-2-schema-and-regex.md
   post-3-llm-workflow.md
-  post-4-research-agent.md  # written, ready to publish
+  post-4-research-agent.md
+  post-5-stock-research-agent.md  # published on Medium ✓, dev.to pending
   hn-show-hn.md             # Show HN submission (posted 2026-03-09)
-  reddit-posts.md           # r/LocalLLaMA + r/ChatGPTCoding posts
+  reddit-posts.md           # Reddit posts — 4 subreddits + 3 HN comment templates
   awesome-list-prs.md       # PR content for awesome lists
 ```
 
@@ -92,7 +93,10 @@ export default myTool;
 | `ADMIN_SECRET` | Yes (prod) | Bearer token for `/admin/*` routes |
 | `STRIPE_SECRET_KEY` | Yes (billing) | Stripe secret key |
 | `STRIPE_WEBHOOK_SECRET` | Yes (billing) | Stripe webhook signing secret |
-| `ANTHROPIC_API_KEY` | Yes (LLM tools) | Powers meeting-action-items, prompt-optimizer, and web-summarizer |
+| `ANTHROPIC_API_KEY` | Yes (LLM tools) | Powers all stock tools + schema-generator, meeting-action-items, prompt-optimizer, web-summarizer |
+| `POLYGON_API_KEY` | Yes (stock tools) | Polygon.io — company overview, price history |
+| `FINNHUB_API_KEY` | Yes (stock tools) | Finnhub — earnings, insider trades, analyst ratings |
+| `FMP_API_KEY` | Yes (stock tools) | Financial Modeling Prep — income statements, key metrics |
 | `RAPIDAPI_PROXY_SECRET` | No | RapidAPI proxy validation |
 | `PORT` | No | Server port (default 3000) |
 
@@ -143,7 +147,7 @@ npm publish      # publish to npm (requires npm login)
 
 ## MCP server
 
-Package: `agent-toolbelt-mcp` on npm (v1.0.2). Source in `mcp-server/`.
+Package: `agent-toolbelt-mcp` on npm (v1.0.5). Source in `mcp-server/`.
 
 ```bash
 cd mcp-server
@@ -195,16 +199,18 @@ print(r.stdout)
 
 | Channel | Status |
 |---|---|
-| npm (`agent-toolbelt` + `agent-toolbelt-mcp`) | ✓ Live — 810 + 292 downloads/mo |
+| npm (`agent-toolbelt` v0.3.0 + `agent-toolbelt-mcp` v1.0.5) | ✓ Live — 810 + 292 downloads/mo |
 | RapidAPI | ✓ Listed |
-| MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted |
-| PulseMCP + Glama | ✓ Submitted |
+| MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted (needs description update) |
+| PulseMCP + Glama | ✓ Submitted (needs description update) |
 | Landing pages (elephanttortoise.com) | ✓ Live |
-| Blog posts (dev.to / Medium) | ✓ Published |
+| Blog posts 1-4 (dev.to / Medium) | ✓ Published |
+| Blog post 5 (stock research pivot) | ✓ Medium ✓ — dev.to ✓ |
 | HN article | ✓ Posted 2026-03-09 |
-| Smithery | ✓ Submitted URL-based via smithery.ai/new (production /mcp endpoint) |
+| Smithery | ✓ Submitted — needs description update for stock pivot |
 | Awesome lists | ✓ PRs open — punkpeye/awesome-mcp-servers #2947, kyrolabs/awesome-langchain #207, appcypher/awesome-mcp-servers #532, tensorchord/Awesome-LLMOps #284, mcpservers.org submitted |
-| Reddit | Pending — posts written in blog/reddit-posts.md (r/LocalLLaMA + r/ChatGPTCoding) |
-| Medium post #4 | Pending — blog/post-4-research-agent.md written, needs publishing |
-| Toolhouse.ai | TODO — email hello@toolhouse.ai, needs thin adapter using their SDK |
-| Product Hunt | TODO — do after first registrations land |
+| Reddit | Pending — posts written for stock pivot in blog/reddit-posts.md (r/ValueInvesting, r/ClaudeAI, r/algotrading, r/LocalLLaMA) |
+| HN comments | Pending — 3 templates in blog/reddit-posts.md |
+| Toolhouse.ai | TODO — email hello@toolhouse.ai |
+| Product Hunt | TODO — do after first organic registrations |
+| Cordon cross-promo | ✓ Live — onboarding email + /register success page → getcordon.com |

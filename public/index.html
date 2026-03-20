@@ -527,6 +527,211 @@
     .hero p { animation-delay: 0.2s; }
     .hero-actions { animation-delay: 0.3s; }
     .terminal { animation-delay: 0.5s; }
+
+    /* Live Stock Demo */
+    .demo-section { text-align: center; }
+
+    .demo-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .demo-input-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .demo-ticker-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 12px 20px;
+      width: 140px;
+      text-align: center;
+      text-transform: uppercase;
+      outline: none;
+      letter-spacing: 2px;
+      transition: border-color 0.2s;
+    }
+    .demo-ticker-input:focus { border-color: rgba(0, 229, 160, 0.5); }
+    .demo-ticker-input::placeholder { color: var(--text-dim); font-weight: 400; letter-spacing: 0; text-transform: none; }
+
+    .demo-run-btn {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 12px 28px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .demo-run-btn:hover { box-shadow: 0 0 24px var(--accent-glow); transform: translateY(-1px); }
+    .demo-run-btn:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
+
+    .demo-chips {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .demo-chip {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .demo-chip:hover { color: var(--accent); border-color: rgba(0, 229, 160, 0.3); }
+
+    .demo-result {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      text-align: left;
+      max-width: 720px;
+      margin: 0 auto;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .demo-result-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .demo-company { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.3px; }
+    .demo-ticker-label { font-family: var(--mono); font-size: 0.85rem; color: var(--text-dim); margin-top: 2px; }
+
+    .demo-verdict {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 6px 16px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .demo-verdict.very-cheap  { background: rgba(0,229,160,0.15); color: #00e5a0; border: 1px solid rgba(0,229,160,0.3); }
+    .demo-verdict.cheap       { background: rgba(0,200,128,0.1);  color: #00c880; border: 1px solid rgba(0,200,128,0.25); }
+    .demo-verdict.fair        { background: rgba(254,188,46,0.1); color: #febc2e; border: 1px solid rgba(254,188,46,0.3); }
+    .demo-verdict.expensive   { background: rgba(255,107,53,0.1); color: #ff6b35; border: 1px solid rgba(255,107,53,0.3); }
+    .demo-verdict.very-expensive { background: rgba(255,70,70,0.1); color: #ff4646; border: 1px solid rgba(255,70,70,0.3); }
+
+    .demo-one-liner {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+
+    .demo-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .demo-metric {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .demo-metric-label {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .demo-metric-value { font-family: var(--mono); font-size: 1rem; font-weight: 600; color: var(--text); }
+
+    .demo-analysis { border-top: 1px solid var(--border); padding-top: 20px; display: grid; gap: 10px; }
+    .demo-analysis-row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: baseline; }
+    .demo-analysis-key {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .demo-analysis-val { font-size: 0.88rem; color: var(--text); line-height: 1.5; }
+
+    .demo-buy-zone {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(0,229,160,0.2);
+      border-radius: 8px;
+    }
+    .demo-buy-zone-label {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      padding-top: 2px;
+    }
+    .demo-buy-zone-val { font-size: 0.88rem; color: var(--text); line-height: 1.5; }
+
+    .demo-cta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .demo-cta-text { font-size: 0.82rem; color: var(--text-dim); }
+
+    .demo-error {
+      display: none;
+      background: var(--surface);
+      border: 1px solid rgba(255,107,53,0.3);
+      border-radius: 12px;
+      padding: 24px 32px;
+      max-width: 720px;
+      margin: 0 auto;
+      color: var(--orange);
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      text-align: left;
+      animation: fadeUp 0.4s ease both;
+    }
   </style>
 </head>
 <body>
@@ -576,6 +781,29 @@
           <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and gross margin in next earnings"</span>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Live Stock Demo -->
+  <section class="demo-section" style="border-top: 1px solid var(--border);">
+    <div class="container">
+      <div class="demo-label">Try it live — no signup required</div>
+      <h2 style="margin-bottom: 12px;">See the analysis for yourself</h2>
+      <p class="section-sub" style="margin: 0 auto 32px; text-align: center;">Type any US ticker and get a live valuation snapshot — Claude reads the financial data and tells you what it means.</p>
+      <div class="demo-input-row">
+        <input type="text" class="demo-ticker-input" id="demo-ticker" placeholder="NVDA" maxlength="6" autocomplete="off" />
+        <button class="demo-run-btn" id="demo-run-btn" onclick="runStockDemo()">Analyze →</button>
+      </div>
+      <div class="demo-chips">
+        <span class="demo-chip" onclick="setTicker('NVDA')">NVDA</span>
+        <span class="demo-chip" onclick="setTicker('AAPL')">AAPL</span>
+        <span class="demo-chip" onclick="setTicker('MSFT')">MSFT</span>
+        <span class="demo-chip" onclick="setTicker('META')">META</span>
+        <span class="demo-chip" onclick="setTicker('TSLA')">TSLA</span>
+        <span class="demo-chip" onclick="setTicker('AMZN')">AMZN</span>
+      </div>
+      <div class="demo-result" id="demo-result"></div>
+      <div class="demo-error" id="demo-error"></div>
     </div>
   </section>
 
@@ -882,6 +1110,114 @@
 
       runBtn.disabled = false;
       runBtn.textContent = 'Run';
+    }
+
+    function setTicker(ticker) {
+      document.getElementById('demo-ticker').value = ticker;
+      runStockDemo();
+    }
+
+    document.getElementById('demo-ticker').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') runStockDemo();
+    });
+
+    const verdictMap = {
+      'very_cheap':     { label: 'Very Cheap',     cls: 'very-cheap' },
+      'cheap':          { label: 'Cheap',           cls: 'cheap' },
+      'fair':           { label: 'Fairly Valued',   cls: 'fair' },
+      'expensive':      { label: 'Expensive',       cls: 'expensive' },
+      'very_expensive': { label: 'Very Expensive',  cls: 'very-expensive' },
+    };
+
+    function fmtNum(val, suffix) {
+      if (val == null || val === 0) return '—';
+      return val.toFixed(1) + (suffix || '');
+    }
+
+    async function runStockDemo() {
+      const tickerEl = document.getElementById('demo-ticker');
+      const runBtn   = document.getElementById('demo-run-btn');
+      const resultEl = document.getElementById('demo-result');
+      const errorEl  = document.getElementById('demo-error');
+      const ticker   = (tickerEl.value || '').trim().toUpperCase();
+      if (!ticker) return;
+
+      runBtn.disabled = true;
+      runBtn.textContent = 'Analyzing...';
+      resultEl.style.display = 'none';
+      errorEl.style.display = 'none';
+
+      try {
+        const res  = await fetch('/api/try/valuation-snapshot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticker }),
+        });
+        const data = await res.json();
+
+        if (res.status === 429) {
+          errorEl.innerHTML = `
+            <div style="margin-bottom:8px;font-weight:600;">Daily limit reached (10 free analyses/IP/day)</div>
+            <div style="color:var(--text-dim);font-size:0.82rem;margin-bottom:14px;">${data.message || ''}</div>
+            <a href="#get-started" class="btn btn-primary" style="font-size:0.8rem;padding:8px 18px;">Get API Key — 1,000 free calls/mo →</a>
+          `;
+          errorEl.style.display = 'block';
+        } else if (!res.ok) {
+          errorEl.innerHTML = `
+            <div style="margin-bottom:4px;">${data.error || 'Something went wrong'}</div>
+            <div style="color:var(--text-dim);font-size:0.82rem;">${data.message || ''}</div>
+          `;
+          errorEl.style.display = 'block';
+        } else {
+          const r = data.result;
+          const v = verdictMap[r.verdict] || { label: r.verdict, cls: 'fair' };
+          const m = r.metrics || {};
+          const remaining = data.trialCallsRemaining;
+
+          resultEl.innerHTML = `
+            <div class="demo-result-header">
+              <div>
+                <div class="demo-company">${r.companyName || ticker}</div>
+                <div class="demo-ticker-label">$${r.ticker}</div>
+              </div>
+              <div class="demo-verdict ${v.cls}">${v.label}</div>
+            </div>
+            <div class="demo-one-liner">"${r.oneLiner}"</div>
+            <div class="demo-metrics-grid">
+              <div class="demo-metric"><div class="demo-metric-label">P/E</div><div class="demo-metric-value">${fmtNum(m.peRatio)}x</div></div>
+              <div class="demo-metric"><div class="demo-metric-label">P/S</div><div class="demo-metric-value">${fmtNum(m.psRatio)}x</div></div>
+              <div class="demo-metric"><div class="demo-metric-label">EV/EBITDA</div><div class="demo-metric-value">${fmtNum(m.evEbitda)}x</div></div>
+              <div class="demo-metric"><div class="demo-metric-label">FCF Yield</div><div class="demo-metric-value">${fmtNum(m.fcfYield)}%</div></div>
+              <div class="demo-metric"><div class="demo-metric-label">ROE</div><div class="demo-metric-value">${fmtNum(m.roe)}%</div></div>
+              <div class="demo-metric"><div class="demo-metric-label">Net Margin</div><div class="demo-metric-value">${fmtNum(m.netMargin)}%</div></div>
+            </div>
+            <div class="demo-analysis">
+              ${r.multiplesSummary ? `<div class="demo-analysis-row"><div class="demo-analysis-key">Multiples</div><div class="demo-analysis-val">${r.multiplesSummary}</div></div>` : ''}
+              ${r.qualityRead     ? `<div class="demo-analysis-row"><div class="demo-analysis-key">Quality</div><div class="demo-analysis-val">${r.qualityRead}</div></div>` : ''}
+              ${r.growthContext   ? `<div class="demo-analysis-row"><div class="demo-analysis-key">Growth</div><div class="demo-analysis-val">${r.growthContext}</div></div>` : ''}
+              ${r.bottomLine      ? `<div class="demo-analysis-row"><div class="demo-analysis-key">Bottom line</div><div class="demo-analysis-val">${r.bottomLine}</div></div>` : ''}
+            </div>
+            ${r.buyZone ? `
+              <div class="demo-buy-zone">
+                <div class="demo-buy-zone-label">Buy Zone</div>
+                <div class="demo-buy-zone-val">${r.buyZone}</div>
+              </div>
+            ` : ''}
+            <div class="demo-cta-row">
+              <div class="demo-cta-text">10 free analyses/day · No card required${remaining != null ? ` · <strong style="color:var(--text)">${remaining}</strong> remaining today` : ''}</div>
+              <a href="#get-started" class="btn btn-primary" style="font-size:0.8rem;padding:8px 18px;">Get API Key — 1,000 free/mo →</a>
+            </div>
+          `;
+          resultEl.style.display = 'block';
+          resultEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      } catch (e) {
+        errorEl.innerHTML = '<div>Network error — is the server running?</div>';
+        errorEl.style.display = 'block';
+      }
+
+      runBtn.disabled = false;
+      runBtn.textContent = 'Analyze →';
     }
 
     loadCatalog();

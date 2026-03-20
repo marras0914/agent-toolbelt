@@ -154,13 +154,24 @@ async function handler(input: Input) {
     return `  ${t.transactionDate}: ${t.name} — ${direction} (${t.change > 0 ? "+" : ""}${t.change?.toLocaleString()} shares)`;
   });
 
-  const pe = (keyMetrics as any).peRatioTTM ?? (metrics as any).peNormalizedAnnual;
-  const ps = (keyMetrics as any).priceToSalesRatioTTM;
-  const pb = (keyMetrics as any).pbRatioTTM;
-  const roe = (keyMetrics as any).roeTTM;
-  const debtToEquity = (keyMetrics as any).debtToEquityTTM;
-  const fcfYield = (keyMetrics as any).freeCashFlowYieldTTM;
-  const revenueGrowth3Y = (metrics as any).revenueGrowth3Y;
+  const km = keyMetrics as any;
+  const fh = metrics as any;
+  // Finnhub returns quality/growth metrics as percentages (e.g. 33.6 = 33.6%) — divide to get decimal
+  const fhPct = (v: unknown) => (v != null && isFinite(Number(v)) ? Number(v) / 100 : undefined);
+  // Reject implausible values
+  const sane = (v: unknown, min: number, max: number): number | null => {
+    const n = Number(v); return v != null && isFinite(n) && n >= min && n <= max ? n : null;
+  };
+
+  const pe = sane(km.peRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
+  const ps = sane(km.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
+  const pb = sane(km.pbRatioTTM ?? fh.pbAnnual, 0, 500);
+  const roe = sane(km.roeTTM ?? fhPct(fh.roeTTM), -5, 10);
+  const debtToEquity = sane(km.debtToEquityTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
+  const pfcfTTM = Number(fh.pfcfShareTTM);
+  const fcfYield = sane(km.freeCashFlowYieldTTM ?? (pfcfTTM > 0 && isFinite(pfcfTTM) ? 1 / pfcfTTM : undefined), -1, 1);
+  // Finnhub revenueGrowth3Y is already a percentage (e.g. 12.5 = 12.5%) — use directly
+  const revenueGrowth3Y = sane(fh.revenueGrowth3Y, -100, 1000);
 
   const lines: string[] = [
     `Company: ${companyName} (${ticker})`,
@@ -170,7 +181,7 @@ async function handler(input: Input) {
     currentPrice ? `Current Price: $${currentPrice}` : "",
     description ? `\nBusiness:\n${description}` : "",
     incomeRows.length > 0 ? `\nFinancial Performance (Annual):\n${incomeRows.join("\n")}` : "",
-    revenueGrowth3Y != null ? `3-Year Revenue CAGR: ${(revenueGrowth3Y * 100).toFixed(1)}%` : "",
+    revenueGrowth3Y != null ? `3-Year Revenue CAGR: ${revenueGrowth3Y.toFixed(1)}%` : "",
     `\nValuation:`,
     pe != null ? `  P/E (TTM): ${Number(pe).toFixed(1)}` : "",
     ps != null ? `  P/S (TTM): ${Number(ps).toFixed(1)}` : "",
