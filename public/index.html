@@ -1153,7 +1153,18 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ticker }),
         });
-        const data = await res.json();
+
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          const text = await res.text().catch(() => '');
+          errorEl.innerHTML = `<div style="margin-bottom:4px;">Server error (${res.status})</div><div style="color:var(--text-dim);font-size:0.78rem;white-space:pre-wrap;">${text.substring(0, 300) || 'No response body'}</div>`;
+          errorEl.style.display = 'block';
+          runBtn.disabled = false;
+          runBtn.textContent = 'Analyze →';
+          return;
+        }
 
         if (res.status === 429) {
           errorEl.innerHTML = `
