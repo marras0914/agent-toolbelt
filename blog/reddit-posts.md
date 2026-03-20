@@ -35,7 +35,7 @@ Here's what `stock-thesis` actually returned for NVDA:
 
 It pulls live data from Polygon.io, Finnhub, and Financial Modeling Prep simultaneously, then passes everything to Claude Haiku for synthesis. Takes about 4 seconds.
 
-Works via MCP in Claude Desktop (one install command), or as a REST API / TypeScript SDK. Free tier: 1,000 calls/month.
+Works via MCP in Claude Desktop (one install command), or as a REST API / TypeScript SDK. Free tier: 1,000 calls/month. You can also try the valuation snapshot live at elephanttortoise.com — no signup, just type a ticker.
 
 **[link in comments]**
 
@@ -79,7 +79,7 @@ Claude calls the tools in parallel and synthesizes a complete research note. Rea
 
 **Watch For Next Earnings:** Data center revenue growth rate. Deceleration below 30% YoY would signal the boom is maturing.
 
-The five tools: `stock_thesis`, `earnings_analysis`, `insider_signal`, `valuation_snapshot`, `bear_vs_bull`. Free tier included (1,000 calls/month, no credit card).
+The five tools: `stock_thesis`, `earnings_analysis`, `insider_signal`, `valuation_snapshot`, `bear_vs_bull`. Free tier included (1,000 calls/month, no credit card). Try the valuation snapshot live at elephanttortoise.com — no signup needed.
 
 **[link in comments]**
 
