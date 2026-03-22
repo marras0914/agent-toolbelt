@@ -4,6 +4,8 @@
 
 **Production API:** https://agent-toolbelt-production.up.railway.app
 
+[![agent-toolbelt MCP server](https://glama.ai/mcp/servers/marras0914/agent-toolbelt/badges/card.svg)](https://glama.ai/mcp/servers/marras0914/agent-toolbelt)
+
 ---
 
 ## Quickstart
