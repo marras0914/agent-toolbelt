@@ -1,0 +1,6 @@
+FROM node:20-slim
+# Glama clones the repo to /app before running these steps
+WORKDIR /app/mcp-server
+RUN npm ci && npm run build
+ENV AGENT_TOOLBELT_KEY=""
+ENTRYPOINT ["node", "/app/mcp-server/build/index.js"]
