@@ -1352,10 +1352,11 @@ async function main() {
 }
 
 // Only run when executed directly (not when imported for scanning).
-// Wrapped in try/catch because Smithery bundles to CJS where import.meta.url is undefined.
+// If import.meta.url is accessible, we're in ESM context (running as binary) — always run.
+// If it throws, we're being imported in CJS context (e.g. Smithery scanner) — skip.
 let _isMain = false;
 try {
-  _isMain = !!import.meta.url && import.meta.url.includes(process.argv[1]?.replace(/\\/g, "/") ?? "___");
+  _isMain = !!import.meta.url;
 } catch (_) {
   _isMain = false;
 }

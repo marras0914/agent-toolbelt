@@ -1,8 +1,8 @@
 {
   "name": "agent-toolbelt-mcp",
   "mcpName": "io.github.marras0914/agent-toolbelt-mcp",
-  "version": "1.0.5",
-  "description": "MCP server that exposes Agent Toolbelt API tools to Claude Desktop, Claude Code, VS Code, and other MCP clients",
+  "version": "1.0.8",
+  "description": "MCP server that gives Claude real-time stock research — investment thesis, earnings analysis, insider signals, valuation, and bear/bull cases. Plus 20 utility tools.",
   "type": "module",
   "bin": {
     "agent-toolbelt-mcp": "./build/index.js"
@@ -24,7 +24,11 @@
     "ai",
     "agent",
     "tools",
-    "langchain",
+    "stock-analysis",
+    "stock-research",
+    "investing",
+    "finance",
+    "fundamental-analysis",
     "llm",
     "anthropic",
     "model-context-protocol"
