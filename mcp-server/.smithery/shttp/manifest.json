@@ -1,0 +1,1013 @@
+{
+  "payload": {
+    "type": "hosted",
+    "stateful": false,
+    "hasAuthAdapter": false,
+    "serverCard": {
+      "serverInfo": {
+        "name": "agent-toolbelt",
+        "version": "1.0.0"
+      },
+      "tools": [
+        {
+          "name": "generate_schema",
+          "title": "Schema Generator",
+          "description": "Generate a JSON Schema, TypeScript interface, or Zod validation schema from a natural language description of a data structure. Examples: 'a user profile with name, email, and signup date', 'a product listing with title, price, and inventory count'.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Natural language description of the data structure you want a schema for"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "json_schema",
+                  "zod",
+                  "typescript"
+                ],
+                "default": "json_schema",
+                "description": "Output format: json_schema (standard JSON Schema), typescript (TS interface), or zod (Zod validation schema)"
+              },
+              "strict": {
+                "type": "boolean",
+                "default": true,
+                "description": "If true, all fields are required. If false, optional fields are marked as optional"
+              }
+            },
+            "required": [
+              "description"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "extract_from_text",
+          "title": "Text Extractor",
+          "description": "Extract structured data from raw text: emails, URLs, phone numbers, dates, currencies, addresses, names, or JSON blocks. Useful for parsing documents, emails, web content, or any unstructured text into clean structured data.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "The raw text to extract data from"
+              },
+              "extractors": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "emails",
+                    "urls",
+                    "phone_numbers",
+                    "dates",
+                    "currencies",
+                    "addresses",
+                    "names",
+                    "json_blocks"
+                  ]
+                },
+                "description": "Which types of data to extract. Choose one or more: emails, urls, phone_numbers, dates, currencies, addresses, names, json_blocks"
+              },
+              "deduplicate": {
+                "type": "boolean",
+                "default": true,
+                "description": "Remove duplicate results within each type"
+              }
+            },
+            "required": [
+              "text",
+              "extractors"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "build_cron",
+          "title": "Cron Expression Builder",
+          "description": "Convert natural language schedule descriptions into cron expressions. Examples: 'every weekday at 9am', 'first Monday of each month at noon', 'every 5 minutes'. Returns the expression, human-readable confirmation, and next 5 run times.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Natural language schedule description"
+              },
+              "timezone": {
+                "type": "string",
+                "default": "UTC",
+                "description": "Timezone for context"
+              }
+            },
+            "required": [
+              "description"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "build_regex",
+          "title": "Regex Builder & Tester",
+          "description": "Build and test regular expressions from natural language descriptions. Supports emails, URLs, phones, dates, IPs, colors, UUIDs, and 15+ more patterns. Returns the pattern, code snippets in JS/Python/TS, and optional test results.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "What to match (e.g., 'email addresses', 'hex color codes', 'semantic versions')"
+              },
+              "testStrings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Optional strings to test the regex against"
+              },
+              "flags": {
+                "type": "string",
+                "default": "g",
+                "description": "Regex flags (default: 'g')"
+              }
+            },
+            "required": [
+              "description"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "generate_brand_kit",
+          "title": "Brand Kit Generator",
+          "description": "Generate a complete brand kit from a company name, industry, and aesthetic keywords. Returns a color palette with WCAG accessibility scores, curated typography pairings, and design tokens in JSON, CSS, or Tailwind format.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Company or brand name"
+              },
+              "industry": {
+                "type": "string",
+                "description": "Industry (e.g., 'fintech', 'healthcare', 'fashion')"
+              },
+              "vibe": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Aesthetic keywords: 'modern', 'playful', 'luxurious', 'minimal', 'bold', etc."
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "full",
+                  "tokens",
+                  "css",
+                  "tailwind"
+                ],
+                "default": "full",
+                "description": "Output format"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "convert_markdown",
+          "title": "Markdown Converter",
+          "description": "Convert HTML to clean Markdown, or Markdown to HTML. Use HTML→Markdown when you've fetched a web page and need readable text for an LLM — strips tags, preserves headings, lists, code blocks, links, and tables. Use Markdown→HTML when rendering content in a web context.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "description": "The content to convert"
+              },
+              "from": {
+                "type": "string",
+                "enum": [
+                  "html",
+                  "markdown"
+                ],
+                "description": "Input format"
+              },
+              "to": {
+                "type": "string",
+                "enum": [
+                  "html",
+                  "markdown"
+                ],
+                "description": "Output format"
+              }
+            },
+            "required": [
+              "content",
+              "from",
+              "to"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "fetch_url_metadata",
+          "title": "URL Metadata",
+          "description": "Fetch a URL and extract its metadata: title, description, Open Graph tags (og:image, og:type), Twitter card tags, favicon, canonical URL, author, and publish date. Use to enrich links with context or understand what a page is about without reading the full content.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "The URL to fetch metadata from"
+              },
+              "timeout": {
+                "type": "number",
+                "default": 8000,
+                "description": "Request timeout in milliseconds (default 8000)"
+              }
+            },
+            "required": [
+              "url"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "count_tokens",
+          "title": "Token Counter",
+          "description": "Count tokens for any text across multiple LLM models and get per-model cost estimates. Use before sending text to an LLM to check context window usage or compare costs across models. Supports GPT-4o, GPT-4, GPT-3.5-turbo, Claude 3.5 Sonnet, Claude 3 Opus, and 10+ more.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "The text to count tokens for"
+              },
+              "models": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": [
+                  "gpt-4o",
+                  "claude-3-5-sonnet"
+                ],
+                "description": "Models to count tokens for"
+              }
+            },
+            "required": [
+              "text"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "csv_to_json",
+          "title": "CSV to JSON",
+          "description": "Convert CSV data to typed JSON. Auto-detects delimiters, uses the first row as headers, and casts values to proper types (numbers, booleans, nulls). Use when processing spreadsheet exports or any CSV-formatted data.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "csv": {
+                "type": "string",
+                "description": "The CSV content to convert"
+              },
+              "delimiter": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  ",",
+                  ";",
+                  "\t",
+                  "|"
+                ],
+                "default": "auto",
+                "description": "Column delimiter"
+              },
+              "hasHeader": {
+                "type": "boolean",
+                "default": true,
+                "description": "Whether the first row contains column names"
+              },
+              "typeCast": {
+                "type": "boolean",
+                "default": true,
+                "description": "Auto-convert values to proper types"
+              },
+              "limit": {
+                "type": "number",
+                "description": "Max rows to return"
+              }
+            },
+            "required": [
+              "csv"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "normalize_address",
+          "title": "Address Normalizer",
+          "description": "Normalize a US mailing address to USPS standard format. Expands abbreviations (st→ST, ave→AVE), standardizes directionals, converts state names to codes. Returns parsed components and a confidence score (high/medium/low).",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "description": "The US address to normalize"
+              },
+              "includeComponents": {
+                "type": "boolean",
+                "default": true,
+                "description": "Include parsed address components in response"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "generate_color_palette",
+          "title": "Color Palette Generator",
+          "description": "Generate a color palette from a description, mood, industry, or hex seed color. Accepts moods (calm, energetic, luxurious), industries (fintech, healthcare, fashion), nature themes (sunset, ocean, forest), or a specific hex color. Returns hex/RGB/HSL values, WCAG accessibility scores, and CSS custom properties.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Description of the desired palette (e.g. 'calm fintech blue', 'sunset', '#3B82F6')"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 10,
+                "default": 5,
+                "description": "Number of colors (2-10)"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "hex",
+                  "rgb",
+                  "hsl",
+                  "all"
+                ],
+                "default": "all",
+                "description": "Color format in output"
+              },
+              "includeShades": {
+                "type": "boolean",
+                "default": false,
+                "description": "Include light/dark shades for each color"
+              }
+            },
+            "required": [
+              "description"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "compare_documents",
+          "title": "Document Comparator",
+          "description": "Compare two versions of a document and produce a semantic diff with additions, deletions, and modifications. Works with contracts, READMEs, policies, essays, or any text. Powered by Claude.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "original": {
+                "type": "string",
+                "description": "The original version of the document"
+              },
+              "revised": {
+                "type": "string",
+                "description": "The revised version of the document"
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "summary",
+                  "detailed",
+                  "structured"
+                ],
+                "default": "structured",
+                "description": "Output format"
+              },
+              "context": {
+                "type": "string",
+                "description": "Document type for more relevant analysis"
+              }
+            },
+            "required": [
+              "original",
+              "revised"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "extract_contract_clauses",
+          "title": "Contract Clause Extractor",
+          "description": "Extract key clauses from a contract — parties, payment terms, termination, liability, IP ownership, confidentiality, and more. Optionally flags risky or one-sided clauses with severity ratings. Powered by Claude.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "contract": {
+                "type": "string",
+                "description": "The contract or legal document text"
+              },
+              "clauses": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "parties",
+                    "dates",
+                    "payment_terms",
+                    "termination",
+                    "liability",
+                    "ip_ownership",
+                    "confidentiality",
+                    "governing_law",
+                    "penalties",
+                    "renewal",
+                    "warranties",
+                    "dispute_resolution"
+                  ]
+                },
+                "default": [
+                  "parties",
+                  "dates",
+                  "payment_terms",
+                  "termination",
+                  "liability",
+                  "ip_ownership",
+                  "confidentiality",
+                  "governing_law",
+                  "penalties",
+                  "renewal",
+                  "warranties",
+                  "dispute_resolution"
+                ],
+                "description": "Which clause types to extract"
+              },
+              "flagRisks": {
+                "type": "boolean",
+                "default": true,
+                "description": "Flag risky or unfavorable clauses"
+              }
+            },
+            "required": [
+              "contract"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "optimize_prompt",
+          "title": "Prompt Optimizer",
+          "description": "Analyze and improve an LLM prompt. Scores clarity, specificity, structure, and completeness. Returns an optimized rewrite with a summary of what changed and why. Powered by Claude.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "prompt": {
+                "type": "string",
+                "description": "The LLM prompt to analyze and/or improve"
+              },
+              "model": {
+                "type": "string",
+                "default": "gpt-4o",
+                "description": "Target model (e.g. 'gpt-4o', 'claude-3-5-sonnet')"
+              },
+              "task": {
+                "type": "string",
+                "description": "What this prompt is trying to accomplish"
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "improve",
+                  "analyze",
+                  "both"
+                ],
+                "default": "both",
+                "description": "'both' returns analysis + improved prompt; 'analyze' scores only; 'improve' rewrites only"
+              }
+            },
+            "required": [
+              "prompt"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "extract_meeting_action_items",
+          "title": "Meeting Action Items",
+          "description": "Extract structured action items, decisions, and a summary from meeting notes or transcripts. Identifies task owners, deadlines, and priorities. Powered by Claude.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "notes": {
+                "type": "string",
+                "description": "Meeting notes or transcript"
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "action_items_only",
+                  "full"
+                ],
+                "default": "full",
+                "description": "'full' includes summary and decisions; 'action_items_only' returns just the task list"
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Known participant names to help with owner attribution"
+              }
+            },
+            "required": [
+              "notes"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "strip_image_metadata",
+          "title": "Image Metadata Stripper",
+          "description": "Strip EXIF, GPS, IPTC, XMP, and ICC metadata from an image for privacy. Use before uploading or sharing images to remove sensitive embedded data like GPS coordinates, camera model, timestamps, and editing history. Accepts base64-encoded JPEG, PNG, WebP, or TIFF. Returns cleaned base64 image with a removal report.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "image": {
+                "type": "string",
+                "description": "Base64-encoded image (JPEG, PNG, WebP, TIFF). No data URI prefix."
+              },
+              "format": {
+                "type": "string",
+                "enum": [
+                  "jpeg",
+                  "png",
+                  "webp",
+                  "preserve"
+                ],
+                "default": "preserve",
+                "description": "Output format ('preserve' keeps original)"
+              },
+              "quality": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 90,
+                "description": "Quality for lossy formats (1-100)"
+              }
+            },
+            "required": [
+              "image"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "mock_api_response",
+          "title": "API Response Mocker",
+          "description": "Generate realistic mock API responses from a JSON Schema. Supports nested objects, arrays, string formats (email, uuid, date-time, url), field-name heuristics, enums, and min/max constraints. Set seed for reproducible output. Returns 1–100 records.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {},
+                "description": "JSON Schema object describing the shape of the mock data"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 1,
+                "description": "Number of mock records to generate (1–100)"
+              },
+              "seed": {
+                "type": "integer",
+                "description": "Optional seed for reproducible output"
+              }
+            },
+            "required": [
+              "schema"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "audit_dependencies",
+          "title": "Dependency Auditor",
+          "description": "Audit npm and PyPI packages for known CVEs using the OSV database (GitHub Dependabot's source). Pass packages directly or paste package.json / requirements.txt content.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "packages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "ecosystem": {
+                      "type": "string",
+                      "enum": [
+                        "npm",
+                        "pypi"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "ecosystem"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Packages to audit"
+              },
+              "manifest": {
+                "type": "string",
+                "description": "Raw package.json or requirements.txt"
+              },
+              "manifestType": {
+                "type": "string",
+                "enum": [
+                  "package.json",
+                  "requirements.txt",
+                  "auto"
+                ],
+                "default": "auto"
+              },
+              "includeDevDependencies": {
+                "type": "boolean",
+                "default": true
+              },
+              "minSeverity": {
+                "type": "string",
+                "enum": [
+                  "LOW",
+                  "MODERATE",
+                  "HIGH",
+                  "CRITICAL"
+                ],
+                "default": "LOW"
+              }
+            },
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "earnings_analysis",
+          "title": "Earnings Analysis",
+          "description": "Analyze a stock's earnings track record — EPS beat/miss history, revenue trend, and what it means for long-term investors. Returns verdict, beat rate, revenue trajectory, last quarter summary, and what to watch next.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "ticker": {
+                "type": "string",
+                "description": "Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"
+              }
+            },
+            "required": [
+              "ticker"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "insider_signal",
+          "title": "Insider Signal",
+          "description": "Interpret insider trading activity for any stock. Classifies open-market purchases vs. routine sales/awards, identifies cluster buying, and explains whether the activity is a meaningful signal. Returns signal strength (strong_buy → strong_sell) and a plain-English verdict.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "ticker": {
+                "type": "string",
+                "description": "Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"
+              }
+            },
+            "required": [
+              "ticker"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "valuation_snapshot",
+          "title": "Valuation Snapshot",
+          "description": "Assess whether a stock is cheap, fair, or expensive. Pulls P/E, P/S, EV/EBITDA, FCF yield, ROE, and margins, then synthesizes them into a verdict with a specific buy zone price level.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "ticker": {
+                "type": "string",
+                "description": "Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"
+              }
+            },
+            "required": [
+              "ticker"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "bear_vs_bull",
+          "title": "Bear vs Bull",
+          "description": "Generate a structured bull vs. bear case for any stock. Steelmans both sides with specific data, then delivers a net verdict and the key question investors need to answer before buying.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "ticker": {
+                "type": "string",
+                "description": "Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"
+              }
+            },
+            "required": [
+              "ticker"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "stock_thesis",
+          "title": "Stock Investment Thesis",
+          "description": "Generate a long-term investment thesis for any stock. Pulls live financials, valuation metrics, insider trades, and analyst ratings, then synthesizes them into a Motley Fool-style research note. Returns a bullish/neutral/bearish verdict, thesis paragraphs, key strengths, risks, and valuation read. Use when you want fundamental analysis of a stock for long-term investing.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "ticker": {
+                "type": "string",
+                "description": "Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"
+              },
+              "timeHorizon": {
+                "type": "string",
+                "enum": [
+                  "1-2 years",
+                  "3-5 years",
+                  "5+ years"
+                ],
+                "default": "3-5 years",
+                "description": "Investment time horizon"
+              }
+            },
+            "required": [
+              "ticker"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "pack_context_window",
+          "title": "Context Window Packer",
+          "description": "Pack content chunks into a token budget for an LLM context window. Selects the best subset of chunks that fits within the token limit using priority, greedy, or balanced strategies. Use when you have more content than fits in the context window.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "chunks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "description": "Content of this chunk"
+                    },
+                    "label": {
+                      "type": "string",
+                      "description": "Optional identifier"
+                    },
+                    "priority": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 10,
+                      "default": 5,
+                      "description": "Importance 0–10"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Content chunks to pack"
+              },
+              "tokenBudget": {
+                "type": "integer",
+                "description": "Maximum tokens allowed"
+              },
+              "model": {
+                "type": "string",
+                "default": "gpt-4o",
+                "description": "Target model for tokenization"
+              },
+              "strategy": {
+                "type": "string",
+                "enum": [
+                  "priority",
+                  "greedy",
+                  "balanced"
+                ],
+                "default": "priority",
+                "description": "Packing strategy"
+              },
+              "separator": {
+                "type": "string",
+                "default": "\n\n",
+                "description": "Text between chunks"
+              },
+              "systemPrompt": {
+                "type": "string",
+                "description": "System prompt to reserve tokens for"
+              },
+              "reserveForOutput": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 0,
+                "description": "Tokens to reserve for output"
+              }
+            },
+            "required": [
+              "chunks",
+              "tokenBudget"
+            ],
+            "additionalProperties": false,
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        },
+        {
+          "name": "list_tools",
+          "title": "List Available Tools",
+          "description": "List all tools available in the Agent Toolbelt API catalog, including descriptions and pricing.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "$schema": "http://json-schema.org/draft-07/schema#"
+          },
+          "execution": {
+            "taskSupport": "forbidden"
+          }
+        }
+      ],
+      "resources": [
+        {
+          "name": "api-docs",
+          "title": "Agent Toolbelt API Documentation",
+          "uri": "toolbelt://docs",
+          "description": "Full API documentation for the Agent Toolbelt service"
+        }
+      ],
+      "prompts": [
+        {
+          "name": "generate-data-model",
+          "title": "Generate Data Model",
+          "description": "Guided workflow for creating a data model schema from a description",
+          "arguments": [
+            {
+              "name": "entity",
+              "description": "The entity to model (e.g., 'user', 'order', 'product')",
+              "required": true
+            },
+            {
+              "name": "context",
+              "description": "Additional context about the data model requirements",
+              "required": false
+            }
+          ]
+        },
+        {
+          "name": "extract-and-analyze",
+          "title": "Extract & Analyze Text",
+          "description": "Extract all structured data from text and provide analysis",
+          "arguments": [
+            {
+              "name": "text",
+              "description": "The text to analyze",
+              "required": true
+            }
+          ]
+        }
+      ]
+    },
+    "source": {
+      "commit": "bdc2d34f805af35994c75d9cfcf8cc1a3db341cd",
+      "branch": "master"
+    }
+  },
+  "artifacts": {
+    "module": "module.js",
+    "sourcemap": "module.js.map"
+  }
+}
