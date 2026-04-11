@@ -740,7 +740,7 @@
       <a href="/" class="logo">agent-toolbelt <span>v1.0</span></a>
       <div class="nav-links">
         <a href="/#tools">Catalog</a>
-        <a href="/api/docs">API Docs</a>
+        <a href="/docs.html">Docs</a>
         <a href="#pricing">Pricing</a>
         <a href="/api/clients/register" class="btn btn-primary">Get API Key</a>
       </div>
@@ -765,20 +765,24 @@
           <span class="terminal-title">bash</span>
         </div>
         <div class="terminal-body">
-          <span class="comment"># Get a full investment thesis on NVDA</span><br>
-          <span class="prompt">$</span> <span class="cmd">curl -X POST /api/tools/stock-thesis \</span><br>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">-H </span><span class="string">"Authorization: Bearer atb_..."</span> <span class="cmd">\</span><br>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span class="cmd">-d </span><span class="string">'{"ticker": "NVDA", "timeHorizon": "3-5 years"}'</span><br>
+          <span class="comment"># POST /api/tools/stock-thesis · {"ticker": "NVDA"}</span><br>
           <br>
-          <span class="comment"># → </span><span class="key">"verdict"</span><span class="comment">: </span><span class="string">"bullish"</span><br>
-          <span class="comment"># → </span><span class="key">"oneLiner"</span><span class="comment">: </span><span class="string">"Nvidia owns the essential infrastructure</span><br>
-          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for the AI revolution with a defensible</span><br>
-          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;software moat..."</span><br>
-          <span class="comment"># → </span><span class="key">"keyStrengths"</span><span class="comment">: [</span><span class="string">"CUDA moat"</span><span class="comment">, </span><span class="string">"10,005% 3Y CAGR"</span><span class="comment">, ...]</span><br>
-          <span class="comment"># → </span><span class="key">"insiderRead"</span><span class="comment">: </span><span class="string">"Mixed — cluster buys from</span><br>
-          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;two executives offset routine sales..."</span><br>
-          <span class="comment"># → </span><span class="key">"watchFor"</span><span class="comment">: </span><span class="string">"Data center revenue growth rate</span><br>
-          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and gross margin in next earnings"</span>
+          {<br>
+          &nbsp;&nbsp;<span class="key">"verdict"</span>: <span class="string">"bullish"</span>,<br>
+          &nbsp;&nbsp;<span class="key">"oneLiner"</span>: <span class="string">"Nvidia owns the essential infrastructure for the AI</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;revolution with a defensible software moat, but the</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;valuation demands flawless execution."</span>,<br>
+          &nbsp;&nbsp;<span class="key">"thesis"</span>: <span class="string">"Nvidia is in a rare position: it supplies the picks and</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shovels for an industry-wide megatrend. CUDA locks</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;customers in. This network effect is Nvidia's moat."</span>,<br>
+          &nbsp;&nbsp;<span class="key">"insiderRead"</span>: <span class="string">"Mixed — two executives bought ~47k shares each</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in March (positive), offset by routine selling."</span>,<br>
+          &nbsp;&nbsp;<span class="key">"watchFor"</span>: <span class="string">"Data center revenue growth rate next earnings.</span><br>
+          <span class="string">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Below 30% YoY signals the boom is maturing."</span>,<br>
+          &nbsp;&nbsp;<span class="key">"dataSources"</span>: { <span class="key">"fetchedAt"</span>: <span class="string">"2026-03-22T17:30:00Z"</span>,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"polygon"</span>: { <span class="key">"success"</span>: <span class="cmd">true</span> }, <span class="key">"finnhub"</span>: { <span class="key">"success"</span>: <span class="cmd">true</span> },<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"fmp"</span>: { <span class="key">"success"</span>: <span class="cmd">true</span> } }<br>
+          }
         </div>
       </div>
     </div>
@@ -1000,12 +1004,28 @@
         const data = await res.json();
 
         if (res.ok) {
+          const key = data.apiKey.key;
           result.innerHTML = `
             <div style="background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 16px;">
-              <div style="color: var(--accent); margin-bottom: 8px;">✅ You're in!</div>
+              <div style="color: var(--accent); margin-bottom: 8px;">You're in!</div>
               <div style="margin-bottom: 8px;">Your API key (save this — shown once):</div>
-              <code style="background: var(--bg); padding: 8px 12px; border-radius: 4px; display: block; word-break: break-all; color: var(--orange); font-size: 0.8rem;">${data.apiKey.key}</code>
-              <div style="margin-top: 12px; color: var(--text-dim); font-size: 0.8rem;">Client ID: ${data.client.id} | Tier: ${data.client.tier}</div>
+              <code style="background: var(--bg); padding: 8px 12px; border-radius: 4px; display: block; word-break: break-all; color: var(--orange); font-size: 0.8rem;">${key}</code>
+              <div style="margin-top: 16px; margin-bottom: 8px; color: var(--text); font-weight: 600; font-size: 0.85rem;">Run your first analysis:</div>
+              <div style="position: relative;">
+                <pre style="background: var(--bg); padding: 12px; border-radius: 4px; font-size: 0.75rem; overflow-x: auto; white-space: pre-wrap; word-break: break-all; color: var(--text-dim); margin: 0; cursor: pointer;" onclick="navigator.clipboard.writeText(this.dataset.cmd).then(() => { this.nextElementSibling.textContent = 'Copied!'; setTimeout(() => this.nextElementSibling.textContent = 'Click to copy', 1500); })" data-cmd='curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/stock-thesis -H "Authorization: Bearer ${key}" -H "Content-Type: application/json" -d &apos;{"ticker": "AAPL"}&apos;'>curl -X POST .../api/tools/stock-thesis \\
+  -H "Authorization: Bearer ${key.slice(0, 12)}..." \\
+  -H "Content-Type: application/json" \\
+  -d '{"ticker": "AAPL"}'</pre>
+                <div style="text-align: right; font-size: 0.7rem; color: var(--accent); margin-top: 4px; font-family: var(--mono);">Click to copy</div>
+              </div>
+              <div style="margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap;">
+                <span style="font-size: 0.75rem; color: var(--text-dim); line-height: 28px;">Other tools:</span>
+                <a href="#" onclick="navigator.clipboard.writeText('curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/earnings-analysis -H \\'Authorization: Bearer ${key}\\' -H \\'Content-Type: application/json\\' -d \\'{&quot;ticker&quot;: &quot;AAPL&quot;}\\''); this.textContent='Copied!'; setTimeout(() => this.textContent='earnings-analysis', 1500); return false;" style="font-family: var(--mono); font-size: 0.75rem; padding: 4px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); text-decoration: none;">earnings-analysis</a>
+                <a href="#" onclick="navigator.clipboard.writeText('curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/valuation-snapshot -H \\'Authorization: Bearer ${key}\\' -H \\'Content-Type: application/json\\' -d \\'{&quot;ticker&quot;: &quot;AAPL&quot;}\\''); this.textContent='Copied!'; setTimeout(() => this.textContent='valuation-snapshot', 1500); return false;" style="font-family: var(--mono); font-size: 0.75rem; padding: 4px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); text-decoration: none;">valuation-snapshot</a>
+                <a href="#" onclick="navigator.clipboard.writeText('curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/bear-vs-bull -H \\'Authorization: Bearer ${key}\\' -H \\'Content-Type: application/json\\' -d \\'{&quot;ticker&quot;: &quot;AAPL&quot;}\\''); this.textContent='Copied!'; setTimeout(() => this.textContent='bear-vs-bull', 1500); return false;" style="font-family: var(--mono); font-size: 0.75rem; padding: 4px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); text-decoration: none;">bear-vs-bull</a>
+                <a href="#" onclick="navigator.clipboard.writeText('curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/insider-signal -H \\'Authorization: Bearer ${key}\\' -H \\'Content-Type: application/json\\' -d \\'{&quot;ticker&quot;: &quot;AAPL&quot;}\\''); this.textContent='Copied!'; setTimeout(() => this.textContent='insider-signal', 1500); return false;" style="font-family: var(--mono); font-size: 0.75rem; padding: 4px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); text-decoration: none;">insider-signal</a>
+              </div>
+              <div style="margin-top: 10px; color: var(--text-dim); font-size: 0.75rem;">1,000 free calls/month | <a href="/api/docs" style="color: var(--accent);">API docs</a></div>
             </div>
           `;
         } else {

@@ -49,7 +49,7 @@ export async function sendOnboardingEmail(params: {
     </div>
     <div class="body">
       <p>${greeting}, welcome to Agent Toolbelt.</p>
-      <p>Your account is set up. Your API key was shown once at registration — if you saved it, you're all set.</p>
+      <p>Your account is set up. Your API key was shown once at registration — if you saved it, you're ready to analyze your first stock.</p>
 
       <div class="key-box">
         <div class="label">Key prefix (for reference)</div>
@@ -57,31 +57,43 @@ export async function sendOnboardingEmail(params: {
         <div class="warning">The full key is not included in this email. If you lost it, reply here and we'll issue a new one.</div>
       </div>
 
-      <h2>Quick start</h2>
-      <pre>curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/schema-generator \\
+      <h2>Run your first analysis</h2>
+      <p>Paste this into your terminal (replace <code>&lt;your-key&gt;</code> with your API key):</p>
+      <pre>curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/stock-thesis \\
   -H "Authorization: Bearer &lt;your-key&gt;" \\
   -H "Content-Type: application/json" \\
-  -d '{"description": "a SaaS user with name, email, and plan"}'</pre>
+  -d '{"ticker": "AAPL"}'</pre>
+
+      <p>You'll get a full Motley Fool-style investment thesis: verdict, strengths, risks, valuation read, and what to watch for.</p>
+
+      <h2>5 stock research tools</h2>
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px;">
+        <tr style="border-bottom: 1px solid #e0e0e0;"><td style="padding: 8px 0; font-weight: 600;">stock-thesis</td><td style="padding: 8px 0; color: #555;">Full investment thesis with verdict</td></tr>
+        <tr style="border-bottom: 1px solid #e0e0e0;"><td style="padding: 8px 0; font-weight: 600;">earnings-analysis</td><td style="padding: 8px 0; color: #555;">12-quarter EPS track record + revenue trend</td></tr>
+        <tr style="border-bottom: 1px solid #e0e0e0;"><td style="padding: 8px 0; font-weight: 600;">insider-signal</td><td style="padding: 8px 0; color: #555;">Form 4 insider trades interpreted</td></tr>
+        <tr style="border-bottom: 1px solid #e0e0e0;"><td style="padding: 8px 0; font-weight: 600;">valuation-snapshot</td><td style="padding: 8px 0; color: #555;">P/E, P/S, EV/EBITDA, FCF yield + buy zone</td></tr>
+        <tr><td style="padding: 8px 0; font-weight: 600;">bear-vs-bull</td><td style="padding: 8px 0; color: #555;">3 bull + 3 bear arguments, steelmanned</td></tr>
+      </table>
+
+      <p>All tools work the same way — just change the tool name in the URL and pass <code>{"ticker": "..."}</code>.</p>
 
       <p>Or with the TypeScript SDK:</p>
       <pre>npm install agent-toolbelt</pre>
       <pre>import { AgentToolbelt } from "agent-toolbelt";
-const toolbelt = new AgentToolbelt({ apiKey: process.env.AGENT_TOOLBELT_KEY });
+const atb = new AgentToolbelt({ apiKey: process.env.AGENT_TOOLBELT_KEY });
 
-const { schema } = await toolbelt.schemaGenerator({
-  description: "a SaaS user with name, email, and plan",
-  format: "zod",
-});</pre>
+const thesis = await atb.stockThesis({ ticker: "AAPL" });
+console.log(thesis.verdict, thesis.oneLiner);</pre>
 
       <h2>What's included</h2>
-      <p>You have <strong>1,000 free calls/month</strong> across all 20 tools — schema generator, token counter, regex builder, prompt optimizer, web summarizer, context window packer, and more.</p>
+      <p>Your free tier includes <strong>1,000 calls/month</strong> across all 25 tools — 5 stock research tools plus 20 utility tools (schema generator, token counter, regex builder, and more).</p>
 
       <p>
-        <a class="btn" href="${catalogUrl}">Browse all tools</a>
         <a class="btn" href="${docsUrl}">API docs</a>
+        <a class="btn" href="${catalogUrl}">All 25 tools</a>
       </p>
 
-      <p style="margin-top: 24px; font-size: 13px; color: #666;">Need more calls? Reply to this email or visit the docs to upgrade.</p>
+      <p style="margin-top: 24px; font-size: 13px; color: #666;">Need more calls or want PAYG pricing? Reply to this email.</p>
 
       <div style="margin-top: 28px; padding: 20px; background: #f8f8f8; border-radius: 6px; border-left: 3px solid #1a1a1a;">
         <p style="margin: 0 0 6px; font-size: 14px; font-weight: 600; color: #1a1a1a;">Deploying agents to production?</p>
@@ -102,18 +114,28 @@ Your API key was shown once at registration. Key prefix for reference: ${keyPref
 
 If you lost your key, reply to this email and we'll issue a new one.
 
-Quick start:
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/schema-generator \\
+Run your first analysis — paste this into your terminal:
+
+curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/stock-thesis \\
   -H "Authorization: Bearer <your-key>" \\
   -H "Content-Type: application/json" \\
-  -d '{"description": "a SaaS user with name, email, and plan"}'
+  -d '{"ticker": "AAPL"}'
 
-You have 1,000 free calls/month across all 20 tools.
+5 stock research tools:
+- stock-thesis — full investment thesis with verdict
+- earnings-analysis — 12-quarter EPS track record + revenue trend
+- insider-signal — Form 4 insider trades interpreted
+- valuation-snapshot — P/E, P/S, EV/EBITDA, FCF yield + buy zone
+- bear-vs-bull — 3 bull + 3 bear arguments, steelmanned
 
-Browse tools: ${catalogUrl}
+All tools take {"ticker": "..."} — just change the tool name in the URL.
+
+1,000 free calls/month across all 25 tools.
+
 API docs: ${docsUrl}
+All tools: ${catalogUrl}
 
-Need more calls? Reply to this email to upgrade.
+Need more calls? Reply to this email.
 
 ---
 Deploying agents to production? Check out Cordon — secrets management and access control built for AI agents: https://getcordon.com
@@ -122,7 +144,7 @@ Deploying agents to production? Check out Cordon — secrets management and acce
   await sgMail.send({
     to: email,
     from: { email: config.emailFrom, name: "Agent Toolbelt" },
-    subject: "Your Agent Toolbelt API key",
+    subject: "Your API key — try analyzing AAPL first",
     text,
     html,
   });
