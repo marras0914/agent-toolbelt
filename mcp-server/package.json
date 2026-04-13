@@ -1,7 +1,7 @@
 {
   "name": "agent-toolbelt-mcp",
   "mcpName": "io.github.marras0914/agent-toolbelt-mcp",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "MCP server that gives Claude real-time stock research — investment thesis, earnings analysis, insider signals, valuation, and bear/bull cases. Plus 20 utility tools.",
   "type": "module",
   "bin": {
@@ -16,6 +16,7 @@
   "files": [
     "build",
     "README.md",
+    "LICENSE",
     "scripts"
   ],
   "keywords": [

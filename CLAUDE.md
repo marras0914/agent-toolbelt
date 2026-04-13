@@ -199,18 +199,19 @@ print(r.stdout)
 
 | Channel | Status |
 |---|---|
-| npm (`agent-toolbelt` v0.3.0 + `agent-toolbelt-mcp` v1.0.5) | ✓ Live — 810 + 292 downloads/mo |
+| npm (`agent-toolbelt` v0.3.0 + `agent-toolbelt-mcp` v1.0.9) | ✓ Live — 810 + 292 downloads/mo |
 | RapidAPI | ✓ Listed |
-| MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted (needs description update) |
-| PulseMCP + Glama | ✓ Submitted (needs description update) |
+| MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted (description updated via npm v1.0.6) |
+| PulseMCP | ✓ Submitted (description updated via npm v1.0.6) |
+| Glama | ✓ Live (quality check passed 2026-03-30, v1.0.9) |
 | Landing pages (elephanttortoise.com) | ✓ Live |
 | Blog posts 1-4 (dev.to / Medium) | ✓ Published |
 | Blog post 5 (stock research pivot) | ✓ Medium ✓ — dev.to ✓ |
 | HN article | ✓ Posted 2026-03-09 |
-| Smithery | ✓ Submitted — needs description update for stock pivot |
+| Smithery | ✓ Live — shttp bundle rebuilt 2026-03-30, now shows 5 stock tools |
 | Awesome lists | ✓ PRs open — punkpeye/awesome-mcp-servers #2947, kyrolabs/awesome-langchain #207, appcypher/awesome-mcp-servers #532, tensorchord/Awesome-LLMOps #284, mcpservers.org submitted |
-| Reddit | Pending — posts written for stock pivot in blog/reddit-posts.md (r/ValueInvesting, r/ClaudeAI, r/algotrading, r/LocalLLaMA) |
+| Reddit | r/LocalLLaMA ✓, r/SideProject ✓, r/ValueInvesting ✓ (2026-03-23) — r/ClaudeAI pending approval; r/algotrading blocked by karma |
 | HN comments | Pending — 3 templates in blog/reddit-posts.md |
-| Toolhouse.ai | TODO — email hello@toolhouse.ai |
-| Product Hunt | TODO — do after first organic registrations |
+| Toolhouse.ai | Email sent 2026-03-20 — no reply |
+| Product Hunt | Launched April 2nd 2026 — 0 upvotes, no traction |
 | Cordon cross-promo | ✓ Live — onboarding email + /register success page → getcordon.com |

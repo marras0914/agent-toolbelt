@@ -108,6 +108,7 @@ async function handler(input: Input) {
   if (!config.fmpApiKey) throw new Error("FMP_API_KEY is not configured");
 
   // Fetch all data sources in parallel
+  const fetchedAt = new Date().toISOString();
   const [overview, prevClose, metrics, recommendations, insiders, incomeStatements, keyMetrics] =
     await Promise.all([
       fetchPolygonOverview(ticker),
@@ -253,6 +254,12 @@ async function handler(input: Input) {
       analystConsensus: latestRec
         ? { buy: latestRec.buy, hold: latestRec.hold, sell: latestRec.sell }
         : null,
+    },
+    dataSources: {
+      fetchedAt,
+      polygon: { success: Object.keys(overview).length > 0 },
+      finnhub: { success: Object.keys(metrics).length > 0 },
+      fmp: { success: (incomeStatements as any[]).length > 0 || Object.keys(keyMetrics).length > 0 },
     },
     generatedAt: new Date().toISOString(),
   };

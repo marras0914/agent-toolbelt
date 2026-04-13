@@ -10,3 +10,7 @@ mcp-server/node_modules/
 mcp-server/build/
 sdk/.claude/
 .mcpregistry_*
+
+# Sensitive / personal files
+blog/my-registration-key.txt
+030526FL4719.txt

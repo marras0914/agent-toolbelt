@@ -43,6 +43,7 @@ async function handler(input: Input) {
   if (!config.anthropicApiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
   if (!config.finnhubApiKey) throw new Error("FINNHUB_API_KEY is not configured");
 
+  const fetchedAt = new Date().toISOString();
   const [transactions, sentiment] = await Promise.all([
     fetchInsiderTransactions(ticker),
     fetchInsiderSentiment(ticker),
@@ -147,6 +148,10 @@ async function handler(input: Input) {
       openMarketSales: sales.length,
       routineTransactions: grantAwards.length,
       netSharesPurchased: totalPurchaseShares - totalSaleShares,
+    },
+    dataSources: {
+      fetchedAt,
+      finnhub: { success: (transactions as any[]).length > 0 },
     },
     generatedAt: new Date().toISOString(),
   };

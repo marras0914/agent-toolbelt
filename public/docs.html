@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Docs — Agent Toolbelt</title>
+  <meta name="description" content="Agent Toolbelt API documentation — real request and response examples for all 5 stock research tools.">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface-2: #1a1a26;
+      --border: #2a2a3a;
+      --text: #e8e8ef;
+      --text-dim: #8888a0;
+      --accent: #00e5a0;
+      --accent-dim: #00e5a020;
+      --orange: #ff6b35;
+      --purple: #a78bfa;
+      --green: #4ade80;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    nav {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(10, 10, 15, 0.95);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    nav .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    nav a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-family: var(--mono);
+    }
+    nav a:hover { color: var(--accent); }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+    .page-header {
+      padding: 60px 0 40px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page-header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+
+    .page-header p {
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      max-width: 560px;
+    }
+
+    /* Sidebar + content layout */
+    .docs-layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 48px;
+      padding: 48px 0 80px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 80px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 24px;
+    }
+
+    .sidebar-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .sidebar a {
+      display: block;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.88rem;
+      padding: 4px 0;
+      transition: color 0.15s;
+    }
+
+    .sidebar a:hover { color: var(--accent); }
+
+    /* Tool sections */
+    .tool-section {
+      margin-bottom: 64px;
+      padding-bottom: 64px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tool-section:last-child {
+      border-bottom: none;
+    }
+
+    .tool-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+
+    .tool-name {
+      font-family: var(--mono);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .tool-price {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+
+    .tool-desc {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      margin-bottom: 28px;
+      max-width: 600px;
+    }
+
+    .endpoint-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      margin-bottom: 24px;
+    }
+
+    .method {
+      background: var(--accent-dim);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .path { color: var(--text); }
+
+    .block-label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    pre {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin-bottom: 24px;
+      white-space: pre;
+    }
+
+    .k { color: var(--purple); }   /* key */
+    .s { color: var(--orange); }   /* string */
+    .n { color: var(--green); }    /* number / bool */
+    .c { color: var(--text-dim); } /* comment */
+
+    .auth-note {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 16px 20px;
+      font-size: 0.88rem;
+      margin-bottom: 48px;
+    }
+
+    .auth-note code {
+      font-family: var(--mono);
+      color: var(--accent);
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 700px) {
+      .docs-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="/" class="logo">agent-toolbelt</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/docs.html" style="color: var(--accent);">Docs</a>
+      <a href="/register.html">Get API Key →</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <h1>API Reference</h1>
+    <p>Five stock research tools. Real requests, real responses. Base URL: <code style="font-family: var(--mono); color: var(--accent); font-size: 0.9rem;">https://agent-toolbelt-production.up.railway.app</code></p>
+  </div>
+
+  <div class="docs-layout">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Auth</div>
+        <a href="#auth">Authentication</a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Stock Tools</div>
+        <a href="#stock-thesis">stock-thesis</a>
+        <a href="#earnings-analysis">earnings-analysis</a>
+        <a href="#insider-signal">insider-signal</a>
+        <a href="#valuation-snapshot">valuation-snapshot</a>
+        <a href="#bear-vs-bull">bear-vs-bull</a>
+      </div>
+    </nav>
+
+    <!-- Content -->
+    <div>
+
+      <!-- Auth -->
+      <div class="tool-section" id="auth">
+        <div class="tool-header">
+          <div class="tool-name">Authentication</div>
+        </div>
+        <div class="tool-desc">All requests require a Bearer token. Get a free key (1,000 calls/month) at <a href="/register.html" style="color: var(--accent);">elephanttortoise.com/register</a>.</div>
+        <div class="auth-note">
+          Add <code>Authorization: Bearer atb_your_key_here</code> to every request header.
+        </div>
+
+        <div class="block-label">Example request header</div>
+        <pre>curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/stock-thesis \
+  -H <span class="s">"Authorization: Bearer atb_your_key_here"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"ticker": "NVDA"}'</span></pre>
+      </div>
+
+      <!-- stock-thesis -->
+      <div class="tool-section" id="stock-thesis">
+        <div class="tool-header">
+          <div class="tool-name">stock-thesis</div>
+          <div class="tool-price">$0.05 / call</div>
+        </div>
+        <div class="tool-desc">Full investment thesis: bullish/neutral/bearish verdict, 2–3 paragraph analysis, key strengths, risks, valuation read, insider interpretation, and what to watch next earnings. Motley Fool-style output, structured JSON.</div>
+        <div class="endpoint-tag">
+          <span class="method">POST</span>
+          <span class="path">/api/tools/stock-thesis</span>
+        </div>
+
+        <div class="block-label">Request</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>,           <span class="c">// required — US stock ticker</span>
+  <span class="k">"timeHorizon"</span>: <span class="s">"3-5 years"</span>  <span class="c">// optional — "1-2 years" | "3-5 years" | "5+ years"</span>
+}</pre>
+
+        <div class="block-label">Response</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>,
+  <span class="k">"verdict"</span>: <span class="s">"bullish"</span>,           <span class="c">// "bullish" | "neutral" | "bearish"</span>
+  <span class="k">"oneLiner"</span>: <span class="s">"Nvidia owns the essential infrastructure for the AI revolution with a defensible software moat, but the valuation demands flawless execution."</span>,
+  <span class="k">"thesis"</span>: <span class="s">"Nvidia is in a rare position: it supplies the picks and shovels for an industry-wide megatrend. The company has grown revenue at a staggering 10,005% CAGR over three years... CUDA, its software platform, locks customers into its ecosystem. This network effect is Nvidia's moat."</span>,
+  <span class="k">"keyStrengths"</span>: [
+    <span class="s">"Dominant ~80%+ data center GPU market share"</span>,
+    <span class="s">"CUDA moat creates switching costs and customer lock-in"</span>,
+    <span class="s">"42 buy / 5 hold / 1 sell analyst consensus"</span>
+  ],
+  <span class="k">"keyRisks"</span>: [
+    <span class="s">"Valuation pricing in near-perfection at 36x earnings"</span>,
+    <span class="s">"AMD and custom silicon (Google TPU, AWS Trainium) eroding share"</span>,
+    <span class="s">"Hyperscaler capex slowdown would compress data center revenue"</span>
+  ],
+  <span class="k">"valuationRead"</span>: <span class="s">"Premium but not irrational. 36.9x P/E justified by AI tailwinds — fair value hinges on sustained data center spending through 2029."</span>,
+  <span class="k">"insiderRead"</span>: <span class="s">"Mixed signals: two executives bought ~47k shares each on March 9 (positive alignment), offset by routine selling from others — likely tax diversification rather than conviction-based."</span>,
+  <span class="k">"watchFor"</span>: <span class="s">"Data center revenue growth rate and gross margin in the next earnings report. If deceleration goes below 30% YoY, the boom is maturing faster than expected."</span>,
+  <span class="k">"dataSnapshot"</span>: {
+    <span class="k">"marketCapBillions"</span>: <span class="n">2780.4</span>,
+    <span class="k">"currentPrice"</span>: <span class="n">113.60</span>,
+    <span class="k">"peRatio"</span>: <span class="n">36.9</span>,
+    <span class="k">"analystConsensus"</span>: { <span class="k">"buy"</span>: <span class="n">42</span>, <span class="k">"hold"</span>: <span class="n">5</span>, <span class="k">"sell"</span>: <span class="n">1</span> }
+  },
+  <span class="k">"dataSources"</span>: {
+    <span class="k">"fetchedAt"</span>: <span class="s">"2026-03-22T17:30:00.000Z"</span>,
+    <span class="k">"polygon"</span>: { <span class="k">"success"</span>: <span class="n">true</span> },
+    <span class="k">"finnhub"</span>: { <span class="k">"success"</span>: <span class="n">true</span> },
+    <span class="k">"fmp"</span>: { <span class="k">"success"</span>: <span class="n">true</span> }
+  },
+  <span class="k">"generatedAt"</span>: <span class="s">"2026-03-22T17:30:05.123Z"</span>
+}</pre>
+      </div>
+
+      <!-- earnings-analysis -->
+      <div class="tool-section" id="earnings-analysis">
+        <div class="tool-header">
+          <div class="tool-name">earnings-analysis</div>
+          <div class="tool-price">$0.05 / call</div>
+        </div>
+        <div class="tool-desc">EPS beat/miss history across up to 12 quarters, revenue trend classification, long-term consistency read, and upcoming earnings date.</div>
+        <div class="endpoint-tag">
+          <span class="method">POST</span>
+          <span class="path">/api/tools/earnings-analysis</span>
+        </div>
+
+        <div class="block-label">Request</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>  <span class="c">// required</span>
+}</pre>
+
+        <div class="block-label">Response</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>,
+  <span class="k">"verdict"</span>: <span class="s">"strong_compounder"</span>,  <span class="c">// "strong_compounder" | "consistent" | "mixed" | "volatile" | "deteriorating"</span>
+  <span class="k">"oneLiner"</span>: <span class="s">"Nvidia has delivered 9 consecutive EPS beats with accelerating revenue — a near-perfect earnings track record driven by AI infrastructure demand."</span>,
+  <span class="k">"beatRate"</span>: <span class="s">"9/10 quarters beat (90%)"</span>,
+  <span class="k">"revenueTrend"</span>: <span class="s">"accelerating"</span>,  <span class="c">// "accelerating" | "steady" | "decelerating" | "declining"</span>
+  <span class="k">"revenueRead"</span>: <span class="s">"Revenue has grown from $4.3B to $35.1B over 8 quarters — a trajectory driven almost entirely by data center GPU demand. No signs of deceleration yet."</span>,
+  <span class="k">"epsRead"</span>: <span class="s">"Consistently beating estimates by wide margins (avg +18%). Management has been conservative with guidance, setting up repeated upside surprises."</span>,
+  <span class="k">"lastQuarterSummary"</span>: <span class="s">"Q4 FY2025: EPS $0.89 vs $0.84 estimate (+6% beat). Revenue $35.1B vs $33.5B estimate. Data center up 93% YoY."</span>,
+  <span class="k">"longTermRead"</span>: <span class="s">"For a long-term holder, this is as clean an earnings history as you'll find in mega-cap tech. The risk is deceleration from a very high base, not deterioration."</span>,
+  <span class="k">"watchForNext"</span>: <span class="s">"Revenue growth rate — specifically whether data center can sustain 50%+ YoY. A miss or weak guide would be the first crack in the thesis."</span>,
+  <span class="k">"rawData"</span>: {
+    <span class="k">"quartersAnalyzed"</span>: <span class="n">10</span>,
+    <span class="k">"beatsTotal"</span>: <span class="n">9</span>,
+    <span class="k">"upcomingEarnings"</span>: { <span class="k">"date"</span>: <span class="s">"2026-05-28"</span>, <span class="k">"epsEstimate"</span>: <span class="n">0.93</span> }
+  },
+  <span class="k">"dataSources"</span>: {
+    <span class="k">"fetchedAt"</span>: <span class="s">"2026-03-22T17:30:00.000Z"</span>,
+    <span class="k">"fmp"</span>: { <span class="k">"success"</span>: <span class="n">true</span> },
+    <span class="k">"finnhub"</span>: { <span class="k">"success"</span>: <span class="n">true</span> }
+  },
+  <span class="k">"generatedAt"</span>: <span class="s">"2026-03-22T17:30:04.891Z"</span>
+}</pre>
+      </div>
+
+      <!-- insider-signal -->
+      <div class="tool-section" id="insider-signal">
+        <div class="tool-header">
+          <div class="tool-name">insider-signal</div>
+          <div class="tool-price">$0.05 / call</div>
+        </div>
+        <div class="tool-desc">Interprets Form 4 insider trading filings. Distinguishes meaningful open-market purchases from routine option exercises and tax-withholding sales. Returns a signal strength and plain-English verdict.</div>
+        <div class="endpoint-tag">
+          <span class="method">POST</span>
+          <span class="path">/api/tools/insider-signal</span>
+        </div>
+
+        <div class="block-label">Request</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>  <span class="c">// required</span>
+}</pre>
+
+        <div class="block-label">Response</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>,
+  <span class="k">"signal"</span>: <span class="s">"neutral"</span>,  <span class="c">// "strong_buy" | "buy" | "neutral" | "sell" | "strong_sell"</span>
+  <span class="k">"confidence"</span>: <span class="s">"medium"</span>,  <span class="c">// "high" | "medium" | "low"</span>
+  <span class="k">"oneLiner"</span>: <span class="s">"Two small open-market purchases offset by heavy routine selling — net signal is neutral."</span>,
+  <span class="k">"interpretation"</span>: <span class="s">"Two executives made open-market purchases of ~47k shares each in March — a meaningful show of conviction at current prices. However, these are offset by significantly larger selling activity from other insiders, most of which appears routine (tax withholding on vested RSUs, planned 10b5-1 sales)."</span>,
+  <span class="k">"buyingPressure"</span>: <span class="s">"2 open-market purchases totaling ~94k shares (~$10.7M) from two senior executives in March 2026."</span>,
+  <span class="k">"sellingPressure"</span>: <span class="s">"Multiple sales totaling ~320k shares, predominantly from 10b5-1 plans and RSU tax withholding — routine, not conviction-based."</span>,
+  <span class="k">"notableTrades"</span>: [
+    {
+      <span class="k">"who"</span>: <span class="s">"Jensen Huang (CEO)"</span>,
+      <span class="k">"action"</span>: <span class="s">"Open-market purchase: +47,210 shares @ $113.40 ($5.4M)"</span>,
+      <span class="k">"significance"</span>: <span class="s">"CEO buying in the open market is a strong alignment signal — not a routine exercise."</span>
+    }
+  ],
+  <span class="k">"verdict"</span>: <span class="s">"The purchases are encouraging but insufficient to override the broader selling pattern. For a long-term holder, this is a mild positive — executives aren't fleeing, but the net insider flow is not a strong buy signal."</span>,
+  <span class="k">"rawData"</span>: {
+    <span class="k">"transactionsAnalyzed"</span>: <span class="n">20</span>,
+    <span class="k">"openMarketPurchases"</span>: <span class="n">2</span>,
+    <span class="k">"openMarketSales"</span>: <span class="n">5</span>,
+    <span class="k">"routineTransactions"</span>: <span class="n">13</span>,
+    <span class="k">"netSharesPurchased"</span>: <span class="n">-226000</span>
+  },
+  <span class="k">"dataSources"</span>: {
+    <span class="k">"fetchedAt"</span>: <span class="s">"2026-03-22T17:30:00.000Z"</span>,
+    <span class="k">"finnhub"</span>: { <span class="k">"success"</span>: <span class="n">true</span> }
+  },
+  <span class="k">"generatedAt"</span>: <span class="s">"2026-03-22T17:30:03.441Z"</span>
+}</pre>
+      </div>
+
+      <!-- valuation-snapshot -->
+      <div class="tool-section" id="valuation-snapshot">
+        <div class="tool-header">
+          <div class="tool-name">valuation-snapshot</div>
+          <div class="tool-price">$0.05 / call</div>
+        </div>
+        <div class="tool-desc">P/E, P/S, EV/EBITDA, FCF yield, ROE, and net margin — synthesized into a cheap/fair/expensive verdict with a specific buy zone price.</div>
+        <div class="endpoint-tag">
+          <span class="method">POST</span>
+          <span class="path">/api/tools/valuation-snapshot</span>
+        </div>
+
+        <div class="block-label">Request</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>  <span class="c">// required</span>
+}</pre>
+
+        <div class="block-label">Response</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>,
+  <span class="k">"companyName"</span>: <span class="s">"NVIDIA Corporation"</span>,
+  <span class="k">"verdict"</span>: <span class="s">"expensive"</span>,  <span class="c">// "very_cheap" | "cheap" | "fair" | "expensive" | "very_expensive"</span>
+  <span class="k">"oneLiner"</span>: <span class="s">"NVDA trades at a significant premium to the market — justified only if AI infrastructure spending sustains 50%+ growth through 2027."</span>,
+  <span class="k">"valuationRead"</span>: <span class="s">"At 36.9x earnings and 28x sales, NVDA is priced for near-perfection. The FCF yield of 2.8% is thin for a cyclical business. ROE of 127% is exceptional and partially justifies the premium, but the multiple leaves no margin of safety."</span>,
+  <span class="k">"buyZone"</span>: <span class="s">"Below $85 (25x forward earnings) would represent fair value with a margin of safety. At current levels, you're paying for 3+ years of growth in advance."</span>,
+  <span class="k">"bottomLine"</span>: <span class="s">"Hold if you own it — the business is exceptional. Initiate a position only on a meaningful pullback. At $113, you're not getting a bargain."</span>,
+  <span class="k">"metrics"</span>: {
+    <span class="k">"peRatio"</span>: <span class="n">36.9</span>,
+    <span class="k">"psRatio"</span>: <span class="n">28.1</span>,
+    <span class="k">"pbRatio"</span>: <span class="n">42.3</span>,
+    <span class="k">"evEbitda"</span>: <span class="n">31.4</span>,
+    <span class="k">"fcfYield"</span>: <span class="n">2.8</span>,
+    <span class="k">"roe"</span>: <span class="n">127.4</span>,
+    <span class="k">"netMargin"</span>: <span class="n">55.0</span>,
+    <span class="k">"debtToEquity"</span>: <span class="n">0.41</span>
+  },
+  <span class="k">"dataSources"</span>: {
+    <span class="k">"fetchedAt"</span>: <span class="s">"2026-03-22T17:30:00.000Z"</span>,
+    <span class="k">"fmp"</span>: { <span class="k">"success"</span>: <span class="n">true</span> },
+    <span class="k">"finnhub"</span>: { <span class="k">"success"</span>: <span class="n">true</span> },
+    <span class="k">"polygon"</span>: { <span class="k">"success"</span>: <span class="n">true</span> }
+  },
+  <span class="k">"generatedAt"</span>: <span class="s">"2026-03-22T17:30:04.210Z"</span>
+}</pre>
+      </div>
+
+      <!-- bear-vs-bull -->
+      <div class="tool-section" id="bear-vs-bull">
+        <div class="tool-header">
+          <div class="tool-name">bear-vs-bull</div>
+          <div class="tool-price">$0.05 / call</div>
+        </div>
+        <div class="tool-desc">3 bull arguments + 3 bear arguments, each steelmanned with specific data. Returns a net verdict and the single most important question investors need to answer.</div>
+        <div class="endpoint-tag">
+          <span class="method">POST</span>
+          <span class="path">/api/tools/bear-vs-bull</span>
+        </div>
+
+        <div class="block-label">Request</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>  <span class="c">// required</span>
+}</pre>
+
+        <div class="block-label">Response</div>
+        <pre>{
+  <span class="k">"ticker"</span>: <span class="s">"NVDA"</span>,
+  <span class="k">"bullCase"</span>: [
+    {
+      <span class="k">"argument"</span>: <span class="s">"CUDA moat is effectively unbreakable"</span>,
+      <span class="k">"evidence"</span>: <span class="s">"4M+ CUDA developers, 20 years of ecosystem investment, switching cost is years of retraining and retooling. AMD's ROCm has existed for a decade with minimal share gain."</span>
+    },
+    {
+      <span class="k">"argument"</span>: <span class="s">"Sovereign AI wave is a new, undiscounted demand driver"</span>,
+      <span class="k">"evidence"</span>: <span class="s">"Countries building national AI infrastructure (UAE, Saudi Arabia, France, India) represent demand not captured in hyperscaler growth estimates."</span>
+    },
+    {
+      <span class="k">"argument"</span>: <span class="s">"10,005% revenue CAGR over 3 years — with no deceleration yet"</span>,
+      <span class="k">"evidence"</span>: <span class="s">"Q4 FY2025 data center revenue up 93% YoY. If this sustains even 40% growth, the stock is cheap at current multiples by 2027."</span>
+    }
+  ],
+  <span class="k">"bearCase"</span>: [
+    {
+      <span class="k">"argument"</span>: <span class="s">"Hyperscaler capex is inherently cyclical"</span>,
+      <span class="k">"evidence"</span>: <span class="s">"Cloud spending cycles historically compress 30-50%. If AWS, Azure, and Google pause GPU orders for 2 quarters, NVDA revenue could fall 25-40%."</span>
+    },
+    {
+      <span class="k">"argument"</span>: <span class="s">"Custom silicon is a real long-term threat"</span>,
+      <span class="k">"evidence"</span>: <span class="s">"Google's TPUs, Amazon's Trainium, and Meta's MTIA are purpose-built and improving rapidly. By 2028, hyperscalers could run 30-40% of workloads on custom chips."</span>
+    },
+    {
+      <span class="k">"argument"</span>: <span class="s">"36x earnings gives you zero margin of safety"</span>,
+      <span class="k">"evidence"</span>: <span class="s">"Any earnings miss, guidance cut, or macro shock sends this stock down 20-30%. The multiple embeds perfection across multiple years of execution."</span>
+    }
+  ],
+  <span class="k">"verdict"</span>: <span class="s">"slight_bull"</span>,  <span class="c">// "bull_wins" | "slight_bull" | "too_close" | "slight_bear" | "bear_wins"</span>
+  <span class="k">"verdictRationale"</span>: <span class="s">"The bull case wins on business quality and momentum. The CUDA moat is real and the revenue trajectory is exceptional. The bear case is right on valuation risk — this is not a stock for the risk-averse. Net: the business justifies a position, the price demands patience."</span>,
+  <span class="k">"keyDebate"</span>: <span class="s">"Will hyperscaler AI capex sustain 40%+ growth through 2027, or is this a classic infrastructure overbuild that corrects hard in 2026?"</span>,
+  <span class="k">"dataSources"</span>: {
+    <span class="k">"fetchedAt"</span>: <span class="s">"2026-03-22T17:30:00.000Z"</span>,
+    <span class="k">"polygon"</span>: { <span class="k">"success"</span>: <span class="n">true</span> },
+    <span class="k">"fmp"</span>: { <span class="k">"success"</span>: <span class="n">true</span> },
+    <span class="k">"finnhub"</span>: { <span class="k">"success"</span>: <span class="n">true</span> }
+  },
+  <span class="k">"generatedAt"</span>: <span class="s">"2026-03-22T17:30:05.780Z"</span>
+}</pre>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /docs-layout -->
+</div><!-- /container -->
+
+</body>
+</html>

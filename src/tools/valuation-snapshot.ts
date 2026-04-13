@@ -66,6 +66,7 @@ async function handler(input: Input) {
   if (!config.finnhubApiKey) throw new Error("FINNHUB_API_KEY is not configured");
   if (!config.polygonApiKey) throw new Error("POLYGON_API_KEY is not configured");
 
+  const fetchedAt = new Date().toISOString();
   const [keyMetrics, ratiosTTM, finnhubMetrics, overview] = await Promise.all([
     fetchKeyMetrics(ticker),
     fetchRatiosTTM(ticker),
@@ -212,6 +213,12 @@ async function handler(input: Input) {
       roe: roe != null ? parseFloat((Number(roe) * 100).toFixed(1)) : null,
       netMargin: netMargin != null ? parseFloat((Number(netMargin) * 100).toFixed(1)) : null,
       debtToEquity: debtToEquity != null ? parseFloat(Number(debtToEquity).toFixed(2)) : null,
+    },
+    dataSources: {
+      fetchedAt,
+      fmp: { success: Object.keys(keyMetrics).length > 0 || Object.keys(ratiosTTM).length > 0 },
+      finnhub: { success: Object.keys(finnhubMetrics).length > 0 },
+      polygon: { success: Object.keys(overview).length > 0 },
     },
     generatedAt: new Date().toISOString(),
   };

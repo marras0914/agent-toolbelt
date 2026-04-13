@@ -99,6 +99,7 @@ async function handler(input: Input) {
   if (!config.finnhubApiKey) throw new Error("FINNHUB_API_KEY is not configured");
   if (!config.fmpApiKey) throw new Error("FMP_API_KEY is not configured");
 
+  const fetchedAt = new Date().toISOString();
   const [overview, prevClose, incomeStatements, keyMetrics, finnhubMetrics, recommendations, insiders] =
     await Promise.all([
       fetchPolygonOverview(ticker),
@@ -200,6 +201,12 @@ async function handler(input: Input) {
   return {
     ticker,
     ...parsed,
+    dataSources: {
+      fetchedAt,
+      polygon: { success: Object.keys(overview).length > 0 },
+      fmp: { success: (incomeStatements as any[]).length > 0 || Object.keys(keyMetrics).length > 0 },
+      finnhub: { success: Object.keys(finnhubMetrics).length > 0 },
+    },
     generatedAt: new Date().toISOString(),
   };
 }

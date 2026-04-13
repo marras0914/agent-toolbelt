@@ -57,6 +57,7 @@ async function handler(input: Input) {
   if (!config.fmpApiKey) throw new Error("FMP_API_KEY is not configured");
   if (!config.finnhubApiKey) throw new Error("FINNHUB_API_KEY is not configured");
 
+  const fetchedAt = new Date().toISOString();
   const [surprises, quarterlyIncome, upcomingEarnings] = await Promise.all([
     fetchEarningsSurprises(ticker),
     fetchQuarterlyIncome(ticker),
@@ -159,6 +160,11 @@ async function handler(input: Input) {
       quartersAnalyzed: (surprises as any[]).length,
       beatsTotal,
       upcomingEarnings: Object.keys(upcomingEarnings).length > 0 ? upcomingEarnings : null,
+    },
+    dataSources: {
+      fetchedAt,
+      fmp: { success: (surprises as any[]).length > 0 || (quarterlyIncome as any[]).length > 0 },
+      finnhub: { success: Object.keys(upcomingEarnings).length > 0 },
     },
     generatedAt: new Date().toISOString(),
   };
