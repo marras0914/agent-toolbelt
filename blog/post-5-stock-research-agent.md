@@ -1,14 +1,13 @@
 ---
 title: "I gave Claude real-time stock analysis. Here's how it works."
 description: "Claude is a brilliant analyst — but it has no live market data. I built 5 API tools that fix that."
-tags: ["ai", "investing", "typescript", "claude", "agents"]
-cover_image: https://agent-toolbelt-production.up.railway.app/og.png
+tags: ["ai", "investing", "claude", "agents"]
 published: true
 ---
 
 Claude can reason about stocks brilliantly. But ask it about NVDA's current P/E ratio, whether insiders are buying, or what last quarter's earnings meant — and it has to guess. Its training data has a cutoff. It has no live market data.
 
-I fixed that by building five tools that give Claude everything a Motley Fool analyst would reach for: live financials, earnings history, insider transactions, valuation metrics, and analyst consensus. Claude synthesizes the data. You get structured research.
+I fixed that by building five tools that give Claude everything a fundamental analyst would reach for: live financials, earnings history, insider transactions, valuation metrics, and analyst consensus. Claude synthesizes the data. You get structured research.
 
 Here's what it produces and how to use it.
 

@@ -1,0 +1,19 @@
+// Add to claude_desktop_config.json — then ask Claude about any stock
+
+{
+  "mcpServers": {
+    "agent-toolbelt": {
+      "command": "npx",
+      "args": ["-y", "agent-toolbelt-mcp"],
+      "env": {
+        "AGENT_TOOLBELT_KEY": "atb_your_key_here"
+      }
+    }
+  }
+}
+
+// Claude can now answer:
+// "Give me a full thesis on $AAPL"
+// "Is MSFT cheap or expensive right now?"
+// "What are insiders doing at $META?"
+// "Make the bear and bull case for TSLA"

@@ -1,0 +1,21 @@
+// POST /api/tools/stock-thesis  { "ticker": "NVDA" }  →  ~4 seconds
+
+{
+  "verdict": "bullish",
+  "oneLiner": "Nvidia owns the essential infrastructure for the AI revolution with a defensible software moat.",
+  "keyStrengths": [
+    "~80%+ data center GPU market share",
+    "CUDA moat creates switching costs",
+    "42 buy / 5 hold / 1 sell analyst consensus"
+  ],
+  "keyRisks": [
+    "36.9x P/E leaves no margin for error",
+    "Competition from AMD and custom silicon"
+  ],
+  "insiderRead": "Two executives bought ~47k shares each — meaningful open-market purchases, not routine grants.",
+  "dataSnapshot": {
+    "currentPrice": 180.4,
+    "peRatio": 36.9,
+    "marketCapBillions": 4452.2
+  }
+}

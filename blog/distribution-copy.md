@@ -97,7 +97,7 @@ Each pulls live data from Polygon.io, Finnhub, and Financial Modeling Prep in pa
 
 I'd like to build a Toolhouse adapter using `@th.register_local_tool()`. Is there a standard pattern or docs I should follow? Happy to submit a PR to the Toolhouse tool registry if that's the right path.
 
-Matt
+Marco
 hello@elephanttortoise.com
 
 ---

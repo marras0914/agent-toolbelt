@@ -1,4 +1,4 @@
-# Show HN: Agent Toolbelt – 19 focused API tools for AI developers
+# Show HN: Agent Toolbelt – 20 focused API tools for AI developers
 
 **URL to submit:** https://agent-toolbelt-production.up.railway.app
 
@@ -8,12 +8,13 @@
 
 I kept writing the same utility code across every AI project: token counting before LLM calls, JSON schemas from example objects, regex patterns for data extraction, prompt cleanup, meeting notes parsing. None of it was the interesting part. It was the tax you pay to build something interesting.
 
-So I packaged all of it into a single API with a shared key. 19 focused endpoints, each doing one thing:
+So I packaged all of it into a single API with a shared key. 20 focused endpoints, each doing one thing:
 
 - **token-counter** — Count tokens across GPT-4o, Claude, Gemini, etc. before you hit context limits
 - **schema-generator** — Describe your data in English, get back JSON Schema / TypeScript / Zod
 - **regex-builder** — Natural language → tested regex with explanation and code snippets
 - **prompt-optimizer** — Claude analyzes your prompt and returns a better version with a diff
+- **web-summarizer** — Fetch any URL, strip it to clean markdown, get an AI summary with key points
 - **meeting-action-items** — Raw notes → structured action items with owners and deadlines
 - **text-extractor** — Pull emails, phones, dates, currencies, addresses from unstructured text
 - **csv-to-json** — CSV to typed JSON with auto type casting
@@ -151,10 +152,10 @@ const schema = await toolbelt.schemaGenerator({ description: "...", format: "typ
 const { optimizedPrompt } = await toolbelt.promptOptimizer({ prompt: myPrompt, mode: "rewrite" });
 ```
 
-LangChain tool wrappers are in `agent-toolbelt/langchain`. An MCP server (`agent-toolbelt-mcp` on npm) lets you use all 19 tools directly in Claude Desktop or Claude Code.
+LangChain tool wrappers are in `agent-toolbelt/langchain`. An MCP server (`agent-toolbelt-mcp` on npm) lets you use all 20 tools directly in Claude Desktop or Claude Code.
 
 Free tier included. No credit card required to start. [Pricing](https://agent-toolbelt-production.up.railway.app/#pricing) is available for higher volume.
 
 ---
 
-*19 tools available. [Full catalog →](https://agent-toolbelt-production.up.railway.app/api/tools/catalog)*
+*20 tools available. [Full catalog →](https://agent-toolbelt-production.up.railway.app/api/tools/catalog)*
