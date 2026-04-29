@@ -4,7 +4,19 @@ MCP server for [Agent Toolbelt](https://agent-toolbelt-production.up.railway.app
 
 Try the valuation snapshot live (no signup): [agent-toolbelt-production.up.railway.app](https://agent-toolbelt-production.up.railway.app)
 
-## Install
+## Step 1 — Get a free API key
+
+The MCP server requires an API key. Free tier is 1,000 calls/month, no credit card required.
+
+```bash
+curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \
+  -H "Content-Type: application/json" \
+  -d '{"email": "you@example.com"}'
+```
+
+The response includes your `atb_...` key. Save it — you'll need it in Step 2.
+
+## Step 2 — Install
 
 ### Claude Code
 
@@ -31,16 +43,6 @@ Add to `claude_desktop_config.json`:
   }
 }
 ```
-
-## Get an API key
-
-```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \
-  -H "Content-Type: application/json" \
-  -d '{"email": "you@example.com"}'
-```
-
-Free tier: 1,000 calls/month, no credit card required.
 
 ---
 

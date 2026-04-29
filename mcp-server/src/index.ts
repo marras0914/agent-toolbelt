@@ -25,24 +25,37 @@ import { z } from "zod";
 const API_BASE_URL = process.env.AGENT_TOOLBELT_URL || "https://agent-toolbelt-production.up.railway.app";
 const API_KEY = process.env.AGENT_TOOLBELT_KEY || "";
 
+const REGISTRATION_HINT =
+  "No AGENT_TOOLBELT_KEY is set. Get a free key (1,000 calls/month, no credit card):\n" +
+  "  curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \\\n" +
+  "    -H 'Content-Type: application/json' -d '{\"email\":\"you@example.com\"}'\n" +
+  "Then set AGENT_TOOLBELT_KEY in your MCP config (claude_desktop_config.json or `claude mcp add` -e flag).";
+
 // ----- HTTP helper -----
 async function callToolApi(toolName: string, input: Record<string, unknown>): Promise<unknown> {
+  if (!API_KEY) {
+    throw new Error(REGISTRATION_HINT);
+  }
+
   const url = `${API_BASE_URL}/api/tools/${toolName}`;
 
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
+      Authorization: `Bearer ${API_KEY}`,
     },
     body: JSON.stringify(input),
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(
-      `Agent Toolbelt API error (${response.status}): ${(error as any).message || JSON.stringify(error)}`
-    );
+    const status = response.status;
+    const baseMsg = `Agent Toolbelt API error (${status}): ${(error as any).message || JSON.stringify(error)}`;
+    if (status === 401 || status === 403) {
+      throw new Error(`${baseMsg}\n\n${REGISTRATION_HINT}`);
+    }
+    throw new Error(baseMsg);
   }
 
   return response.json();
@@ -1348,7 +1361,19 @@ async function main() {
   // Log to stderr (stdout is reserved for MCP protocol messages)
   console.error("Agent Toolbelt MCP server started");
   console.error(`  API: ${API_BASE_URL}`);
-  console.error(`  Key: ${API_KEY ? API_KEY.slice(0, 12) + "..." : "not set"}`);
+  console.error(`  Key: ${API_KEY ? API_KEY.slice(0, 12) + "..." : "NOT SET"}`);
+  if (!API_KEY) {
+    console.error("");
+    console.error("=================================================================");
+    console.error(" ⚠  No AGENT_TOOLBELT_KEY configured — tool calls will fail.");
+    console.error("");
+    console.error(" Get a free key (1,000 calls/month, no credit card):");
+    console.error("   curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \\");
+    console.error("     -H 'Content-Type: application/json' -d '{\"email\":\"you@example.com\"}'");
+    console.error("");
+    console.error(" Then add AGENT_TOOLBELT_KEY to your MCP server config.");
+    console.error("=================================================================");
+  }
 }
 
 // Only run when executed directly (not when imported for scanning).
