@@ -220,6 +220,12 @@ app.post("/api/clients/register", (req, res) => {
 
   const client = createClient(email, name);
 
+  // Attribution capture — log referer + user-agent so we can trace where signups come from
+  const referer = req.headers.referer || req.headers.referrer || "none";
+  const userAgent = req.headers["user-agent"] || "none";
+  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.ip || "unknown";
+  console.log(`[register] ${email} | referer=${referer} | ua=${userAgent} | ip=${ip}`);
+
   // Auto-generate their first API key
   const { key, record } = createApiKey(client.id, "default");
 
