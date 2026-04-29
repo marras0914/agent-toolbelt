@@ -17,7 +17,7 @@ type Input = z.infer<typeof inputSchema>;
 async function fetchEarningsSurprises(ticker: string): Promise<unknown[]> {
   try {
     const res = await fetch(
-      `https://financialmodelingprep.com/api/v3/earnings-surprises/${ticker}?apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/earnings?symbol=${ticker}&limit=5&apikey=${config.fmpApiKey}`
     );
     if (!res.ok) return [];
     const data = await res.json() as unknown[];
@@ -28,7 +28,7 @@ async function fetchEarningsSurprises(ticker: string): Promise<unknown[]> {
 async function fetchQuarterlyIncome(ticker: string): Promise<unknown[]> {
   try {
     const res = await fetch(
-      `https://financialmodelingprep.com/api/v3/income-statement/${ticker}?period=quarter&limit=8&apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&period=quarter&limit=5&apikey=${config.fmpApiKey}`
     );
     if (!res.ok) return [];
     const data = await res.json() as unknown[];
@@ -68,10 +68,11 @@ async function handler(input: Input) {
     throw new Error(`No earnings data found for "${ticker}". Please verify the symbol.`);
   }
 
-  // Build EPS beat/miss history
-  const epsRows = (surprises as any[]).map((s: any) => {
-    const actual = s.actualEarningResult;
-    const estimate = s.estimatedEarning;
+  // Build EPS beat/miss history (only rows with actuals — upcoming reports have null actuals)
+  const reportedSurprises = (surprises as any[]).filter((s: any) => s.epsActual != null);
+  const epsRows = reportedSurprises.map((s: any) => {
+    const actual = s.epsActual;
+    const estimate = s.epsEstimated;
     const beat = actual != null && estimate != null ? actual >= estimate : null;
     const pct = actual != null && estimate != null && estimate !== 0
       ? (((actual - estimate) / Math.abs(estimate)) * 100).toFixed(1)
@@ -79,18 +80,19 @@ async function handler(input: Input) {
     return `  ${s.date}: EPS actual $${actual?.toFixed(2) ?? "N/A"} vs estimate $${estimate?.toFixed(2) ?? "N/A"}${pct != null ? ` (${pct > "0" ? "+" : ""}${pct}% ${beat ? "BEAT" : "MISS"})` : ""}`;
   });
 
-  const beatsTotal = (surprises as any[]).filter((s: any) =>
-    s.actualEarningResult != null && s.estimatedEarning != null && s.actualEarningResult >= s.estimatedEarning
+  const beatsTotal = reportedSurprises.filter((s: any) =>
+    s.epsEstimated != null && s.epsActual >= s.epsEstimated
   ).length;
-  const beatRate = (surprises as any[]).length > 0
-    ? `${beatsTotal}/${(surprises as any[]).length} quarters beat (${Math.round((beatsTotal / (surprises as any[]).length) * 100)}%)`
+  const beatRate = reportedSurprises.length > 0
+    ? `${beatsTotal}/${reportedSurprises.length} quarters beat (${Math.round((beatsTotal / reportedSurprises.length) * 100)}%)`
     : "N/A";
 
-  // Revenue trend from quarterly income
+  // Revenue trend from quarterly income (stable API: derive netIncomeRatio from netIncome/revenue, use fiscalYear)
   const revenueRows = (quarterlyIncome as any[]).slice(0, 8).map((q: any) => {
     const rev = q.revenue ? `$${(q.revenue / 1e9).toFixed(2)}B` : "N/A";
-    const margin = q.netIncomeRatio != null ? `${(q.netIncomeRatio * 100).toFixed(1)}% net margin` : "";
-    return `  ${q.period ?? ""} ${q.calendarYear ?? q.date?.substring(0, 7) ?? ""}: Revenue ${rev}${margin ? ` | ${margin}` : ""}`;
+    const ratio = q.netIncome != null && q.revenue ? q.netIncome / q.revenue : null;
+    const margin = ratio != null ? `${(ratio * 100).toFixed(1)}% net margin` : "";
+    return `  ${q.period ?? ""} ${q.fiscalYear ?? q.date?.substring(0, 7) ?? ""}: Revenue ${rev}${margin ? ` | ${margin}` : ""}`;
   });
 
   // Upcoming earnings
@@ -100,7 +102,7 @@ async function handler(input: Input) {
 
   const dataContext = [
     `Ticker: ${ticker}`,
-    `Beat Rate (last ${(surprises as any[]).length} quarters): ${beatRate}`,
+    `Beat Rate (last ${reportedSurprises.length} quarters): ${beatRate}`,
     "",
     "EPS Surprises (most recent first):",
     ...epsRows,
@@ -157,7 +159,7 @@ async function handler(input: Input) {
     ticker,
     ...parsed,
     rawData: {
-      quartersAnalyzed: (surprises as any[]).length,
+      quartersAnalyzed: reportedSurprises.length,
       beatsTotal,
       upcomingEarnings: Object.keys(upcomingEarnings).length > 0 ? upcomingEarnings : null,
     },

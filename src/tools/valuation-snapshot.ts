@@ -17,7 +17,7 @@ type Input = z.infer<typeof inputSchema>;
 async function fetchKeyMetrics(ticker: string): Promise<Record<string, unknown>> {
   try {
     const res = await fetch(
-      `https://financialmodelingprep.com/api/v3/key-metrics-ttm/${ticker}?apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
     );
     if (!res.ok) return {};
     const data = await res.json() as any;
@@ -28,7 +28,7 @@ async function fetchKeyMetrics(ticker: string): Promise<Record<string, unknown>>
 async function fetchRatiosTTM(ticker: string): Promise<Record<string, unknown>> {
   try {
     const res = await fetch(
-      `https://financialmodelingprep.com/api/v3/ratios-ttm/${ticker}?apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
     );
     if (!res.ok) return {};
     const data = await res.json() as any;
@@ -93,11 +93,12 @@ async function handler(input: Input) {
   };
 
   // Collect metrics with fallbacks across FMP key-metrics, FMP ratios, and Finnhub
-  const pe = sanity(km.peRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
-  const ps = sanity(km.priceToSalesRatioTTM ?? rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
-  const pb = sanity(km.pbRatioTTM ?? rt.pbRatioTTM ?? fh.pbAnnual, 0, 500);
+  // FMP stable: peRatio / priceToSales / priceToBook live in ratios-ttm; ev/quality live in key-metrics
+  const pe = sanity(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
+  const ps = sanity(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
+  const pb = sanity(rt.priceToBookRatioTTM ?? fh.pbAnnual, 0, 500);
   // evEbitdaTTM from Finnhub is a raw multiple (not a percentage)
-  const evEbitda = sanity(km.evToEbitdaTTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500);
+  const evEbitda = sanity(km.evToEBITDATTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500);
   // FCF yield: prefer FMP direct; derive from Finnhub's price/FCF ratio if missing
   const pfcfTTM = Number(fh.pfcfShareTTM);
   const fcfYieldFromFh = pfcfTTM > 0 && isFinite(pfcfTTM) ? 1 / pfcfTTM : undefined;
@@ -108,9 +109,9 @@ async function handler(input: Input) {
   const dividendYield = sanity(rawDividendYield, 0, 0.30);
 
   // Quality metrics — Finnhub returns as percentage, convert to decimal for consistency
-  const roe = sanity(km.roeTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
-  const roic = sanity(km.roicTTM ?? rt.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);
-  const debtToEquity = sanity(km.debtToEquityTTM ?? rt.debtEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
+  const roe = sanity(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
+  const roic = sanity(km.returnOnInvestedCapitalTTM ?? km.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);
+  const debtToEquity = sanity(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
   const currentRatio = sanity(km.currentRatioTTM ?? rt.currentRatioTTM ?? fh.currentRatioAnnual, 0, 50);
   const grossMargin = sanity(rt.grossProfitMarginTTM ?? fhPct(fh.grossMarginTTM), -1, 1);
   const netMargin = sanity(rt.netProfitMarginTTM ?? fhPct(fh.netProfitMarginTTM), -1, 1);

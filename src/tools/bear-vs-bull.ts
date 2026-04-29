@@ -39,7 +39,7 @@ async function fetchPolygonPrevClose(ticker: string): Promise<Record<string, unk
 async function fetchFMPIncomeStatement(ticker: string): Promise<unknown[]> {
   try {
     const res = await fetch(
-      `https://financialmodelingprep.com/api/v3/income-statement/${ticker}?period=annual&limit=3&apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&period=annual&limit=3&apikey=${config.fmpApiKey}`
     );
     if (!res.ok) return [];
     const data = await res.json() as unknown[];
@@ -50,7 +50,18 @@ async function fetchFMPIncomeStatement(ticker: string): Promise<unknown[]> {
 async function fetchFMPKeyMetrics(ticker: string): Promise<Record<string, unknown>> {
   try {
     const res = await fetch(
-      `https://financialmodelingprep.com/api/v3/key-metrics-ttm/${ticker}?apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
+    );
+    if (!res.ok) return {};
+    const data = await res.json() as any;
+    return Array.isArray(data) && data.length > 0 ? data[0] : {};
+  } catch { return {}; }
+}
+
+async function fetchFMPRatiosTTM(ticker: string): Promise<Record<string, unknown>> {
+  try {
+    const res = await fetch(
+      `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
     );
     if (!res.ok) return {};
     const data = await res.json() as any;
@@ -100,12 +111,13 @@ async function handler(input: Input) {
   if (!config.fmpApiKey) throw new Error("FMP_API_KEY is not configured");
 
   const fetchedAt = new Date().toISOString();
-  const [overview, prevClose, incomeStatements, keyMetrics, finnhubMetrics, recommendations, insiders] =
+  const [overview, prevClose, incomeStatements, keyMetrics, ratiosTTM, finnhubMetrics, recommendations, insiders] =
     await Promise.all([
       fetchPolygonOverview(ticker),
       fetchPolygonPrevClose(ticker),
       fetchFMPIncomeStatement(ticker),
       fetchFMPKeyMetrics(ticker),
+      fetchFMPRatiosTTM(ticker),
       fetchFinnhubMetrics(ticker),
       fetchFinnhubRecommendations(ticker),
       fetchFinnhubInsiders(ticker),
@@ -119,14 +131,16 @@ async function handler(input: Input) {
   const ov = overview as any;
   const pc = prevClose as any;
   const km = keyMetrics as any;
+  const rt = ratiosTTM as any;
   const fh = finnhubMetrics as any;
   const rec = (recommendations as any[])[0];
 
   const incomeRows = (incomeStatements as any[]).map((s: any) => {
     const rev = s.revenue ? `$${(s.revenue / 1e9).toFixed(2)}B` : "N/A";
-    const margin = s.netIncomeRatio != null ? `${(s.netIncomeRatio * 100).toFixed(1)}% net margin` : "N/A";
+    const ratio = s.netIncome != null && s.revenue ? s.netIncome / s.revenue : null;
+    const margin = ratio != null ? `${(ratio * 100).toFixed(1)}% net margin` : "N/A";
     const eps = s.eps != null ? `EPS $${s.eps.toFixed(2)}` : "";
-    return `  ${s.calendarYear ?? s.date?.substring(0, 4)}: Revenue ${rev} | ${margin}${eps ? ` | ${eps}` : ""}`;
+    return `  ${s.fiscalYear ?? s.date?.substring(0, 4)}: Revenue ${rev} | ${margin}${eps ? ` | ${eps}` : ""}`;
   });
 
   const insiderPurchases = (insiders as any[]).filter((t: any) => t.transactionCode === "P").length;
@@ -141,10 +155,10 @@ async function handler(input: Input) {
     incomeRows.length > 0 ? `\nFinancials:\n${incomeRows.join("\n")}` : "",
     fh.revenueGrowth3Y != null ? `3Y Revenue CAGR: ${Number(fh.revenueGrowth3Y).toFixed(1)}%` : "",
     `\nValuation:`,
-    (km.peRatioTTM ?? fh.peNormalizedAnnual) != null ? `  P/E (TTM): ${Number(km.peRatioTTM ?? fh.peNormalizedAnnual).toFixed(1)}x` : "",
-    (km.priceToSalesRatioTTM ?? fh.psTTM) != null ? `  P/S: ${Number(km.priceToSalesRatioTTM ?? fh.psTTM).toFixed(1)}x` : "",
+    (rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual) != null ? `  P/E (TTM): ${Number(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual).toFixed(1)}x` : "",
+    (rt.priceToSalesRatioTTM ?? fh.psTTM) != null ? `  P/S: ${Number(rt.priceToSalesRatioTTM ?? fh.psTTM).toFixed(1)}x` : "",
     km.freeCashFlowYieldTTM != null ? `  FCF Yield: ${(Number(km.freeCashFlowYieldTTM) * 100).toFixed(1)}%` : (fh.pfcfShareTTM > 0 ? `  FCF Yield: ${(100 / Number(fh.pfcfShareTTM)).toFixed(1)}%` : ""),
-    (km.debtToEquityTTM ?? fh["totalDebt/totalEquityAnnual"]) != null ? `  Debt/Equity: ${Number(km.debtToEquityTTM ?? fh["totalDebt/totalEquityAnnual"]).toFixed(2)}` : "",
+    (rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"]) != null ? `  Debt/Equity: ${Number(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"]).toFixed(2)}` : "",
     rec ? `\nAnalysts: ${rec.buy} buy / ${rec.hold} hold / ${rec.sell} sell` : "",
     `\nInsider activity (recent): ${insiderPurchases} open-market purchases, ${insiderSales} open-market sales`,
   ].filter(Boolean).join("\n");
@@ -204,7 +218,7 @@ async function handler(input: Input) {
     dataSources: {
       fetchedAt,
       polygon: { success: Object.keys(overview).length > 0 },
-      fmp: { success: (incomeStatements as any[]).length > 0 || Object.keys(keyMetrics).length > 0 },
+      fmp: { success: (incomeStatements as any[]).length > 0 || Object.keys(keyMetrics).length > 0 || Object.keys(ratiosTTM).length > 0 },
       finnhub: { success: Object.keys(finnhubMetrics).length > 0 },
     },
     generatedAt: new Date().toISOString(),

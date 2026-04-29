@@ -79,7 +79,7 @@ async function fetchFinnhubInsiders(ticker: string): Promise<unknown[]> {
 async function fetchFMPIncomeStatement(ticker: string): Promise<unknown[]> {
   try {
     const res = await fetch(
-      `https://financialmodelingprep.com/api/v3/income-statement/${ticker}?period=annual&limit=3&apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&period=annual&limit=3&apikey=${config.fmpApiKey}`
     );
     if (!res.ok) return [];
     const data = await res.json() as unknown[];
@@ -90,7 +90,18 @@ async function fetchFMPIncomeStatement(ticker: string): Promise<unknown[]> {
 async function fetchFMPKeyMetrics(ticker: string): Promise<Record<string, unknown>> {
   try {
     const res = await fetch(
-      `https://financialmodelingprep.com/api/v3/key-metrics-ttm/${ticker}?apikey=${config.fmpApiKey}`
+      `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
+    );
+    if (!res.ok) return {};
+    const data = await res.json() as any;
+    return Array.isArray(data) && data.length > 0 ? data[0] : {};
+  } catch { return {}; }
+}
+
+async function fetchFMPRatiosTTM(ticker: string): Promise<Record<string, unknown>> {
+  try {
+    const res = await fetch(
+      `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
     );
     if (!res.ok) return {};
     const data = await res.json() as any;
@@ -109,7 +120,7 @@ async function handler(input: Input) {
 
   // Fetch all data sources in parallel
   const fetchedAt = new Date().toISOString();
-  const [overview, prevClose, metrics, recommendations, insiders, incomeStatements, keyMetrics] =
+  const [overview, prevClose, metrics, recommendations, insiders, incomeStatements, keyMetrics, ratiosTTM] =
     await Promise.all([
       fetchPolygonOverview(ticker),
       fetchPolygonPrevClose(ticker),
@@ -118,6 +129,7 @@ async function handler(input: Input) {
       fetchFinnhubInsiders(ticker),
       fetchFMPIncomeStatement(ticker),
       fetchFMPKeyMetrics(ticker),
+      fetchFMPRatiosTTM(ticker),
     ]);
 
   const hasData =
@@ -139,9 +151,10 @@ async function handler(input: Input) {
 
   const incomeRows = (incomeStatements as any[]).map((s: any) => {
     const rev = s.revenue ? `$${(s.revenue / 1e9).toFixed(2)}B` : "N/A";
-    const margin = s.netIncomeRatio != null ? `${(s.netIncomeRatio * 100).toFixed(1)}%` : "N/A";
+    const ratio = s.netIncome != null && s.revenue ? s.netIncome / s.revenue : null;
+    const margin = ratio != null ? `${(ratio * 100).toFixed(1)}%` : "N/A";
     const eps = s.eps != null ? `$${s.eps.toFixed(2)}` : "N/A";
-    const year = s.calendarYear || (s.date || "").substring(0, 4);
+    const year = s.fiscalYear || (s.date || "").substring(0, 4);
     return `  ${year}: Revenue ${rev} | Net Margin ${margin} | EPS ${eps}`;
   });
 
@@ -156,6 +169,7 @@ async function handler(input: Input) {
   });
 
   const km = keyMetrics as any;
+  const rt = ratiosTTM as any;
   const fh = metrics as any;
   // Finnhub returns quality/growth metrics as percentages (e.g. 33.6 = 33.6%) — divide to get decimal
   const fhPct = (v: unknown) => (v != null && isFinite(Number(v)) ? Number(v) / 100 : undefined);
@@ -164,11 +178,12 @@ async function handler(input: Input) {
     const n = Number(v); return v != null && isFinite(n) && n >= min && n <= max ? n : null;
   };
 
-  const pe = sane(km.peRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
-  const ps = sane(km.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
-  const pb = sane(km.pbRatioTTM ?? fh.pbAnnual, 0, 500);
-  const roe = sane(km.roeTTM ?? fhPct(fh.roeTTM), -5, 10);
-  const debtToEquity = sane(km.debtToEquityTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
+  // FMP stable: P/E and P/S live in ratios-ttm; ROE/FCF yield live in key-metrics-ttm
+  const pe = sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
+  const ps = sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
+  const pb = sane(rt.priceToBookRatioTTM ?? fh.pbAnnual, 0, 500);
+  const roe = sane(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
+  const debtToEquity = sane(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
   const pfcfTTM = Number(fh.pfcfShareTTM);
   const fcfYield = sane(km.freeCashFlowYieldTTM ?? (pfcfTTM > 0 && isFinite(pfcfTTM) ? 1 / pfcfTTM : undefined), -1, 1);
   // Finnhub revenueGrowth3Y is already a percentage (e.g. 12.5 = 12.5%) — use directly
@@ -259,7 +274,7 @@ async function handler(input: Input) {
       fetchedAt,
       polygon: { success: Object.keys(overview).length > 0 },
       finnhub: { success: Object.keys(metrics).length > 0 },
-      fmp: { success: (incomeStatements as any[]).length > 0 || Object.keys(keyMetrics).length > 0 },
+      fmp: { success: (incomeStatements as any[]).length > 0 || Object.keys(keyMetrics).length > 0 || Object.keys(ratiosTTM).length > 0 },
     },
     generatedAt: new Date().toISOString(),
   };
