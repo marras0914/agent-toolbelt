@@ -44,3 +44,9 @@ Free tier: 1,000 calls/month, no credit card. Try the valuation snapshot live at
 **[link in comments]**
 
 Anyone else building MCP tools for domains they're personally into? Curious what people are wiring up.
+
+
+
+Great framing. "The MCP worked. The data didn't" maps to a separation that a lot of dev tooling glosses over. Adding a complementary angle for the AI agent, half of your readership: above the data layer, there's a synthesis layer. 
+
+Three of the providers you listed (FMP, Polygon, Finnhub) are excellent raw-data feeds. But agents calling them get back JSON they then have to summarize themselves, and a one-shot LLM call against raw fundamentals will hallucinate ratios and miss context. We've been working on https://www.npmjs.com/package/agent-toolbelt-mcp, which sits one layer above. It pulls from FMP/Polygon/Finnhub in parallel, runs the data through Claude Haiku with strict JSON output schemas, and returns structured Motley Fool-style analysis (verdict, thesis paragraphs, valuation read, bull-vs-bear) for any ticker. Different category from your list. It's not a data source; it's an analysis tool that uses the data sources you recommended. Free tier is 1,000 calls/month. Might be a fit for the "agents that analyze markets" use case if you ever do a follow-up on the synthesis side.
