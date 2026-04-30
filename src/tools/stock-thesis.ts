@@ -2,8 +2,19 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
+import {
+  fetchPolygonOverview,
+  fetchPolygonPrevClose,
+  fetchFinnhubMetrics,
+  fetchFinnhubRecommendations,
+  fetchFinnhubInsiders,
+  fetchFMPIncomeStatement,
+  fetchFMPKeyMetrics,
+  fetchFMPRatiosTTM,
+} from "./_stock-fetchers";
+import { sane, fhPct, round1 } from "./_stock-helpers";
+import { parseLLMJson } from "./_llm-utils";
 
-// ----- Input Schema -----
 const inputSchema = z.object({
   ticker: z
     .string()
@@ -19,97 +30,6 @@ const inputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 
-// ----- Data fetchers (graceful — return {} on any error) -----
-
-async function fetchPolygonOverview(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${config.polygonApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.results || {};
-  } catch { return {}; }
-}
-
-async function fetchPolygonPrevClose(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?adjusted=true&apiKey=${config.polygonApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.results?.[0] || {};
-  } catch { return {}; }
-}
-
-async function fetchFinnhubMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.metric || {};
-  } catch { return {}; }
-}
-
-async function fetchFinnhubRecommendations(ticker: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/stock/recommendation?symbol=${ticker}&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as unknown[];
-    return Array.isArray(data) ? data.slice(0, 3) : [];
-  } catch { return []; }
-}
-
-async function fetchFinnhubInsiders(ticker: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/stock/insider-transactions?symbol=${ticker}&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as any;
-    return Array.isArray(data.data) ? data.data.slice(0, 10) : [];
-  } catch { return []; }
-}
-
-async function fetchFMPIncomeStatement(ticker: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&period=annual&limit=3&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as unknown[];
-    return Array.isArray(data) ? data : [];
-  } catch { return []; }
-}
-
-async function fetchFMPKeyMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-async function fetchFMPRatiosTTM(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-// ----- Handler -----
 async function handler(input: Input) {
   const { ticker, timeHorizon } = input;
 
@@ -118,7 +38,6 @@ async function handler(input: Input) {
   if (!config.finnhubApiKey) throw new Error("FINNHUB_API_KEY is not configured");
   if (!config.fmpApiKey) throw new Error("FMP_API_KEY is not configured");
 
-  // Fetch all data sources in parallel
   const fetchedAt = new Date().toISOString();
   const [overview, prevClose, metrics, recommendations, insiders, incomeStatements, keyMetrics, ratiosTTM] =
     await Promise.all([
@@ -127,29 +46,28 @@ async function handler(input: Input) {
       fetchFinnhubMetrics(ticker),
       fetchFinnhubRecommendations(ticker),
       fetchFinnhubInsiders(ticker),
-      fetchFMPIncomeStatement(ticker),
+      fetchFMPIncomeStatement(ticker, "annual", 3),
       fetchFMPKeyMetrics(ticker),
       fetchFMPRatiosTTM(ticker),
     ]);
 
   const hasData =
     Object.keys(overview).length > 0 ||
-    (incomeStatements as any[]).length > 0 ||
+    incomeStatements.length > 0 ||
     Object.keys(metrics).length > 0;
 
   if (!hasData) {
     throw new Error(`No data found for ticker "${ticker}". Please verify the symbol is correct.`);
   }
 
-  // ----- Build data context for the prompt -----
-  const companyName = (overview as any).name || ticker;
-  const description = ((overview as any).description || "").substring(0, 600);
-  const sector = (overview as any).sic_description || "";
-  const employees = (overview as any).total_employees as number | undefined;
-  const marketCap = (overview as any).market_cap as number | undefined;
-  const currentPrice = (prevClose as any).c as number | undefined;
+  const companyName = overview.name || ticker;
+  const description = (overview.description || "").substring(0, 600);
+  const sector = overview.sic_description || "";
+  const employees = overview.total_employees;
+  const marketCap = overview.market_cap;
+  const currentPrice = prevClose.c;
 
-  const incomeRows = (incomeStatements as any[]).map((s: any) => {
+  const incomeRows = incomeStatements.slice(0, 3).map((s) => {
     const rev = s.revenue ? `$${(s.revenue / 1e9).toFixed(2)}B` : "N/A";
     const ratio = s.netIncome != null && s.revenue ? s.netIncome / s.revenue : null;
     const margin = ratio != null ? `${(ratio * 100).toFixed(1)}%` : "N/A";
@@ -158,27 +76,20 @@ async function handler(input: Input) {
     return `  ${year}: Revenue ${rev} | Net Margin ${margin} | EPS ${eps}`;
   });
 
-  const latestRec = (recommendations as any[])[0];
+  const latestRec = recommendations[0];
   const analystLine = latestRec
     ? `${latestRec.buy} buy / ${latestRec.hold} hold / ${latestRec.sell} sell (${latestRec.period})`
     : "Not available";
 
-  const insiderLines = (insiders as any[]).slice(0, 5).map((t: any) => {
+  const insiderLines = insiders.slice(0, 5).map((t) => {
     const direction = t.transactionCode === "P" ? "purchase" : t.transactionCode === "S" ? "sale" : t.transactionCode;
-    return `  ${t.transactionDate}: ${t.name} — ${direction} (${t.change > 0 ? "+" : ""}${t.change?.toLocaleString()} shares)`;
+    return `  ${t.transactionDate}: ${t.name} — ${direction} (${(t.change ?? 0) > 0 ? "+" : ""}${t.change?.toLocaleString()} shares)`;
   });
 
-  const km = keyMetrics as any;
-  const rt = ratiosTTM as any;
-  const fh = metrics as any;
-  // Finnhub returns quality/growth metrics as percentages (e.g. 33.6 = 33.6%) — divide to get decimal
-  const fhPct = (v: unknown) => (v != null && isFinite(Number(v)) ? Number(v) / 100 : undefined);
-  // Reject implausible values
-  const sane = (v: unknown, min: number, max: number): number | null => {
-    const n = Number(v); return v != null && isFinite(n) && n >= min && n <= max ? n : null;
-  };
+  const km = keyMetrics;
+  const rt = ratiosTTM;
+  const fh = metrics;
 
-  // FMP stable: P/E and P/S live in ratios-ttm; ROE/FCF yield live in key-metrics-ttm
   const pe = sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
   const ps = sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
   const pb = sane(rt.priceToBookRatioTTM ?? fh.pbAnnual, 0, 500);
@@ -186,7 +97,7 @@ async function handler(input: Input) {
   const debtToEquity = sane(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
   const pfcfTTM = Number(fh.pfcfShareTTM);
   const fcfYield = sane(km.freeCashFlowYieldTTM ?? (pfcfTTM > 0 && isFinite(pfcfTTM) ? 1 / pfcfTTM : undefined), -1, 1);
-  // Finnhub revenueGrowth3Y is already a percentage (e.g. 12.5 = 12.5%) — use directly
+  // Finnhub revenueGrowth3Y is already a percentage — pass through, don't divide by 100
   const revenueGrowth3Y = sane(fh.revenueGrowth3Y, -100, 1000);
 
   const lines: string[] = [
@@ -213,7 +124,6 @@ async function handler(input: Input) {
 
   const dataContext = lines.filter(Boolean).join("\n");
 
-  // ----- Claude analysis -----
   const client = new Anthropic({ apiKey: config.anthropicApiKey });
 
   const systemPrompt =
@@ -250,14 +160,7 @@ async function handler(input: Input) {
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
-  const jsonText = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch {
-    throw new Error("Failed to parse structured response from LLM");
-  }
+  const parsed = parseLLMJson(rawText);
 
   return {
     ticker,
@@ -265,7 +168,7 @@ async function handler(input: Input) {
     dataSnapshot: {
       marketCapBillions: marketCap != null ? parseFloat((marketCap / 1e9).toFixed(1)) : null,
       currentPrice: currentPrice ?? null,
-      peRatio: pe != null ? parseFloat(Number(pe).toFixed(1)) : null,
+      peRatio: round1(pe),
       analystConsensus: latestRec
         ? { buy: latestRec.buy, hold: latestRec.hold, sell: latestRec.sell }
         : null,
@@ -274,13 +177,12 @@ async function handler(input: Input) {
       fetchedAt,
       polygon: { success: Object.keys(overview).length > 0 },
       finnhub: { success: Object.keys(metrics).length > 0 },
-      fmp: { success: (incomeStatements as any[]).length > 0 || Object.keys(keyMetrics).length > 0 || Object.keys(ratiosTTM).length > 0 },
+      fmp: { success: incomeStatements.length > 0 || Object.keys(keyMetrics).length > 0 || Object.keys(ratiosTTM).length > 0 },
     },
     generatedAt: new Date().toISOString(),
   };
 }
 
-// ----- Register -----
 const stockThesisTool: ToolDefinition<Input> = {
   name: "stock-thesis",
   description:

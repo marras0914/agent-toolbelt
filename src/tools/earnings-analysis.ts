@@ -2,6 +2,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
+import {
+  fetchFMPEarnings,
+  fetchFMPIncomeStatement,
+  fetchFinnhubUpcomingEarnings,
+} from "./_stock-fetchers";
+import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
   ticker: z
@@ -14,42 +20,6 @@ const inputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 
-async function fetchEarningsSurprises(ticker: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/earnings?symbol=${ticker}&limit=5&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as unknown[];
-    return Array.isArray(data) ? data.slice(0, 12) : [];
-  } catch { return []; }
-}
-
-async function fetchQuarterlyIncome(ticker: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&period=quarter&limit=5&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as unknown[];
-    return Array.isArray(data) ? data : [];
-  } catch { return []; }
-}
-
-async function fetchUpcomingEarnings(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const from = new Date().toISOString().split("T")[0];
-    const to = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    const res = await fetch(
-      `https://finnhub.io/api/v1/calendar/earnings?symbol=${ticker}&from=${from}&to=${to}&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    const entries = data.earningsCalendar || [];
-    return entries.length > 0 ? entries[0] : {};
-  } catch { return {}; }
-}
-
 async function handler(input: Input) {
   const { ticker } = input;
 
@@ -59,18 +29,18 @@ async function handler(input: Input) {
 
   const fetchedAt = new Date().toISOString();
   const [surprises, quarterlyIncome, upcomingEarnings] = await Promise.all([
-    fetchEarningsSurprises(ticker),
-    fetchQuarterlyIncome(ticker),
-    fetchUpcomingEarnings(ticker),
+    fetchFMPEarnings(ticker),
+    fetchFMPIncomeStatement(ticker, "quarter"),
+    fetchFinnhubUpcomingEarnings(ticker),
   ]);
 
-  if ((surprises as any[]).length === 0 && (quarterlyIncome as any[]).length === 0) {
+  if (surprises.length === 0 && quarterlyIncome.length === 0) {
     throw new Error(`No earnings data found for "${ticker}". Please verify the symbol.`);
   }
 
-  // Build EPS beat/miss history (only rows with actuals — upcoming reports have null actuals)
-  const reportedSurprises = (surprises as any[]).filter((s: any) => s.epsActual != null);
-  const epsRows = reportedSurprises.map((s: any) => {
+  // Stable /earnings includes upcoming reports with epsActual:null — filter to reported quarters only
+  const reportedSurprises = surprises.filter((s) => s.epsActual != null);
+  const epsRows = reportedSurprises.map((s) => {
     const actual = s.epsActual;
     const estimate = s.epsEstimated;
     const beat = actual != null && estimate != null ? actual >= estimate : null;
@@ -80,24 +50,22 @@ async function handler(input: Input) {
     return `  ${s.date}: EPS actual $${actual?.toFixed(2) ?? "N/A"} vs estimate $${estimate?.toFixed(2) ?? "N/A"}${pct != null ? ` (${pct > "0" ? "+" : ""}${pct}% ${beat ? "BEAT" : "MISS"})` : ""}`;
   });
 
-  const beatsTotal = reportedSurprises.filter((s: any) =>
-    s.epsEstimated != null && s.epsActual >= s.epsEstimated
+  const beatsTotal = reportedSurprises.filter((s) =>
+    s.epsEstimated != null && s.epsActual! >= s.epsEstimated
   ).length;
   const beatRate = reportedSurprises.length > 0
     ? `${beatsTotal}/${reportedSurprises.length} quarters beat (${Math.round((beatsTotal / reportedSurprises.length) * 100)}%)`
     : "N/A";
 
-  // Revenue trend from quarterly income (stable API: derive netIncomeRatio from netIncome/revenue, use fiscalYear)
-  const revenueRows = (quarterlyIncome as any[]).slice(0, 8).map((q: any) => {
+  const revenueRows = quarterlyIncome.slice(0, 8).map((q) => {
     const rev = q.revenue ? `$${(q.revenue / 1e9).toFixed(2)}B` : "N/A";
     const ratio = q.netIncome != null && q.revenue ? q.netIncome / q.revenue : null;
     const margin = ratio != null ? `${(ratio * 100).toFixed(1)}% net margin` : "";
     return `  ${q.period ?? ""} ${q.fiscalYear ?? q.date?.substring(0, 7) ?? ""}: Revenue ${rev}${margin ? ` | ${margin}` : ""}`;
   });
 
-  // Upcoming earnings
-  const upcomingLine = (upcomingEarnings as any).date
-    ? `Next earnings: ${(upcomingEarnings as any).date}${(upcomingEarnings as any).epsEstimate ? ` | EPS estimate: $${(upcomingEarnings as any).epsEstimate}` : ""}`
+  const upcomingLine = upcomingEarnings.date
+    ? `Next earnings: ${upcomingEarnings.date}${upcomingEarnings.epsEstimate ? ` | EPS estimate: $${upcomingEarnings.epsEstimate}` : ""}`
     : "No upcoming earnings date found in next 90 days";
 
   const dataContext = [
@@ -146,14 +114,7 @@ async function handler(input: Input) {
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
-  const jsonText = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch {
-    throw new Error("Failed to parse structured response from LLM");
-  }
+  const parsed = parseLLMJson(rawText);
 
   return {
     ticker,
@@ -165,7 +126,7 @@ async function handler(input: Input) {
     },
     dataSources: {
       fetchedAt,
-      fmp: { success: (surprises as any[]).length > 0 || (quarterlyIncome as any[]).length > 0 },
+      fmp: { success: surprises.length > 0 || quarterlyIncome.length > 0 },
       finnhub: { success: Object.keys(upcomingEarnings).length > 0 },
     },
     generatedAt: new Date().toISOString(),

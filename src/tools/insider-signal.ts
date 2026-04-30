@@ -2,6 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
+import {
+  fetchFinnhubInsiders,
+  fetchFinnhubInsiderSentiment,
+} from "./_stock-fetchers";
+import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
   ticker: z
@@ -14,29 +19,6 @@ const inputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 
-async function fetchInsiderTransactions(ticker: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/stock/insider-transactions?symbol=${ticker}&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as any;
-    return Array.isArray(data.data) ? data.data : [];
-  } catch { return []; }
-}
-
-async function fetchInsiderSentiment(ticker: string): Promise<unknown[]> {
-  try {
-    // Finnhub insider sentiment — rolling 3-month windows
-    const res = await fetch(
-      `https://finnhub.io/api/v1/stock/insider-sentiment?symbol=${ticker}&from=2024-01-01&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as any;
-    return Array.isArray(data.data) ? data.data.slice(-6) : [];
-  } catch { return []; }
-}
-
 async function handler(input: Input) {
   const { ticker } = input;
 
@@ -44,26 +26,26 @@ async function handler(input: Input) {
   if (!config.finnhubApiKey) throw new Error("FINNHUB_API_KEY is not configured");
 
   const fetchedAt = new Date().toISOString();
-  const [transactions, sentiment] = await Promise.all([
-    fetchInsiderTransactions(ticker),
-    fetchInsiderSentiment(ticker),
+  const [transactions, sentimentAll] = await Promise.all([
+    fetchFinnhubInsiders(ticker),
+    fetchFinnhubInsiderSentiment(ticker),
   ]);
 
-  if ((transactions as any[]).length === 0) {
+  if (transactions.length === 0) {
     throw new Error(`No insider transaction data found for "${ticker}". Please verify the symbol.`);
   }
 
-  // Classify transactions
-  const recent = (transactions as any[]).slice(0, 20);
-  const purchases = recent.filter((t: any) => t.transactionCode === "P");
-  const sales = recent.filter((t: any) => t.transactionCode === "S");
-  const grantAwards = recent.filter((t: any) => ["A", "M", "F"].includes(t.transactionCode));
+  const sentiment = sentimentAll.slice(-6);
 
-  const totalPurchaseShares = purchases.reduce((sum: number, t: any) => sum + (t.change || 0), 0);
-  const totalSaleShares = Math.abs(sales.reduce((sum: number, t: any) => sum + (t.change || 0), 0));
+  const recent = transactions.slice(0, 20);
+  const purchases = recent.filter((t) => t.transactionCode === "P");
+  const sales = recent.filter((t) => t.transactionCode === "S");
+  const grantAwards = recent.filter((t) => ["A", "M", "F"].includes(t.transactionCode || ""));
 
-  // Format notable trades for the prompt
-  const tradeRows = recent.slice(0, 15).map((t: any) => {
+  const totalPurchaseShares = purchases.reduce((sum, t) => sum + (t.change || 0), 0);
+  const totalSaleShares = Math.abs(sales.reduce((sum, t) => sum + (t.change || 0), 0));
+
+  const tradeRows = recent.slice(0, 15).map((t) => {
     const direction = t.transactionCode === "P" ? "PURCHASE"
       : t.transactionCode === "S" ? "SALE"
       : t.transactionCode === "A" ? "AWARD"
@@ -78,8 +60,7 @@ async function handler(input: Input) {
     return `  ${t.transactionDate}: ${t.name} (${t.position || "insider"}) — ${direction} ${shares}${price}${value}`;
   });
 
-  // Sentiment data
-  const sentimentRows = (sentiment as any[]).map((s: any) =>
+  const sentimentRows = sentiment.map((s) =>
     `  ${s.year}-${String(s.month).padStart(2, "0")}: MSPR ${s.mspr?.toFixed(2) ?? "N/A"} | Change ${s.change?.toLocaleString() ?? "N/A"} shares`
   );
 
@@ -130,14 +111,7 @@ async function handler(input: Input) {
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
-  const jsonText = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch {
-    throw new Error("Failed to parse structured response from LLM");
-  }
+  const parsed = parseLLMJson(rawText);
 
   return {
     ticker,
@@ -151,7 +125,7 @@ async function handler(input: Input) {
     },
     dataSources: {
       fetchedAt,
-      finnhub: { success: (transactions as any[]).length > 0 },
+      finnhub: { success: transactions.length > 0 },
     },
     generatedAt: new Date().toISOString(),
   };

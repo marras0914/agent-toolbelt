@@ -2,6 +2,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
+import {
+  fetchPolygonOverview,
+  fetchFMPKeyMetrics,
+  fetchFMPRatiosTTM,
+  fetchFinnhubMetrics,
+} from "./_stock-fetchers";
+import { sane, fhPct, fmtPct } from "./_stock-helpers";
+import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
   ticker: z
@@ -13,42 +21,6 @@ const inputSchema = z.object({
 });
 
 type Input = z.infer<typeof inputSchema>;
-
-async function fetchPolygonOverview(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(`https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${config.polygonApiKey}`);
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.results || {};
-  } catch { return {}; }
-}
-
-async function fetchFMPKeyMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`);
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-async function fetchFMPRatiosTTM(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(`https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`);
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-async function fetchFinnhubMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${config.finnhubApiKey}`);
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.metric || {};
-  } catch { return {}; }
-}
 
 async function handler(input: Input) {
   const { ticker } = input;
@@ -70,37 +42,21 @@ async function handler(input: Input) {
     throw new Error(`No data found for "${ticker}". Please verify the symbol.`);
   }
 
-  const ov = overview as any;
-  const kmAny = km as any;
-  const rtAny = rt as any;
-  const fhAny = fh as any;
+  const roic = sane(km.returnOnInvestedCapitalTTM ?? km.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);
+  const roe = sane(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
+  const grossMargin = sane(rt.grossProfitMarginTTM ?? fhPct(fh.grossMarginTTM), -1, 1);
+  const operatingMargin = sane(rt.operatingProfitMarginTTM ?? rt.ebitMarginTTM, -1, 1);
+  const netMargin = sane(rt.netProfitMarginTTM ?? fhPct(fh.netProfitMarginTTM), -1, 1);
+  const fcfYield = sane(km.freeCashFlowYieldTTM, -1, 1);
+  const intangiblesRatio = sane(km.intangiblesToTotalAssetsTTM, 0, 1);
+  const capexToRevenue = sane(km.capexToRevenueTTM, -1, 1);
+  const revenueGrowth3Y = sane(fhPct(fh.revenueGrowth3Y), -1, 10);
 
-  const sane = (v: unknown, min: number, max: number): number | null => {
-    const n = Number(v);
-    return v != null && isFinite(n) && n >= min && n <= max ? n : null;
-  };
-  const fhPct = (v: unknown) => (v != null && isFinite(Number(v)) ? Number(v) / 100 : undefined);
-
-  const roic = sane(kmAny.returnOnInvestedCapitalTTM ?? kmAny.returnOnCapitalEmployedTTM ?? fhPct(fhAny.roicTTM), -5, 10);
-  const roe = sane(kmAny.returnOnEquityTTM ?? rtAny.returnOnEquityTTM ?? fhPct(fhAny.roeTTM), -5, 10);
-  const grossMargin = sane(rtAny.grossProfitMarginTTM ?? fhPct(fhAny.grossMarginTTM), -1, 1);
-  const operatingMargin = sane(rtAny.operatingProfitMarginTTM ?? rtAny.ebitMarginTTM, -1, 1);
-  const netMargin = sane(rtAny.netProfitMarginTTM ?? fhPct(fhAny.netProfitMarginTTM), -1, 1);
-  const fcfYield = sane(kmAny.freeCashFlowYieldTTM, -1, 1);
-  const intangiblesRatio = sane(kmAny.intangiblesToTotalAssetsTTM, 0, 1);
-  const capexToRevenue = sane(kmAny.capexToRevenueTTM, -1, 1);
-  const revenueGrowth3Y = sane(fhPct(fhAny.revenueGrowth3Y), -1, 10);
-
-  const fmt = (v: number | null | undefined, suffix = "", decimals = 1) =>
-    v != null ? `${Number(v).toFixed(decimals)}${suffix}` : "N/A";
-  const fmtPct = (v: number | null | undefined) =>
-    v != null ? `${(Number(v) * 100).toFixed(1)}%` : "N/A";
-
-  const description = (ov.description || "").substring(0, 800);
-  const sector = ov.sic_description || "";
-  const employees = ov.total_employees as number | undefined;
-  const marketCap = ov.market_cap as number | undefined;
-  const companyName = ov.name || ticker;
+  const description = (overview.description || "").substring(0, 800);
+  const sector = overview.sic_description || "";
+  const employees = overview.total_employees;
+  const marketCap = overview.market_cap;
+  const companyName = overview.name || ticker;
 
   const dataContext = [
     `Company: ${companyName} (${ticker})`,
@@ -163,20 +119,7 @@ async function handler(input: Input) {
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
-  const stripped = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(stripped);
-  } catch {
-    const match = stripped.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Failed to parse structured response from LLM");
-    try {
-      parsed = JSON.parse(match[0]);
-    } catch {
-      throw new Error("Failed to parse structured response from LLM");
-    }
-  }
+  const parsed = parseLLMJson(rawText);
 
   return {
     ticker,

@@ -2,6 +2,14 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
+import {
+  fetchPolygonOverview,
+  fetchFMPKeyMetrics,
+  fetchFMPRatiosTTM,
+  fetchFinnhubMetrics,
+} from "./_stock-fetchers";
+import { sane, fhPct, fmt, fmtPct, round1 } from "./_stock-helpers";
+import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
   ticker: z
@@ -14,50 +22,6 @@ const inputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 
-async function fetchKeyMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-async function fetchRatiosTTM(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-async function fetchFinnhubMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.metric || {};
-  } catch { return {}; }
-}
-
-async function fetchPolygonOverview(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${config.polygonApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.results || {};
-  } catch { return {}; }
-}
-
 async function handler(input: Input) {
   const { ticker } = input;
 
@@ -68,8 +32,8 @@ async function handler(input: Input) {
 
   const fetchedAt = new Date().toISOString();
   const [keyMetrics, ratiosTTM, finnhubMetrics, overview] = await Promise.all([
-    fetchKeyMetrics(ticker),
-    fetchRatiosTTM(ticker),
+    fetchFMPKeyMetrics(ticker),
+    fetchFMPRatiosTTM(ticker),
     fetchFinnhubMetrics(ticker),
     fetchPolygonOverview(ticker),
   ]);
@@ -79,60 +43,38 @@ async function handler(input: Input) {
     throw new Error(`No valuation data found for "${ticker}". Please verify the symbol.`);
   }
 
-  const km = keyMetrics as any;
-  const rt = ratiosTTM as any;
-  const fh = finnhubMetrics as any;
-  const ov = overview as any;
+  const km = keyMetrics;
+  const rt = ratiosTTM;
+  const fh = finnhubMetrics;
+  const ov = overview;
 
-  // Helper: Finnhub returns quality metrics as percentages (e.g. 35.5 = 35.5%), convert to decimal
-  const fhPct = (v: unknown) => (v != null && isFinite(Number(v)) ? Number(v) / 100 : undefined);
-  // Sanity-check a ratio value — returns null if it looks like bad data
-  const sanity = (v: unknown, min: number, max: number): number | null => {
-    const n = Number(v);
-    return v != null && isFinite(n) && n >= min && n <= max ? n : null;
-  };
-
-  // Collect metrics with fallbacks across FMP key-metrics, FMP ratios, and Finnhub
-  // FMP stable: peRatio / priceToSales / priceToBook live in ratios-ttm; ev/quality live in key-metrics
-  const pe = sanity(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
-  const ps = sanity(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
-  const pb = sanity(rt.priceToBookRatioTTM ?? fh.pbAnnual, 0, 500);
-  // evEbitdaTTM from Finnhub is a raw multiple (not a percentage)
-  const evEbitda = sanity(km.evToEBITDATTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500);
-  // FCF yield: prefer FMP direct; derive from Finnhub's price/FCF ratio if missing
+  const pe = sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
+  const ps = sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
+  const pb = sane(rt.priceToBookRatioTTM ?? fh.pbAnnual, 0, 500);
+  const evEbitda = sane(km.evToEBITDATTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500);
   const pfcfTTM = Number(fh.pfcfShareTTM);
   const fcfYieldFromFh = pfcfTTM > 0 && isFinite(pfcfTTM) ? 1 / pfcfTTM : undefined;
-  const fcfYield = sanity(km.freeCashFlowYieldTTM ?? fcfYieldFromFh, -1, 1);
+  const fcfYield = sane(km.freeCashFlowYieldTTM ?? fcfYieldFromFh, -1, 1);
 
-  // Dividend yield: FMP ratios-ttm returns as decimal (0.007), Finnhub as decimal — cap at 30%
+  // FMP ratios-ttm dividend yield is decimal; Finnhub is decimal — cap at 30% to reject bad data
   const rawDividendYield = rt.dividendYieldTTM ?? fh.dividendYieldIndicatedAnnual;
-  const dividendYield = sanity(rawDividendYield, 0, 0.30);
+  const dividendYield = sane(rawDividendYield, 0, 0.30);
 
-  // Quality metrics — Finnhub returns as percentage, convert to decimal for consistency
-  const roe = sanity(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
-  const roic = sanity(km.returnOnInvestedCapitalTTM ?? km.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);
-  const debtToEquity = sanity(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
-  const currentRatio = sanity(km.currentRatioTTM ?? rt.currentRatioTTM ?? fh.currentRatioAnnual, 0, 50);
-  const grossMargin = sanity(rt.grossProfitMarginTTM ?? fhPct(fh.grossMarginTTM), -1, 1);
-  const netMargin = sanity(rt.netProfitMarginTTM ?? fhPct(fh.netProfitMarginTTM), -1, 1);
+  const roe = sane(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
+  const roic = sane(km.returnOnInvestedCapitalTTM ?? km.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);
+  const debtToEquity = sane(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
+  const currentRatio = sane(km.currentRatioTTM ?? rt.currentRatioTTM ?? fh.currentRatioAnnual, 0, 50);
+  const grossMargin = sane(rt.grossProfitMarginTTM ?? fhPct(fh.grossMarginTTM), -1, 1);
+  const netMargin = sane(rt.netProfitMarginTTM ?? fhPct(fh.netProfitMarginTTM), -1, 1);
 
-  // Growth — Finnhub returns as percentage, convert to decimal
-  const revenueGrowth3Y = sanity(fhPct(fh.revenueGrowth3Y), -1, 10);
-  const epsGrowth3Y = sanity(fhPct(fh.epsGrowth3Y), -5, 50);
+  const revenueGrowth3Y = sane(fhPct(fh.revenueGrowth3Y), -1, 10);
+  const epsGrowth3Y = sane(fhPct(fh.epsGrowth3Y), -5, 50);
 
-  // Historical P/E range from Finnhub
-  const peHigh5Y = fh["pe5Y"];
-  const peLow5Y = fh["peLow5Y"] ?? fh["peTTM"];
-  const peHistoricalAvg = fh["peNormalizedAnnual"];
+  const peHigh5Y = (fh as Record<string, unknown>)["pe5Y"] as number | undefined;
 
   const companyName = ov.name || ticker;
   const sector = ov.sic_description || "";
   const marketCap = ov.market_cap;
-
-  const fmt = (v: number | null | undefined, suffix = "", decimals = 1) =>
-    v != null ? `${Number(v).toFixed(decimals)}${suffix}` : "N/A";
-  const fmtPct = (v: number | null | undefined) =>
-    v != null ? `${(Number(v) * 100).toFixed(1)}%` : "N/A";
 
   const dataContext = [
     `Company: ${companyName} (${ticker})`,
@@ -192,24 +134,17 @@ async function handler(input: Input) {
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
-  const jsonText = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch {
-    throw new Error("Failed to parse structured response from LLM");
-  }
+  const parsed = parseLLMJson(rawText);
 
   return {
     ticker,
     companyName,
     ...parsed,
     metrics: {
-      peRatio: pe != null ? parseFloat(Number(pe).toFixed(1)) : null,
-      psRatio: ps != null ? parseFloat(Number(ps).toFixed(1)) : null,
-      pbRatio: pb != null ? parseFloat(Number(pb).toFixed(1)) : null,
-      evEbitda: evEbitda != null ? parseFloat(Number(evEbitda).toFixed(1)) : null,
+      peRatio: round1(pe),
+      psRatio: round1(ps),
+      pbRatio: round1(pb),
+      evEbitda: round1(evEbitda),
       fcfYield: fcfYield != null ? parseFloat((Number(fcfYield) * 100).toFixed(1)) : null,
       roe: roe != null ? parseFloat((Number(roe) * 100).toFixed(1)) : null,
       netMargin: netMargin != null ? parseFloat((Number(netMargin) * 100).toFixed(1)) : null,

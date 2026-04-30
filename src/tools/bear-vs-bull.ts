@@ -2,6 +2,17 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
+import {
+  fetchPolygonOverview,
+  fetchPolygonPrevClose,
+  fetchFMPIncomeStatement,
+  fetchFMPKeyMetrics,
+  fetchFMPRatiosTTM,
+  fetchFinnhubMetrics,
+  fetchFinnhubRecommendations,
+  fetchFinnhubInsiders,
+} from "./_stock-fetchers";
+import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
   ticker: z
@@ -13,94 +24,6 @@ const inputSchema = z.object({
 });
 
 type Input = z.infer<typeof inputSchema>;
-
-async function fetchPolygonOverview(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${config.polygonApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.results || {};
-  } catch { return {}; }
-}
-
-async function fetchPolygonPrevClose(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?adjusted=true&apiKey=${config.polygonApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.results?.[0] || {};
-  } catch { return {}; }
-}
-
-async function fetchFMPIncomeStatement(ticker: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&period=annual&limit=3&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as unknown[];
-    return Array.isArray(data) ? data : [];
-  } catch { return []; }
-}
-
-async function fetchFMPKeyMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-async function fetchFMPRatiosTTM(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-async function fetchFinnhubMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.metric || {};
-  } catch { return {}; }
-}
-
-async function fetchFinnhubRecommendations(ticker: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/stock/recommendation?symbol=${ticker}&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as unknown[];
-    return Array.isArray(data) ? data.slice(0, 2) : [];
-  } catch { return []; }
-}
-
-async function fetchFinnhubInsiders(ticker: string): Promise<unknown[]> {
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/stock/insider-transactions?symbol=${ticker}&token=${config.finnhubApiKey}`
-    );
-    if (!res.ok) return [];
-    const data = await res.json() as any;
-    return Array.isArray(data.data) ? data.data.slice(0, 8) : [];
-  } catch { return []; }
-}
 
 async function handler(input: Input) {
   const { ticker } = input;
@@ -115,7 +38,7 @@ async function handler(input: Input) {
     await Promise.all([
       fetchPolygonOverview(ticker),
       fetchPolygonPrevClose(ticker),
-      fetchFMPIncomeStatement(ticker),
+      fetchFMPIncomeStatement(ticker, "annual", 3),
       fetchFMPKeyMetrics(ticker),
       fetchFMPRatiosTTM(ticker),
       fetchFinnhubMetrics(ticker),
@@ -123,19 +46,19 @@ async function handler(input: Input) {
       fetchFinnhubInsiders(ticker),
     ]);
 
-  const hasData = Object.keys(overview).length > 0 || (incomeStatements as any[]).length > 0;
+  const hasData = Object.keys(overview).length > 0 || incomeStatements.length > 0;
   if (!hasData) {
     throw new Error(`No data found for "${ticker}". Please verify the symbol.`);
   }
 
-  const ov = overview as any;
-  const pc = prevClose as any;
-  const km = keyMetrics as any;
-  const rt = ratiosTTM as any;
-  const fh = finnhubMetrics as any;
-  const rec = (recommendations as any[])[0];
+  const ov = overview;
+  const pc = prevClose;
+  const km = keyMetrics;
+  const rt = ratiosTTM;
+  const fh = finnhubMetrics;
+  const rec = recommendations[0];
 
-  const incomeRows = (incomeStatements as any[]).map((s: any) => {
+  const incomeRows = incomeStatements.slice(0, 3).map((s) => {
     const rev = s.revenue ? `$${(s.revenue / 1e9).toFixed(2)}B` : "N/A";
     const ratio = s.netIncome != null && s.revenue ? s.netIncome / s.revenue : null;
     const margin = ratio != null ? `${(ratio * 100).toFixed(1)}% net margin` : "N/A";
@@ -143,8 +66,8 @@ async function handler(input: Input) {
     return `  ${s.fiscalYear ?? s.date?.substring(0, 4)}: Revenue ${rev} | ${margin}${eps ? ` | ${eps}` : ""}`;
   });
 
-  const insiderPurchases = (insiders as any[]).filter((t: any) => t.transactionCode === "P").length;
-  const insiderSales = (insiders as any[]).filter((t: any) => t.transactionCode === "S").length;
+  const insiderPurchases = insiders.filter((t) => t.transactionCode === "P").length;
+  const insiderSales = insiders.filter((t) => t.transactionCode === "S").length;
 
   const dataContext = [
     `Company: ${ov.name || ticker} (${ticker})`,
@@ -157,7 +80,7 @@ async function handler(input: Input) {
     `\nValuation:`,
     (rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual) != null ? `  P/E (TTM): ${Number(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual).toFixed(1)}x` : "",
     (rt.priceToSalesRatioTTM ?? fh.psTTM) != null ? `  P/S: ${Number(rt.priceToSalesRatioTTM ?? fh.psTTM).toFixed(1)}x` : "",
-    km.freeCashFlowYieldTTM != null ? `  FCF Yield: ${(Number(km.freeCashFlowYieldTTM) * 100).toFixed(1)}%` : (fh.pfcfShareTTM > 0 ? `  FCF Yield: ${(100 / Number(fh.pfcfShareTTM)).toFixed(1)}%` : ""),
+    km.freeCashFlowYieldTTM != null ? `  FCF Yield: ${(Number(km.freeCashFlowYieldTTM) * 100).toFixed(1)}%` : (Number(fh.pfcfShareTTM) > 0 ? `  FCF Yield: ${(100 / Number(fh.pfcfShareTTM)).toFixed(1)}%` : ""),
     (rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"]) != null ? `  Debt/Equity: ${Number(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"]).toFixed(2)}` : "",
     rec ? `\nAnalysts: ${rec.buy} buy / ${rec.hold} hold / ${rec.sell} sell` : "",
     `\nInsider activity (recent): ${insiderPurchases} open-market purchases, ${insiderSales} open-market sales`,
@@ -197,20 +120,13 @@ async function handler(input: Input) {
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 1500,
+    max_tokens: 2048,
     messages: [{ role: "user", content: userPrompt }],
     system: systemPrompt,
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
-  const jsonText = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch {
-    throw new Error("Failed to parse structured response from LLM");
-  }
+  const parsed = parseLLMJson(rawText);
 
   return {
     ticker,
@@ -218,7 +134,7 @@ async function handler(input: Input) {
     dataSources: {
       fetchedAt,
       polygon: { success: Object.keys(overview).length > 0 },
-      fmp: { success: (incomeStatements as any[]).length > 0 || Object.keys(keyMetrics).length > 0 || Object.keys(ratiosTTM).length > 0 },
+      fmp: { success: incomeStatements.length > 0 || Object.keys(keyMetrics).length > 0 || Object.keys(ratiosTTM).length > 0 },
       finnhub: { success: Object.keys(finnhubMetrics).length > 0 },
     },
     generatedAt: new Date().toISOString(),

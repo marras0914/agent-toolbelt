@@ -2,6 +2,18 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
+import {
+  fetchPolygonOverview,
+  fetchFMPKeyMetrics,
+  fetchFMPRatiosTTM,
+  fetchFinnhubMetrics,
+  PolygonOverview,
+  FMPKeyMetrics,
+  FMPRatiosTTM,
+  FinnhubMetric,
+} from "./_stock-fetchers";
+import { sane, fhPct, fmt, fmtPct, round1 } from "./_stock-helpers";
+import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
   tickers: z
@@ -12,51 +24,6 @@ const inputSchema = z.object({
 });
 
 type Input = z.infer<typeof inputSchema>;
-
-async function fetchPolygonOverview(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(`https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${config.polygonApiKey}`);
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.results || {};
-  } catch { return {}; }
-}
-
-async function fetchFMPKeyMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`);
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-async function fetchFMPRatiosTTM(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(`https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`);
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return Array.isArray(data) && data.length > 0 ? data[0] : {};
-  } catch { return {}; }
-}
-
-async function fetchFinnhubMetrics(ticker: string): Promise<Record<string, unknown>> {
-  try {
-    const res = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${config.finnhubApiKey}`);
-    if (!res.ok) return {};
-    const data = await res.json() as any;
-    return data.metric || {};
-  } catch { return {}; }
-}
-
-interface TickerData {
-  ticker: string;
-  overview: Record<string, unknown>;
-  km: Record<string, unknown>;
-  rt: Record<string, unknown>;
-  fh: Record<string, unknown>;
-  derived: DerivedMetrics;
-}
 
 interface DerivedMetrics {
   pe: number | null;
@@ -71,18 +38,16 @@ interface DerivedMetrics {
   debtToEquity: number | null;
 }
 
-const sane = (v: unknown, min: number, max: number): number | null => {
-  const n = Number(v);
-  return v != null && isFinite(n) && n >= min && n <= max ? n : null;
-};
-const fhPct = (v: unknown) => (v != null && isFinite(Number(v)) ? Number(v) / 100 : undefined);
-const fmt = (v: number | null | undefined, suffix = "", decimals = 1) =>
-  v != null ? `${Number(v).toFixed(decimals)}${suffix}` : "N/A";
-const fmtPct = (v: number | null | undefined) =>
-  v != null ? `${(Number(v) * 100).toFixed(1)}%` : "N/A";
-const round1 = (v: number | null) => (v != null ? parseFloat(Number(v).toFixed(1)) : null);
+interface TickerData {
+  ticker: string;
+  overview: PolygonOverview;
+  km: FMPKeyMetrics;
+  rt: FMPRatiosTTM;
+  fh: FinnhubMetric;
+  derived: DerivedMetrics;
+}
 
-function deriveMetrics(km: any, rt: any, fh: any): DerivedMetrics {
+function deriveMetrics(km: FMPKeyMetrics, rt: FMPRatiosTTM, fh: FinnhubMetric): DerivedMetrics {
   return {
     pe: sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000),
     ps: sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000),
@@ -108,7 +73,7 @@ async function fetchAll(ticker: string): Promise<TickerData> {
 }
 
 function summarizeTicker(t: TickerData): string {
-  const ov = t.overview as any;
+  const ov = t.overview;
   const d = t.derived;
   const lines = [
     `${t.ticker} — ${ov.name || t.ticker}`,
@@ -198,21 +163,7 @@ ${perTickerSchema}
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
-  const stripped = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(stripped);
-  } catch {
-    // Fallback: extract the first balanced {...} block (handles preamble text from Claude)
-    const match = stripped.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Failed to parse structured response from LLM");
-    try {
-      parsed = JSON.parse(match[0]);
-    } catch {
-      throw new Error("Failed to parse structured response from LLM");
-    }
-  }
+  const parsed = parseLLMJson(rawText);
 
   return {
     tickers,
