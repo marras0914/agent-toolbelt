@@ -1,5 +1,55 @@
 import { config } from "../config";
 
+/* ===== In-memory TTL cache for upstream API responses =====
+ * Stock fundamentals don't change minute-to-minute; a 5-min TTL eliminates
+ * the redundant fetches when (a) one user calls multiple tools for the same
+ * ticker in succession, or (b) different users hit the same popular ticker.
+ * Single-instance server, so a Map is sufficient. Empty/failed results are
+ * NOT cached — that lets transient upstream failures recover on the next call. */
+
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const MAX_CACHE_SIZE = 500;
+
+interface CacheEntry<T> {
+  value: T;
+  expiresAt: number;
+}
+
+const cache = new Map<string, CacheEntry<unknown>>();
+
+function isEmpty(value: unknown): boolean {
+  if (value == null) return true;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value as object).length === 0;
+  return false;
+}
+
+async function withCache<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const hit = cache.get(key);
+  if (hit && hit.expiresAt > now) return hit.value as T;
+
+  const value = await fetcher();
+  if (isEmpty(value)) return value;
+
+  if (cache.size >= MAX_CACHE_SIZE) {
+    for (const [k, v] of cache) {
+      if (v.expiresAt <= now) cache.delete(k);
+    }
+    if (cache.size >= MAX_CACHE_SIZE) {
+      const firstKey = cache.keys().next().value;
+      if (firstKey !== undefined) cache.delete(firstKey);
+    }
+  }
+  cache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
+  return value;
+}
+
+/** Test-only — clears the cache so tests don't carry state across runs. */
+export function _clearStockCache(): void {
+  cache.clear();
+}
+
 /* ===== Response shapes (minimal, additive — extra fields preserved via index signature) ===== */
 
 export interface PolygonOverview {
@@ -146,38 +196,46 @@ async function safeJson<T>(url: string, fallback: T): Promise<T> {
   }
 }
 
-/* ===== Fetchers — one per upstream endpoint, graceful on any failure ===== */
+/* ===== Fetchers — one per upstream endpoint, graceful on any failure, 5-min cache ===== */
 
 export async function fetchPolygonOverview(ticker: string): Promise<PolygonOverview> {
-  const data = await safeJson<{ results?: PolygonOverview }>(
-    `https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${config.polygonApiKey}`,
-    {}
-  );
-  return data.results || {};
+  return withCache(`polygon-overview:${ticker}`, async () => {
+    const data = await safeJson<{ results?: PolygonOverview }>(
+      `https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${config.polygonApiKey}`,
+      {}
+    );
+    return data.results || {};
+  });
 }
 
 export async function fetchPolygonPrevClose(ticker: string): Promise<PolygonPrevClose> {
-  const data = await safeJson<{ results?: PolygonPrevClose[] }>(
-    `https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?adjusted=true&apiKey=${config.polygonApiKey}`,
-    {}
-  );
-  return data.results?.[0] || {};
+  return withCache(`polygon-prevclose:${ticker}`, async () => {
+    const data = await safeJson<{ results?: PolygonPrevClose[] }>(
+      `https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?adjusted=true&apiKey=${config.polygonApiKey}`,
+      {}
+    );
+    return data.results?.[0] || {};
+  });
 }
 
 export async function fetchFMPKeyMetrics(ticker: string): Promise<FMPKeyMetrics> {
-  const data = await safeJson<FMPKeyMetrics[]>(
-    `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`,
-    []
-  );
-  return Array.isArray(data) && data.length > 0 ? data[0] : {};
+  return withCache(`fmp-keymetrics:${ticker}`, async () => {
+    const data = await safeJson<FMPKeyMetrics[]>(
+      `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`,
+      []
+    );
+    return Array.isArray(data) && data.length > 0 ? data[0] : {};
+  });
 }
 
 export async function fetchFMPRatiosTTM(ticker: string): Promise<FMPRatiosTTM> {
-  const data = await safeJson<FMPRatiosTTM[]>(
-    `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`,
-    []
-  );
-  return Array.isArray(data) && data.length > 0 ? data[0] : {};
+  return withCache(`fmp-ratiosttm:${ticker}`, async () => {
+    const data = await safeJson<FMPRatiosTTM[]>(
+      `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`,
+      []
+    );
+    return Array.isArray(data) && data.length > 0 ? data[0] : {};
+  });
 }
 
 /** FMP /stable/ caps `limit` at 5 on current plan. */
@@ -186,55 +244,67 @@ export async function fetchFMPIncomeStatement(
   period: "annual" | "quarter" = "annual",
   limit: number = 5
 ): Promise<FMPIncomeStatement[]> {
-  const data = await safeJson<FMPIncomeStatement[]>(
-    `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&period=${period}&limit=${limit}&apikey=${config.fmpApiKey}`,
-    []
-  );
-  return Array.isArray(data) ? data : [];
+  return withCache(`fmp-income:${ticker}:${period}:${limit}`, async () => {
+    const data = await safeJson<FMPIncomeStatement[]>(
+      `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&period=${period}&limit=${limit}&apikey=${config.fmpApiKey}`,
+      []
+    );
+    return Array.isArray(data) ? data : [];
+  });
 }
 
 /** FMP /stable/earnings. limit capped at 5. Includes upcoming earnings (epsActual=null). */
 export async function fetchFMPEarnings(ticker: string, limit: number = 5): Promise<FMPEarnings[]> {
-  const data = await safeJson<FMPEarnings[]>(
-    `https://financialmodelingprep.com/stable/earnings?symbol=${ticker}&limit=${limit}&apikey=${config.fmpApiKey}`,
-    []
-  );
-  return Array.isArray(data) ? data : [];
+  return withCache(`fmp-earnings:${ticker}:${limit}`, async () => {
+    const data = await safeJson<FMPEarnings[]>(
+      `https://financialmodelingprep.com/stable/earnings?symbol=${ticker}&limit=${limit}&apikey=${config.fmpApiKey}`,
+      []
+    );
+    return Array.isArray(data) ? data : [];
+  });
 }
 
 export async function fetchFinnhubMetrics(ticker: string): Promise<FinnhubMetric> {
-  const data = await safeJson<{ metric?: FinnhubMetric }>(
-    `https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${config.finnhubApiKey}`,
-    {}
-  );
-  return data.metric || {};
+  return withCache(`finnhub-metrics:${ticker}`, async () => {
+    const data = await safeJson<{ metric?: FinnhubMetric }>(
+      `https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${config.finnhubApiKey}`,
+      {}
+    );
+    return data.metric || {};
+  });
 }
 
 export async function fetchFinnhubRecommendations(ticker: string): Promise<FinnhubRecommendation[]> {
-  const data = await safeJson<FinnhubRecommendation[]>(
-    `https://finnhub.io/api/v1/stock/recommendation?symbol=${ticker}&token=${config.finnhubApiKey}`,
-    []
-  );
-  return Array.isArray(data) ? data : [];
+  return withCache(`finnhub-rec:${ticker}`, async () => {
+    const data = await safeJson<FinnhubRecommendation[]>(
+      `https://finnhub.io/api/v1/stock/recommendation?symbol=${ticker}&token=${config.finnhubApiKey}`,
+      []
+    );
+    return Array.isArray(data) ? data : [];
+  });
 }
 
 export async function fetchFinnhubInsiders(ticker: string): Promise<FinnhubInsiderTransaction[]> {
-  const data = await safeJson<{ data?: FinnhubInsiderTransaction[] }>(
-    `https://finnhub.io/api/v1/stock/insider-transactions?symbol=${ticker}&token=${config.finnhubApiKey}`,
-    {}
-  );
-  return Array.isArray(data.data) ? data.data : [];
+  return withCache(`finnhub-insiders:${ticker}`, async () => {
+    const data = await safeJson<{ data?: FinnhubInsiderTransaction[] }>(
+      `https://finnhub.io/api/v1/stock/insider-transactions?symbol=${ticker}&token=${config.finnhubApiKey}`,
+      {}
+    );
+    return Array.isArray(data.data) ? data.data : [];
+  });
 }
 
 export async function fetchFinnhubInsiderSentiment(
   ticker: string,
   from: string = "2024-01-01"
 ): Promise<FinnhubInsiderSentiment[]> {
-  const data = await safeJson<{ data?: FinnhubInsiderSentiment[] }>(
-    `https://finnhub.io/api/v1/stock/insider-sentiment?symbol=${ticker}&from=${from}&token=${config.finnhubApiKey}`,
-    {}
-  );
-  return Array.isArray(data.data) ? data.data : [];
+  return withCache(`finnhub-sentiment:${ticker}:${from}`, async () => {
+    const data = await safeJson<{ data?: FinnhubInsiderSentiment[] }>(
+      `https://finnhub.io/api/v1/stock/insider-sentiment?symbol=${ticker}&from=${from}&token=${config.finnhubApiKey}`,
+      {}
+    );
+    return Array.isArray(data.data) ? data.data : [];
+  });
 }
 
 /** First upcoming earnings entry within `daysAhead` days, or {} if none. */
@@ -242,12 +312,14 @@ export async function fetchFinnhubUpcomingEarnings(
   ticker: string,
   daysAhead: number = 90
 ): Promise<FinnhubEarningsCalendarEntry> {
-  const from = new Date().toISOString().split("T")[0];
-  const to = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const data = await safeJson<{ earningsCalendar?: FinnhubEarningsCalendarEntry[] }>(
-    `https://finnhub.io/api/v1/calendar/earnings?symbol=${ticker}&from=${from}&to=${to}&token=${config.finnhubApiKey}`,
-    {}
-  );
-  const entries = data.earningsCalendar || [];
-  return entries.length > 0 ? entries[0] : {};
+  return withCache(`finnhub-upcoming:${ticker}:${daysAhead}`, async () => {
+    const from = new Date().toISOString().split("T")[0];
+    const to = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const data = await safeJson<{ earningsCalendar?: FinnhubEarningsCalendarEntry[] }>(
+      `https://finnhub.io/api/v1/calendar/earnings?symbol=${ticker}&from=${from}&to=${to}&token=${config.finnhubApiKey}`,
+      {}
+    );
+    const entries = data.earningsCalendar || [];
+    return entries.length > 0 ? entries[0] : {};
+  });
 }
