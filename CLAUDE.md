@@ -96,13 +96,14 @@ export default myTool;
 | `ANTHROPIC_API_KEY` | Yes (LLM tools) | Powers all stock tools + schema-generator, meeting-action-items, prompt-optimizer, web-summarizer |
 | `POLYGON_API_KEY` | Yes (stock tools) | Polygon.io — company overview, price history |
 | `FINNHUB_API_KEY` | Yes (stock tools) | Finnhub — earnings, insider trades, analyst ratings |
-| `FMP_API_KEY` | Yes (stock tools) | Financial Modeling Prep — income statements, key metrics |
+| `FMP_API_KEY` | Yes (stock tools) | Financial Modeling Prep — income statements, key metrics. **Use `/stable/` endpoints only** — v3 was retired 2025-08-31. Limit param capped at 5 on current plan. |
 | `RAPIDAPI_PROXY_SECRET` | No | RapidAPI proxy validation |
 | `PORT` | No | Server port (default 3000) |
 
 ## Architecture
 
 - **Auth**: Bearer token (`atb_...` prefix). Middleware in `src/middleware/auth.ts`
+- **Registration**: `POST /api/clients/register` accepts `{email, name?}`, creates client + first API key, sends onboarding email. Logs `[register] <email> | referer=... | ua=... | ip=...` for attribution — query via `railway logs --filter "[register]"`.
 - **Guest try endpoint**: `POST /api/try/:toolName` — no auth, 10 calls/IP/day. Lets users test tools before registering.
 - **Admin routes**: Protected by `Authorization: Bearer <ADMIN_SECRET>`. Skip if unset (dev mode)
 - **Usage tracking**: Every tool call is logged to SQLite. View at `GET /admin/usage`
@@ -147,7 +148,7 @@ npm publish      # publish to npm (requires npm login)
 
 ## MCP server
 
-Package: `agent-toolbelt-mcp` on npm (v1.0.5). Source in `mcp-server/`.
+Package: `agent-toolbelt-mcp` on npm (v1.0.10). Source in `mcp-server/`.
 
 ```bash
 cd mcp-server
@@ -156,6 +157,8 @@ npm publish      # publish to npm
 ```
 
 Default API URL is the production Railway URL — no `AGENT_TOOLBELT_URL` env var needed for normal use.
+
+**CTA visibility:** the npm postinstall script is invisible in every common install path (default, `-g`, `npx -y`). Don't rely on it. Real signup CTAs live in: (1) stderr banner on server startup when `AGENT_TOOLBELT_KEY` is unset, (2) friendly error thrown back through MCP protocol when API returns 401/403, (3) README with "Step 1: Get a free API key" hoisted above install commands. See `mcp-server/src/index.ts`.
 
 ## Admin routes
 
@@ -199,19 +202,19 @@ print(r.stdout)
 
 | Channel | Status |
 |---|---|
-| npm (`agent-toolbelt` v0.3.0 + `agent-toolbelt-mcp` v1.0.9) | ✓ Live — 810 + 292 downloads/mo |
+| npm (`agent-toolbelt` v0.3.0 + `agent-toolbelt-mcp` v1.0.10) | ✓ Live — 810/mo SDK + 200-280/day MCP installs (measured 2026-04-29) |
 | RapidAPI | ✓ Listed |
-| MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted (description updated via npm v1.0.6) |
-| PulseMCP | ✓ Submitted (description updated via npm v1.0.6) |
-| Glama | ✓ Live (quality check passed 2026-03-30, v1.0.9) |
+| MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted |
+| PulseMCP | ✓ Submitted |
+| Glama | ✓ Live (quality check passed 2026-03-30) |
 | Landing pages (elephanttortoise.com) | ✓ Live |
-| Blog posts 1-4 (dev.to / Medium) | ✓ Published |
-| Blog post 5 (stock research pivot) | ✓ Medium ✓ — dev.to ✓ |
-| HN article | ✓ Posted 2026-03-09 |
-| Smithery | ✓ Live — shttp bundle rebuilt 2026-03-30, now shows 5 stock tools |
+| Blog posts 1-5 (dev.to / Medium) | ✓ Published |
+| HN article | ✓ Posted 2026-03-09 — flopped |
+| Smithery | ✓ Live — shttp bundle shows 5 stock tools |
 | Awesome lists | ✓ PRs open — punkpeye/awesome-mcp-servers #2947, kyrolabs/awesome-langchain #207, appcypher/awesome-mcp-servers #532, tensorchord/Awesome-LLMOps #284, mcpservers.org submitted |
-| Reddit | r/LocalLLaMA ✓, r/SideProject ✓, r/ValueInvesting ✓ (2026-03-23) — r/ClaudeAI pending approval; r/algotrading blocked by karma |
+| Reddit | r/LocalLLaMA ✓, r/SideProject ✓, r/ValueInvesting ✓ — r/ClaudeAI pending approval; r/algotrading blocked by karma |
 | HN comments | Pending — 3 templates in blog/reddit-posts.md |
 | Toolhouse.ai | Email sent 2026-03-20 — no reply |
-| Product Hunt | Launched April 2nd 2026 — 0 upvotes, no traction |
+| Product Hunt | Launched 2026-04-02 — 0 upvotes, flopped. Not a growth channel. |
 | Cordon cross-promo | ✓ Live — onboarding email + /register success page → getcordon.com |
+| **Metrics (2026-04-29)** | 38 registrations, 101 calls/30d, 6 unique clients, $0 MRR |
