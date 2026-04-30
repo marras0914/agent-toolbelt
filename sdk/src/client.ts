@@ -418,6 +418,56 @@ export interface BearVsBullResult {
   generatedAt: string;
 }
 
+export interface CompareStocksPerTicker {
+  strengths: string[];
+  concerns: string[];
+  summary: string;
+}
+
+export interface CompareStocksResult {
+  tickers: string[];
+  winner: string;
+  oneLiner: string;
+  perTicker: Record<string, CompareStocksPerTicker>;
+  rationale: string;
+  ifYouValue: { growth: string; value: string; quality: string };
+  keyDifference: string;
+  metrics: Record<string, {
+    peRatio: number | null;
+    psRatio: number | null;
+    evEbitda: number | null;
+    fcfYield: number | null;
+    roe: number | null;
+    netMargin: number | null;
+  }>;
+  generatedAt: string;
+}
+
+export interface MoatAnalysisResult {
+  ticker: string;
+  companyName: string;
+  moatRating: "wide" | "narrow" | "none";
+  oneLiner: string;
+  moatSources: Array<{
+    type: "brand" | "switching_costs" | "network_effects" | "scale_advantages" | "intangibles_ip" | "cost_advantage";
+    strength: "strong" | "moderate" | "weak";
+    evidence: string;
+  }>;
+  quantitativeRead: string;
+  durabilityRead: string;
+  threats: string[];
+  bottomLine: string;
+  metrics: {
+    roic: number | null;
+    roe: number | null;
+    grossMargin: number | null;
+    operatingMargin: number | null;
+    capexToRevenue: number | null;
+    intangiblesRatio: number | null;
+  };
+  generatedAt: string;
+}
+
 export interface StockThesisResult {
   ticker: string;
   companyName: string;
@@ -684,6 +734,16 @@ export class AgentToolbelt {
     timeHorizon?: "1-2 years" | "3-5 years" | "5+ years";
   }): Promise<StockThesisResult> {
     return this.call("stock-thesis", input);
+  }
+
+  /** Head-to-head comparison of 2-3 stocks with a winner verdict and per-ticker strengths/concerns */
+  compareStocks(input: { tickers: string[] }): Promise<CompareStocksResult> {
+    return this.call("compare-stocks", input);
+  }
+
+  /** Buffett-style competitive moat analysis — categorizes the moat and rates durability */
+  moatAnalysis(input: { ticker: string }): Promise<MoatAnalysisResult> {
+    return this.call("moat-analysis", input);
   }
 
   /** Fetch a URL, extract main content as clean Markdown, and generate an AI summary with key points */

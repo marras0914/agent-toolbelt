@@ -1167,6 +1167,141 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Compare Stocks -----
+server.registerTool(
+  "compare_stocks",
+  {
+    title: "Compare Stocks",
+    description:
+      "Head-to-head comparison of 2-3 stocks for a long-term investor. Pulls live valuation, quality, and growth metrics " +
+      "for each ticker, then synthesizes a winner verdict, per-ticker strengths and concerns, and recommendations for " +
+      "what type of investor each fits (growth, value, quality). Useful for choosing between competitors.",
+    inputSchema: {
+      tickers: z
+        .array(z.string())
+        .min(2)
+        .max(3)
+        .describe("2-3 stock ticker symbols to compare (e.g. ['NVDA','AMD'])"),
+    },
+  },
+  async ({ tickers }) => {
+    const result = await callToolApi("compare-stocks", { tickers });
+    const data = result as any;
+    const r = data.result;
+
+    const winnerIcon = r.winner === "tied" ? "= TIED" : `▲ ${r.winner} WINS`;
+
+    const lines: string[] = [
+      `**${r.tickers.join(" vs ")}** — ${winnerIcon}`,
+      `_${r.oneLiner}_`,
+      "",
+    ];
+
+    for (const ticker of r.tickers) {
+      const t = r.perTicker?.[ticker];
+      const m = r.metrics?.[ticker];
+      if (!t) continue;
+      lines.push(`### ${ticker}`);
+      if (m) {
+        const parts: string[] = [];
+        if (m.peRatio != null) parts.push(`P/E: ${m.peRatio}x`);
+        if (m.psRatio != null) parts.push(`P/S: ${m.psRatio}x`);
+        if (m.evEbitda != null) parts.push(`EV/EBITDA: ${m.evEbitda}x`);
+        if (m.fcfYield != null) parts.push(`FCF: ${m.fcfYield}%`);
+        if (m.roe != null) parts.push(`ROE: ${m.roe}%`);
+        if (m.netMargin != null) parts.push(`Net Margin: ${m.netMargin}%`);
+        if (parts.length) lines.push(`_${parts.join(" | ")}_`);
+      }
+      lines.push(`${t.summary}`);
+      if (t.strengths?.length) {
+        lines.push("**Strengths:**");
+        for (const s of t.strengths) lines.push(`- ${s}`);
+      }
+      if (t.concerns?.length) {
+        lines.push("**Concerns:**");
+        for (const c of t.concerns) lines.push(`- ${c}`);
+      }
+      lines.push("");
+    }
+
+    lines.push(`**Verdict:** ${r.rationale}`);
+    lines.push("");
+    lines.push("**If you value:**");
+    if (r.ifYouValue) {
+      lines.push(`- Growth → **${r.ifYouValue.growth}**`);
+      lines.push(`- Value → **${r.ifYouValue.value}**`);
+      lines.push(`- Quality → **${r.ifYouValue.quality}**`);
+    }
+    lines.push("");
+    lines.push(`**Key difference:** ${r.keyDifference}`);
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: Moat Analysis -----
+server.registerTool(
+  "moat_analysis",
+  {
+    title: "Moat Analysis",
+    description:
+      "Analyze the competitive moat of a stock, Buffett-style. Categorizes the moat (brand, switching costs, network effects, " +
+      "scale, intangibles/IP, cost advantage), rates it wide/narrow/none, and assesses durability and threats. " +
+      "Uses ROIC, margins, and capex intensity as the quantitative fingerprint of a real moat.",
+    inputSchema: {
+      ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+    },
+  },
+  async ({ ticker }) => {
+    const result = await callToolApi("moat-analysis", { ticker });
+    const data = result as any;
+    const r = data.result;
+
+    const moatIcon = {
+      wide: "▣ WIDE MOAT",
+      narrow: "▢ NARROW MOAT",
+      none: "▫ NO MOAT",
+    }[r.moatRating as string] || r.moatRating;
+
+    const m = r.metrics || {};
+    const metricParts: string[] = [];
+    if (m.roic != null) metricParts.push(`ROIC: ${m.roic}%`);
+    if (m.roe != null) metricParts.push(`ROE: ${m.roe}%`);
+    if (m.grossMargin != null) metricParts.push(`Gross: ${m.grossMargin}%`);
+    if (m.operatingMargin != null) metricParts.push(`Op Margin: ${m.operatingMargin}%`);
+    if (m.capexToRevenue != null) metricParts.push(`Capex/Rev: ${m.capexToRevenue}%`);
+
+    const lines: string[] = [
+      `**${r.companyName} (${r.ticker})** — ${moatIcon}`,
+      `_${r.oneLiner}_`,
+      "",
+      metricParts.length ? `_${metricParts.join(" | ")}_` : "",
+      "",
+      "**Moat Sources:**",
+    ];
+
+    for (const src of r.moatSources || []) {
+      const typeLabel = (src.type || "").replace(/_/g, " ");
+      lines.push(`- **${typeLabel}** [${src.strength}]: ${src.evidence}`);
+    }
+
+    lines.push("");
+    lines.push(`**Quantitative read:** ${r.quantitativeRead}`);
+    lines.push(`**Durability:** ${r.durabilityRead}`);
+
+    if (r.threats?.length) {
+      lines.push("");
+      lines.push("**Threats:**");
+      for (const t of r.threats) lines.push(`- ${t}`);
+    }
+
+    lines.push("");
+    lines.push(`**Bottom line:** ${r.bottomLine}`);
+
+    return { content: [{ type: "text" as const, text: lines.filter(Boolean).join("\n") }] };
+  }
+);
+
 // ----- Tool: Context Window Packer -----
 server.registerTool(
   "pack_context_window",

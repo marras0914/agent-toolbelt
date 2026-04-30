@@ -5,6 +5,8 @@ import earningsAnalysisTool from "../../tools/earnings-analysis";
 import insiderSignalTool from "../../tools/insider-signal";
 import valuationSnapshotTool from "../../tools/valuation-snapshot";
 import bearVsBullTool from "../../tools/bear-vs-bull";
+import compareStocksTool from "../../tools/compare-stocks";
+import moatAnalysisTool from "../../tools/moat-analysis";
 
 const hasStockKeys =
   !!process.env.ANTHROPIC_API_KEY &&
@@ -179,6 +181,92 @@ describe("bear-vs-bull", () => {
     expect(result.bearCase.length).toBeGreaterThanOrEqual(3);
     expect(typeof result.verdictRationale).toBe("string");
     expect(typeof result.keyDebate).toBe("string");
+    expect(result.generatedAt).toBeDefined();
+  }, 45_000);
+});
+
+// ============================================
+// compare-stocks
+// ============================================
+describe("compare-stocks", () => {
+  it("accepts 2 tickers", () => {
+    const parsed = compareStocksTool.inputSchema.safeParse({ tickers: ["NVDA", "AMD"] });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.tickers).toEqual(["NVDA", "AMD"]);
+  });
+
+  it("accepts 3 tickers", () => {
+    const parsed = compareStocksTool.inputSchema.safeParse({ tickers: ["nvda", "amd", "intc"] });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.tickers).toEqual(["NVDA", "AMD", "INTC"]);
+  });
+
+  it("rejects fewer than 2 tickers", () => {
+    const parsed = compareStocksTool.inputSchema.safeParse({ tickers: ["NVDA"] });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects more than 3 tickers", () => {
+    const parsed = compareStocksTool.inputSchema.safeParse({ tickers: ["NVDA", "AMD", "INTC", "AVGO"] });
+    expect(parsed.success).toBe(false);
+  });
+
+  it.skipIf(!hasStockKeys)("returns expected shape for NVDA vs AMD", async () => {
+    const result = await compareStocksTool.handler({ tickers: ["NVDA", "AMD"] }) as any;
+    expect(result.tickers).toEqual(["NVDA", "AMD"]);
+    expect(["NVDA", "AMD", "tied"]).toContain(result.winner);
+    expect(typeof result.oneLiner).toBe("string");
+    expect(result.perTicker).toBeDefined();
+    expect(result.perTicker.NVDA).toBeDefined();
+    expect(result.perTicker.AMD).toBeDefined();
+    expect(Array.isArray(result.perTicker.NVDA.strengths)).toBe(true);
+    expect(Array.isArray(result.perTicker.NVDA.concerns)).toBe(true);
+    expect(result.ifYouValue).toBeDefined();
+    expect(typeof result.ifYouValue.growth).toBe("string");
+    expect(typeof result.ifYouValue.value).toBe("string");
+    expect(typeof result.ifYouValue.quality).toBe("string");
+    expect(result.metrics).toBeDefined();
+    expect(result.metrics.NVDA).toBeDefined();
+    expect(result.generatedAt).toBeDefined();
+  }, 60_000);
+});
+
+// ============================================
+// moat-analysis
+// ============================================
+describe("moat-analysis", () => {
+  it("accepts valid ticker", () => {
+    const parsed = moatAnalysisTool.inputSchema.safeParse({ ticker: "AAPL" });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("uppercases ticker", () => {
+    const parsed = moatAnalysisTool.inputSchema.safeParse({ ticker: " ko " });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.ticker).toBe("KO");
+  });
+
+  it("rejects empty ticker", () => {
+    const parsed = moatAnalysisTool.inputSchema.safeParse({ ticker: "" });
+    expect(parsed.success).toBe(false);
+  });
+
+  it.skipIf(!hasStockKeys)("returns expected shape for AAPL", async () => {
+    const result = await moatAnalysisTool.handler({ ticker: "AAPL" }) as any;
+    expect(result.ticker).toBe("AAPL");
+    expect(["wide", "narrow", "none"]).toContain(result.moatRating);
+    expect(typeof result.oneLiner).toBe("string");
+    expect(Array.isArray(result.moatSources)).toBe(true);
+    expect(result.moatSources.length).toBeGreaterThan(0);
+    const validTypes = ["brand", "switching_costs", "network_effects", "scale_advantages", "intangibles_ip", "cost_advantage"];
+    for (const src of result.moatSources) {
+      expect(validTypes).toContain(src.type);
+      expect(["strong", "moderate", "weak"]).toContain(src.strength);
+      expect(typeof src.evidence).toBe("string");
+    }
+    expect(typeof result.durabilityRead).toBe("string");
+    expect(Array.isArray(result.threats)).toBe(true);
+    expect(result.metrics).toBeDefined();
     expect(result.generatedAt).toBeDefined();
   }, 45_000);
 });

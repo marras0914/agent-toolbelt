@@ -546,5 +546,39 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
         return JSON.stringify(result);
       },
     }),
+
+    // ---- Compare Stocks ----
+    new DynamicStructuredTool({
+      name: "compare_stocks",
+      description:
+        "Head-to-head comparison of 2-3 stocks for a long-term investor. Pulls live valuation, quality, and growth metrics for each ticker, " +
+        "then synthesizes a winner verdict, per-ticker strengths and concerns, and recommendations for what type of investor each fits. " +
+        "Returns: winner (or tied), one-liner, per-ticker breakdown (strengths/concerns/summary), rationale, ifYouValue map (growth/value/quality), and the key difference. " +
+        "Use when a user is choosing between competitors (e.g., NVDA vs AMD, V vs MA, AAPL vs MSFT) or asks 'which is the better buy?'",
+      schema: z.object({
+        tickers: z.array(z.string()).min(2).max(3).describe("2-3 stock tickers to compare (e.g. ['NVDA','AMD'])"),
+      }),
+      func: async ({ tickers }) => {
+        const result = await client.compareStocks({ tickers });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Moat Analysis ----
+    new DynamicStructuredTool({
+      name: "moat_analysis",
+      description:
+        "Analyze the competitive moat of a stock, Buffett-style. Categorizes the moat (brand, switching_costs, network_effects, scale_advantages, intangibles_ip, cost_advantage), " +
+        "rates it wide/narrow/none, and assesses durability and threats. Uses ROIC, margins, and capex intensity as the quantitative fingerprint of a real moat. " +
+        "Returns: moat rating, moat sources with strength and evidence, quantitative read, durability outlook, threats, and bottom line. " +
+        "Use when a user asks about a company's competitive advantage, durability of returns, or whether the business has a moat.",
+      schema: z.object({
+        ticker: z.string().describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+      }),
+      func: async ({ ticker }) => {
+        const result = await client.moatAnalysis({ ticker });
+        return JSON.stringify(result);
+      },
+    }),
   ];
 }

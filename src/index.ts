@@ -46,6 +46,8 @@ import "./tools/earnings-analysis";
 import "./tools/insider-signal";
 import "./tools/valuation-snapshot";
 import "./tools/bear-vs-bull";
+import "./tools/compare-stocks";
+import "./tools/moat-analysis";
 
 // ----- App Setup -----
 const app = express();
