@@ -220,11 +220,14 @@ app.post("/api/clients/register", (req, res) => {
 
   const client = createClient(email, name);
 
-  // Attribution capture — log referer + user-agent so we can trace where signups come from
+  // Attribution capture — log source/referer/UA so we can trace where signups come from.
+  // `source` is an explicit ?source=... param (or body.source) we tag on curl examples in
+  // different surfaces (npm README, MCP banner, blog posts, directory listings).
+  const source = (req.query.source as string) || (req.body?.source as string) || "none";
   const referer = req.headers.referer || req.headers.referrer || "none";
   const userAgent = req.headers["user-agent"] || "none";
   const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.ip || "unknown";
-  console.log(`[register] ${email} | referer=${referer} | ua=${userAgent} | ip=${ip}`);
+  console.log(`[register] ${email} | source=${source} | referer=${referer} | ua=${userAgent} | ip=${ip}`);
 
   // Auto-generate their first API key
   const { key, record } = createApiKey(client.id, "default");

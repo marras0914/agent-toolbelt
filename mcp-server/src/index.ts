@@ -27,7 +27,7 @@ const API_KEY = process.env.AGENT_TOOLBELT_KEY || "";
 
 const REGISTRATION_HINT =
   "No AGENT_TOOLBELT_KEY is set. Get a free key (1,000 calls/month, no credit card):\n" +
-  "  curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \\\n" +
+  "  curl -X POST 'https://agent-toolbelt-production.up.railway.app/api/clients/register?source=mcp_banner' \\\n" +
   "    -H 'Content-Type: application/json' -d '{\"email\":\"you@example.com\"}'\n" +
   "Then set AGENT_TOOLBELT_KEY in your MCP config (claude_desktop_config.json or `claude mcp add` -e flag).";
 
@@ -1368,7 +1368,7 @@ async function main() {
     console.error(" ⚠  No AGENT_TOOLBELT_KEY configured — tool calls will fail.");
     console.error("");
     console.error(" Get a free key (1,000 calls/month, no credit card):");
-    console.error("   curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \\");
+    console.error("   curl -X POST 'https://agent-toolbelt-production.up.railway.app/api/clients/register?source=mcp_banner' \\");
     console.error("     -H 'Content-Type: application/json' -d '{\"email\":\"you@example.com\"}'");
     console.error("");
     console.error(" Then add AGENT_TOOLBELT_KEY to your MCP server config.");

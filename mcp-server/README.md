@@ -9,7 +9,7 @@ Try the valuation snapshot live (no signup): [agent-toolbelt-production.up.railw
 The MCP server requires an API key. Free tier is 1,000 calls/month, no credit card required.
 
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \
+curl -X POST 'https://agent-toolbelt-production.up.railway.app/api/clients/register?source=npm' \
   -H "Content-Type: application/json" \
   -d '{"email": "you@example.com"}'
 ```
