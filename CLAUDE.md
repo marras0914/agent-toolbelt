@@ -1,12 +1,15 @@
 # Agent Toolbelt
 
-LLM-powered stock research tools for AI agents. Per-call billing. 25 tools total (5 stock analysis + 20 utility).
+LLM-powered stock research tools for AI agents. Per-call billing. 27 tools total (7 stock analysis + 20 utility).
 
 ## Project structure
 
 ```
 src/                    # Main API server (Express)
   tools/                # Tool implementations (auto-register via side effect import)
+    _stock-fetchers.ts  # Shared upstream API fetchers (Polygon/Finnhub/FMP) + 5-min cache
+    _stock-helpers.ts   # Shared sane/fhPct/fmt/fmtPct/round1 helpers
+    _llm-utils.ts       # Shared parseLLMJson() — strips fences, falls back to {...} extract
   middleware/           # auth, usage tracking, billing
   db/                   # SQLite via better-sqlite3
   config.ts             # All env vars in one place
@@ -49,10 +52,14 @@ npm run test:ci      # Run tests once (no watch)
 
 1. Create `src/tools/<tool-name>.ts` — implement and call `registerTool()` at the bottom
 2. Import it in `src/index.ts` (side-effect import): `import "./tools/<tool-name>";`
-3. Add the endpoint to `openapi/openapi-gpt-actions.json`
+3. Add the endpoint to `openapi/openapi-gpt-actions.json` (note: this file is currently stale — minor sin to leave it that way for now)
 4. Add typed method to `sdk/src/client.ts`
 5. Add `DynamicStructuredTool` to `sdk/src/langchain.ts`
-6. Rebuild SDK: `cd sdk && npm run build`
+6. Add tool to `mcp-server/src/index.ts`
+7. Add tests to `src/__tests__/tools.test.ts` (general) or `src/__tests__/tools/stock-tools.test.ts` (stock)
+8. Rebuild SDK: `cd sdk && npm run build`
+
+**For stock tools specifically:** import the shared fetchers from `./_stock-fetchers` (already cached + typed), helpers from `./_stock-helpers`, and `parseLLMJson` from `./_llm-utils`. Don't reinvent these per tool — see `src/tools/moat-analysis.ts` for a minimal reference implementation.
 
 Tool pattern:
 ```ts
@@ -148,7 +155,7 @@ npm publish      # publish to npm (requires npm login)
 
 ## MCP server
 
-Package: `agent-toolbelt-mcp` on npm (v1.0.10). Source in `mcp-server/`.
+Package: `agent-toolbelt-mcp` on npm. Source in `mcp-server/`. Latest published: v1.0.11. Source bumped to v1.0.12 (with compare-stocks + moat-analysis MCP tools) — pending publish.
 
 ```bash
 cd mcp-server
@@ -202,7 +209,7 @@ print(r.stdout)
 
 | Channel | Status |
 |---|---|
-| npm (`agent-toolbelt` v0.3.0 + `agent-toolbelt-mcp` v1.0.10) | ✓ Live — 810/mo SDK + 200-280/day MCP installs (measured 2026-04-29) |
+| npm (`agent-toolbelt` v0.3.0 + `agent-toolbelt-mcp` v1.0.11) | ✓ Live — 810/mo SDK + 200-280/day MCP installs (measured 2026-04-29). v1.0.12 ready in source, pending publish. |
 | RapidAPI | ✓ Listed |
 | MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted |
 | PulseMCP | ✓ Submitted |
@@ -217,4 +224,4 @@ print(r.stdout)
 | Toolhouse.ai | Email sent 2026-03-20 — no reply |
 | Product Hunt | Launched 2026-04-02 — 0 upvotes, flopped. Not a growth channel. |
 | Cordon cross-promo | ✓ Live — onboarding email + /register success page → getcordon.com |
-| **Metrics (2026-04-29)** | 38 registrations, 101 calls/30d, 6 unique clients, $0 MRR |
+| **Metrics (2026-04-30)** | 39 registrations, 101 calls/30d, 6 unique clients, $0 MRR |
