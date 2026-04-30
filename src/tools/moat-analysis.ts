@@ -81,7 +81,6 @@ async function handler(input: Input) {
   };
   const fhPct = (v: unknown) => (v != null && isFinite(Number(v)) ? Number(v) / 100 : undefined);
 
-  // Moat indicators — high ROIC, high margins, low capex intensity, scale, brand value (intangibles)
   const roic = sane(kmAny.returnOnInvestedCapitalTTM ?? kmAny.returnOnCapitalEmployedTTM ?? fhPct(fhAny.roicTTM), -5, 10);
   const roe = sane(kmAny.returnOnEquityTTM ?? rtAny.returnOnEquityTTM ?? fhPct(fhAny.roeTTM), -5, 10);
   const grossMargin = sane(rtAny.grossProfitMarginTTM ?? fhPct(fhAny.grossMarginTTM), -1, 1);
@@ -164,13 +163,19 @@ async function handler(input: Input) {
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
-  const jsonText = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
+  const stripped = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
 
   let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(jsonText);
+    parsed = JSON.parse(stripped);
   } catch {
-    throw new Error("Failed to parse structured response from LLM");
+    const match = stripped.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("Failed to parse structured response from LLM");
+    try {
+      parsed = JSON.parse(match[0]);
+    } catch {
+      throw new Error("Failed to parse structured response from LLM");
+    }
   }
 
   return {

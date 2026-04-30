@@ -55,16 +55,20 @@ interface TickerData {
   km: Record<string, unknown>;
   rt: Record<string, unknown>;
   fh: Record<string, unknown>;
+  derived: DerivedMetrics;
 }
 
-async function fetchAll(ticker: string): Promise<TickerData> {
-  const [overview, km, rt, fh] = await Promise.all([
-    fetchPolygonOverview(ticker),
-    fetchFMPKeyMetrics(ticker),
-    fetchFMPRatiosTTM(ticker),
-    fetchFinnhubMetrics(ticker),
-  ]);
-  return { ticker, overview, km, rt, fh };
+interface DerivedMetrics {
+  pe: number | null;
+  ps: number | null;
+  evEbitda: number | null;
+  fcfYield: number | null;
+  roe: number | null;
+  roic: number | null;
+  grossMargin: number | null;
+  netMargin: number | null;
+  revGrowth3Y: number | null;
+  debtToEquity: number | null;
 }
 
 const sane = (v: unknown, min: number, max: number): number | null => {
@@ -76,52 +80,56 @@ const fmt = (v: number | null | undefined, suffix = "", decimals = 1) =>
   v != null ? `${Number(v).toFixed(decimals)}${suffix}` : "N/A";
 const fmtPct = (v: number | null | undefined) =>
   v != null ? `${(Number(v) * 100).toFixed(1)}%` : "N/A";
+const round1 = (v: number | null) => (v != null ? parseFloat(Number(v).toFixed(1)) : null);
+
+function deriveMetrics(km: any, rt: any, fh: any): DerivedMetrics {
+  return {
+    pe: sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000),
+    ps: sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000),
+    evEbitda: sane(km.evToEBITDATTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500),
+    fcfYield: sane(km.freeCashFlowYieldTTM, -1, 1),
+    roe: sane(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10),
+    roic: sane(km.returnOnInvestedCapitalTTM ?? km.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10),
+    grossMargin: sane(rt.grossProfitMarginTTM ?? fhPct(fh.grossMarginTTM), -1, 1),
+    netMargin: sane(rt.netProfitMarginTTM ?? fhPct(fh.netProfitMarginTTM), -1, 1),
+    revGrowth3Y: sane(fhPct(fh.revenueGrowth3Y), -1, 10),
+    debtToEquity: sane(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100),
+  };
+}
+
+async function fetchAll(ticker: string): Promise<TickerData> {
+  const [overview, km, rt, fh] = await Promise.all([
+    fetchPolygonOverview(ticker),
+    fetchFMPKeyMetrics(ticker),
+    fetchFMPRatiosTTM(ticker),
+    fetchFinnhubMetrics(ticker),
+  ]);
+  return { ticker, overview, km, rt, fh, derived: deriveMetrics(km, rt, fh) };
+}
 
 function summarizeTicker(t: TickerData): string {
   const ov = t.overview as any;
-  const km = t.km as any;
-  const rt = t.rt as any;
-  const fh = t.fh as any;
-
-  const pe = sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
-  const ps = sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
-  const evEbitda = sane(km.evToEBITDATTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500);
-  const fcfYield = sane(km.freeCashFlowYieldTTM, -1, 1);
-  const roe = sane(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
-  const roic = sane(km.returnOnInvestedCapitalTTM ?? km.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);
-  const grossMargin = sane(rt.grossProfitMarginTTM ?? fhPct(fh.grossMarginTTM), -1, 1);
-  const netMargin = sane(rt.netProfitMarginTTM ?? fhPct(fh.netProfitMarginTTM), -1, 1);
-  const revGrowth3Y = sane(fhPct(fh.revenueGrowth3Y), -1, 10);
-  const debtToEquity = sane(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
-
+  const d = t.derived;
   const lines = [
     `${t.ticker} — ${ov.name || t.ticker}`,
     ov.sic_description ? `  Sector: ${ov.sic_description}` : "",
     ov.market_cap ? `  Market Cap: $${(ov.market_cap / 1e9).toFixed(1)}B` : "",
-    `  P/E: ${fmt(pe, "x")} | P/S: ${fmt(ps, "x")} | EV/EBITDA: ${fmt(evEbitda, "x")} | FCF Yield: ${fmtPct(fcfYield)}`,
-    `  ROE: ${fmtPct(roe)} | ROIC: ${fmtPct(roic)} | Gross Margin: ${fmtPct(grossMargin)} | Net Margin: ${fmtPct(netMargin)}`,
-    `  3Y Revenue CAGR: ${fmtPct(revGrowth3Y)} | Debt/Equity: ${fmt(debtToEquity)}`,
+    `  P/E: ${fmt(d.pe, "x")} | P/S: ${fmt(d.ps, "x")} | EV/EBITDA: ${fmt(d.evEbitda, "x")} | FCF Yield: ${fmtPct(d.fcfYield)}`,
+    `  ROE: ${fmtPct(d.roe)} | ROIC: ${fmtPct(d.roic)} | Gross Margin: ${fmtPct(d.grossMargin)} | Net Margin: ${fmtPct(d.netMargin)}`,
+    `  3Y Revenue CAGR: ${fmtPct(d.revGrowth3Y)} | Debt/Equity: ${fmt(d.debtToEquity)}`,
   ].filter(Boolean);
   return lines.join("\n");
 }
 
 function metricsObject(t: TickerData) {
-  const km = t.km as any;
-  const rt = t.rt as any;
-  const fh = t.fh as any;
-  const pe = sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
-  const ps = sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
-  const evEbitda = sane(km.evToEBITDATTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500);
-  const fcfYield = sane(km.freeCashFlowYieldTTM, -1, 1);
-  const roe = sane(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
-  const netMargin = sane(rt.netProfitMarginTTM ?? fhPct(fh.netProfitMarginTTM), -1, 1);
+  const d = t.derived;
   return {
-    peRatio: pe != null ? parseFloat(Number(pe).toFixed(1)) : null,
-    psRatio: ps != null ? parseFloat(Number(ps).toFixed(1)) : null,
-    evEbitda: evEbitda != null ? parseFloat(Number(evEbitda).toFixed(1)) : null,
-    fcfYield: fcfYield != null ? parseFloat((Number(fcfYield) * 100).toFixed(1)) : null,
-    roe: roe != null ? parseFloat((Number(roe) * 100).toFixed(1)) : null,
-    netMargin: netMargin != null ? parseFloat((Number(netMargin) * 100).toFixed(1)) : null,
+    peRatio: round1(d.pe),
+    psRatio: round1(d.ps),
+    evEbitda: round1(d.evEbitda),
+    fcfYield: d.fcfYield != null ? parseFloat((Number(d.fcfYield) * 100).toFixed(1)) : null,
+    roe: d.roe != null ? parseFloat((Number(d.roe) * 100).toFixed(1)) : null,
+    netMargin: d.netMargin != null ? parseFloat((Number(d.netMargin) * 100).toFixed(1)) : null,
   };
 }
 
@@ -136,7 +144,6 @@ async function handler(input: Input) {
   const fetchedAt = new Date().toISOString();
   const allData = await Promise.all(tickers.map(fetchAll));
 
-  // Reject if any ticker came back fully empty (invalid symbol)
   const empties = allData.filter(
     (d) => Object.keys(d.overview).length === 0 && Object.keys(d.km).length === 0 && Object.keys(d.fh).length === 0
   );
@@ -185,7 +192,7 @@ ${perTickerSchema}
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 1500,
+    max_tokens: 2048,
     messages: [{ role: "user", content: userPrompt }],
     system: systemPrompt,
   });
