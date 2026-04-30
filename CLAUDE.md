@@ -155,7 +155,7 @@ npm publish      # publish to npm (requires npm login)
 
 ## MCP server
 
-Package: `agent-toolbelt-mcp` on npm. Source in `mcp-server/`. Latest published: v1.0.11. Source bumped to v1.0.12 (with compare-stocks + moat-analysis MCP tools) — pending publish.
+Package: `agent-toolbelt-mcp` on npm. Source in `mcp-server/`. Latest published: v1.0.12 (includes compare_stocks + moat_analysis MCP tools).
 
 ```bash
 cd mcp-server
@@ -209,7 +209,7 @@ print(r.stdout)
 
 | Channel | Status |
 |---|---|
-| npm (`agent-toolbelt` v0.3.0 + `agent-toolbelt-mcp` v1.0.11) | ✓ Live — 810/mo SDK + 200-280/day MCP installs (measured 2026-04-29). v1.0.12 ready in source, pending publish. |
+| npm (`agent-toolbelt` v0.4.0 + `agent-toolbelt-mcp` v1.0.12) | ✓ Live — 810/mo SDK + 200-280/day MCP installs (measured 2026-04-29). Both packages include all 7 stock tools. |
 | RapidAPI | ✓ Listed |
 | MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted |
 | PulseMCP | ✓ Submitted |
