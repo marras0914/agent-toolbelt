@@ -62,7 +62,16 @@
       "Skill(schedule)",
       "mcp__claude_ai_Gmail__gmail_list_drafts",
       "mcp__claude_ai_Google_Calendar__gcal_create_event",
-      "mcp__claude_ai_Gmail__gmail_create_draft"
+      "mcp__claude_ai_Gmail__gmail_create_draft",
+      "Read(//c/Users/marras/claude/side-piece/**)",
+      "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 3030 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }')",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 3030 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, OwningProcess\")",
+      "WebFetch(domain:www.pulsemcp.com)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:medium.datadriveninvestor.com)",
+      "Bash(unset AGENT_TOOLBELT_KEY)",
+      "Bash(C:\\\\\\\\Users\\\\\\\\marras\\\\\\\\.nvm\\\\\\\\versions\\\\\\\\node\\\\\\\\v24.4.0\\\\\\\\bin\\\\\\\\npx.cmd *)",
+      "Bash(\"C:\\\\\\\\Users\\\\\\\\marras\\\\\\\\.nvm\\\\\\\\versions\\\\\\\\node\\\\\\\\v24.4.0\\\\\\\\bin\\\\\\\\npx.cmd\" -y cordon-cli --help)"
     ]
   }
 }
