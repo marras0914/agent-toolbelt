@@ -8,16 +8,11 @@ import {
   fetchFMPRatiosTTM,
   fetchFinnhubMetrics,
 } from "./_stock-fetchers";
-import { sane, fhPct, fmtPct } from "./_stock-helpers";
+import { sane, fhPct, fmtPct, usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
-  ticker: z
-    .string()
-    .min(1)
-    .max(10)
-    .transform((v) => v.toUpperCase().trim())
-    .describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+  ticker: usTickerSchema,
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -39,7 +34,7 @@ async function handler(input: Input) {
   ]);
 
   if (Object.keys(overview).length === 0 && Object.keys(km).length === 0 && Object.keys(fh).length === 0) {
-    throw new Error(`No data found for "${ticker}". Please verify the symbol.`);
+    throw new Error(`No data found for "${ticker}". ${US_ONLY_HINT}`);
   }
 
   const roic = sane(km.returnOnInvestedCapitalTTM ?? km.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);

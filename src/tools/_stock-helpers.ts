@@ -1,3 +1,28 @@
+import { z } from "zod";
+
+/** Hint string appended to ticker-related errors so users know our coverage scope. */
+export const US_ONLY_HINT =
+  "Agent Toolbelt supports US-listed equities only (NYSE, NASDAQ, AMEX). Try AAPL, MSFT, or NVDA.";
+
+// First char must be a letter (rejects all-numeric Chinese A-shares like "002714"
+// and digit-prefixed codes like "2DG"). Rest may be letters, digits, dot, hyphen
+// to allow class shares like "BRK.B", "BF.B".
+const TICKER_PATTERN = /^[A-Z][A-Z0-9.\-]{0,9}$/;
+
+export const isValidUSTicker = (ticker: string): boolean =>
+  TICKER_PATTERN.test(ticker);
+
+/** Shared zod schema for a single US ticker — uppercases, trims, validates shape. */
+export const usTickerSchema = z
+  .string()
+  .min(1)
+  .max(10)
+  .transform((v) => v.toUpperCase().trim())
+  .refine(isValidUSTicker, (val) => ({
+    message: `"${val}" is not a valid US ticker. ${US_ONLY_HINT}`,
+  }))
+  .describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT). US-listed equities only.");
+
 /** Sanity-check a numeric value against a plausibility range; null on out-of-range or non-finite. */
 export const sane = (v: unknown, min: number, max: number): number | null => {
   const n = Number(v);

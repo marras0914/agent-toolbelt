@@ -6,15 +6,11 @@ import {
   fetchFinnhubInsiders,
   fetchFinnhubInsiderSentiment,
 } from "./_stock-fetchers";
+import { usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
-  ticker: z
-    .string()
-    .min(1)
-    .max(10)
-    .transform((v) => v.toUpperCase().trim())
-    .describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+  ticker: usTickerSchema,
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -32,7 +28,7 @@ async function handler(input: Input) {
   ]);
 
   if (transactions.length === 0) {
-    throw new Error(`No insider transaction data found for "${ticker}". Please verify the symbol.`);
+    throw new Error(`No insider transaction data found for "${ticker}". ${US_ONLY_HINT}`);
   }
 
   const sentiment = sentimentAll.slice(-6);

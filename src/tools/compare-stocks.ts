@@ -12,15 +12,15 @@ import {
   FMPRatiosTTM,
   FinnhubMetric,
 } from "./_stock-fetchers";
-import { sane, fhPct, fmt, fmtPct, round1 } from "./_stock-helpers";
+import { sane, fhPct, fmt, fmtPct, round1, usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
   tickers: z
-    .array(z.string().min(1).max(10).transform((v) => v.toUpperCase().trim()))
+    .array(usTickerSchema)
     .min(2)
     .max(3)
-    .describe("2-3 stock tickers to compare head-to-head (e.g. ['NVDA','AMD'])"),
+    .describe("2-3 stock tickers to compare head-to-head (e.g. ['NVDA','AMD']). US-listed equities only."),
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -113,7 +113,7 @@ async function handler(input: Input) {
     (d) => Object.keys(d.overview).length === 0 && Object.keys(d.km).length === 0 && Object.keys(d.fh).length === 0
   );
   if (empties.length > 0) {
-    throw new Error(`No data found for: ${empties.map((d) => d.ticker).join(", ")}. Please verify the symbols.`);
+    throw new Error(`No data found for: ${empties.map((d) => d.ticker).join(", ")}. ${US_ONLY_HINT}`);
   }
 
   const dataContext = [

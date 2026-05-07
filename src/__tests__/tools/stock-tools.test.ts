@@ -7,6 +7,7 @@ import valuationSnapshotTool from "../../tools/valuation-snapshot";
 import bearVsBullTool from "../../tools/bear-vs-bull";
 import compareStocksTool from "../../tools/compare-stocks";
 import moatAnalysisTool from "../../tools/moat-analysis";
+import { isValidUSTicker } from "../../tools/_stock-helpers";
 
 const hasStockKeys =
   !!process.env.ANTHROPIC_API_KEY &&
@@ -269,4 +270,45 @@ describe("moat-analysis", () => {
     expect(result.metrics).toBeDefined();
     expect(result.generatedAt).toBeDefined();
   }, 45_000);
+});
+
+// ============================================
+// Shared US-ticker validation
+// ============================================
+describe("isValidUSTicker", () => {
+  it.each(["AAPL", "MSFT", "NVDA", "BRK.B", "BF.B", "RDS.A", "A", "GOOGL"])(
+    "accepts valid US ticker %s",
+    (t) => {
+      expect(isValidUSTicker(t)).toBe(true);
+    }
+  );
+
+  it.each(["002714", "2DG", "0700", "9988", "", "123"])(
+    "rejects non-US ticker shape %s",
+    (t) => {
+      expect(isValidUSTicker(t)).toBe(false);
+    }
+  );
+});
+
+describe("ticker schema rejects foreign codes (returns 400 not 500)", () => {
+  it.each([
+    ["stock-thesis", stockThesisTool],
+    ["earnings-analysis", earningsAnalysisTool],
+    ["insider-signal", insiderSignalTool],
+    ["valuation-snapshot", valuationSnapshotTool],
+    ["bear-vs-bull", bearVsBullTool],
+    ["moat-analysis", moatAnalysisTool],
+  ] as const)("%s rejects Chinese A-share '002714'", (_name, tool) => {
+    const parsed = tool.inputSchema.safeParse({ ticker: "002714" });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues[0].message).toContain("US-listed");
+    }
+  });
+
+  it("compare-stocks rejects when any element is non-US", () => {
+    const parsed = compareStocksTool.inputSchema.safeParse({ tickers: ["NVDA", "002714"] });
+    expect(parsed.success).toBe(false);
+  });
 });

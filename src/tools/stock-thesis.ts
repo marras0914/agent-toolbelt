@@ -12,16 +12,11 @@ import {
   fetchFMPKeyMetrics,
   fetchFMPRatiosTTM,
 } from "./_stock-fetchers";
-import { sane, fhPct, round1 } from "./_stock-helpers";
+import { sane, fhPct, round1, usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
-  ticker: z
-    .string()
-    .min(1)
-    .max(10)
-    .transform((v) => v.toUpperCase().trim())
-    .describe("Stock ticker symbol (e.g. NVDA, AAPL, MSFT)"),
+  ticker: usTickerSchema,
   timeHorizon: z
     .enum(["1-2 years", "3-5 years", "5+ years"])
     .default("3-5 years")
@@ -57,7 +52,7 @@ async function handler(input: Input) {
     Object.keys(metrics).length > 0;
 
   if (!hasData) {
-    throw new Error(`No data found for ticker "${ticker}". Please verify the symbol is correct.`);
+    throw new Error(`No data found for ticker "${ticker}". ${US_ONLY_HINT}`);
   }
 
   const companyName = overview.name || ticker;
