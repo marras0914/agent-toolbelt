@@ -6,12 +6,12 @@
     "version": "1.0.0",
     "contact": {
       "name": "Agent Toolbelt Support",
-      "url": "https://agent-toolbelt-production.up.railway.app"
+      "url": "https://www.agenttoolbelt.live"
     }
   },
   "servers": [
     {
-      "url": "https://agent-toolbelt-production.up.railway.app",
+      "url": "https://www.agenttoolbelt.live",
       "description": "Production"
     }
   ],

@@ -6,11 +6,11 @@ console.log(`
 
   Get your free API key (1,000 calls/month):
 
-    curl -X POST 'https://agent-toolbelt-production.up.railway.app/api/clients/register?source=postinstall' \\
+    curl -X POST 'https://www.agenttoolbelt.live/api/clients/register?source=postinstall' \\
       -H "Content-Type: application/json" \\
       -d '{"email": "you@example.com"}'
 
-  Or visit: https://agent-toolbelt-production.up.railway.app/register
+  Or visit: https://www.agenttoolbelt.live/register
 
   Then add to Claude Code:
 

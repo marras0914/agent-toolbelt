@@ -7,7 +7,7 @@
     "source": "github",
     "subfolder": "mcp-server"
   },
-  "homepage": "https://agent-toolbelt-production.up.railway.app",
+  "homepage": "https://www.agenttoolbelt.live",
   "version": "1.0.5",
   "packages": [
     {
@@ -21,7 +21,7 @@
       "environmentVariables": [
         {
           "name": "AGENT_TOOLBELT_KEY",
-          "description": "Your Agent Toolbelt API key. Get one free at https://agent-toolbelt-production.up.railway.app",
+          "description": "Your Agent Toolbelt API key. Get one free at https://www.agenttoolbelt.live",
           "isRequired": true,
           "isSecret": true
         }

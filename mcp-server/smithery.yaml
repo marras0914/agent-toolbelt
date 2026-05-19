@@ -7,7 +7,7 @@ startCommand:
     properties:
       AGENT_TOOLBELT_KEY:
         type: string
-        description: "Agent Toolbelt API key. Get a free key (1,000 calls/month, no credit card) at https://agent-toolbelt-production.up.railway.app/api/clients/register"
+        description: "Agent Toolbelt API key. Get a free key (1,000 calls/month, no credit card) at https://www.agenttoolbelt.live/api/clients/register"
   commandFunction: |-
     (config) => ({
       command: "npx",

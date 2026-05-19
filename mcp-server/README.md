@@ -1,15 +1,15 @@
 # agent-toolbelt-mcp
 
-MCP server for [Agent Toolbelt](https://agent-toolbelt-production.up.railway.app) — gives Claude real-time stock research capabilities. Five AI-powered analysis tools that pull live data from Polygon.io, Finnhub, and Financial Modeling Prep, then synthesize it into structured investment analysis.
+MCP server for [Agent Toolbelt](https://www.agenttoolbelt.live) — gives Claude real-time stock research capabilities. Seven AI-powered analysis tools that pull live data from Polygon.io, Finnhub, and Financial Modeling Prep, then synthesize it into structured investment analysis.
 
-Try the valuation snapshot live (no signup): [agent-toolbelt-production.up.railway.app](https://agent-toolbelt-production.up.railway.app)
+Try the valuation snapshot live (no signup): [www.agenttoolbelt.live](https://www.agenttoolbelt.live)
 
 ## Step 1 — Get a free API key
 
 The MCP server requires an API key. Free tier is 1,000 calls/month, no credit card required.
 
 ```bash
-curl -X POST 'https://agent-toolbelt-production.up.railway.app/api/clients/register?source=npm' \
+curl -X POST 'https://www.agenttoolbelt.live/api/clients/register?source=npm' \
   -H "Content-Type: application/json" \
   -d '{"email": "you@example.com"}'
 ```
@@ -48,15 +48,17 @@ Add to `claude_desktop_config.json`:
 
 ## Stock Research Tools
 
-Five tools that give Claude live market data and AI-synthesized analysis. Each call pulls from multiple financial APIs in parallel and returns structured JSON. ~4–5 seconds per call.
+Seven tools that give Claude live market data and AI-synthesized analysis. Each call pulls from multiple financial APIs in parallel and returns structured JSON. ~4–5 seconds per call. **US-listed equities only** (NYSE, NASDAQ, AMEX).
 
 | Tool | What it does |
 |---|---|
 | `stock_thesis` | Full investment thesis: bullish/neutral/bearish verdict, 2–3 paragraph analysis, key strengths, risks, valuation read, insider interpretation, what to watch next earnings |
-| `earnings_analysis` | EPS beat/miss history across 12 quarters, revenue trend classification, long-term consistency read, upcoming earnings date |
+| `earnings_analysis` | EPS beat/miss history across 5 quarters, revenue trend classification, long-term consistency read, upcoming earnings date |
 | `insider_signal` | Form 4 interpretation: distinguishes meaningful open-market purchases from routine option exercises → strong_buy to strong_sell signal + confidence rating |
 | `valuation_snapshot` | P/E, P/S, EV/EBITDA, FCF yield, ROE → cheap/fair/expensive verdict + specific buy zone |
 | `bear_vs_bull` | 3 bull + 3 bear arguments steelmanned with real data, net verdict, key debate question, who the stock suits |
+| `compare_stocks` | Head-to-head 2–3 ticker comparison: winner verdict, per-ticker strengths and concerns, recommendation map by investor goal (growth / value / quality) |
+| `moat_analysis` | Buffett-style competitive moat assessment: wide / narrow / none rating, moat sources (brand, switching costs, network effects, scale), durability outlook, and threats |
 
 ### Example
 
@@ -90,6 +92,7 @@ Claude calls the tools in parallel and synthesizes a complete research note. Her
 | `extract_from_text` | Extract emails, phones, URLs, dates, currencies from text |
 | `convert_markdown` | HTML ↔ Markdown conversion |
 | `fetch_url_metadata` | Title, OG tags, author, favicon from any URL |
+| `summarize_web_page` | Fetch a URL, strip boilerplate, return clean Markdown + AI summary with key points |
 | `count_tokens` | Token counts + cost estimates across 15 LLM models |
 | `csv_to_json` | CSV to typed JSON with auto delimiter and type casting |
 | `normalize_address` | US address → USPS format with component parsing |
@@ -99,7 +102,6 @@ Claude calls the tools in parallel and synthesizes a complete research note. Her
 | `generate_brand_kit` | Full brand kit — colors, typography, CSS/Tailwind tokens |
 | `optimize_prompt` | Score and rewrite LLM prompts for clarity and specificity |
 | `extract_meeting_action_items` | Action items, decisions, and summary from meeting notes |
-| `summarize_url` | Fetch and summarize any URL |
 | `compare_documents` | Semantic diff between two document versions |
 | `extract_contract_clauses` | Key clauses + risk flags from contracts |
 | `mock_api_response` | Realistic mock data from a JSON Schema |
@@ -114,6 +116,20 @@ Claude calls the tools in parallel and synthesizes a complete research note. Her
 - **Free tier:** 1,000 calls/month, no credit card
 - **Stock analysis tools:** $0.05/call (PAYG)
 - **Most utility tools:** $0.001–$0.005/call
+
+---
+
+## Going to production
+
+When the agent moves out of dev, a new set of questions shows up. What did it call last night? What arguments did it pass? Who approved the destructive one?
+
+[Cordon](https://getcordon.com) is an MCP gateway that sits in front of servers like this one. Point your client at Cordon instead of directly at Agent Toolbelt; Cordon forwards every call through and adds:
+
+- A real-time audit log of every tool invocation (name, arguments, response, latency)
+- Per-API-key policy: which tools each caller can use, under what conditions
+- Slack-based human approvals for tool calls you've flagged as high-risk
+
+From the agent's perspective nothing changes — same tools, same schemas. Free tier covers 1,000 events/month.
 
 ---
 

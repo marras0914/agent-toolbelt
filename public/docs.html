@@ -249,7 +249,7 @@
 <div class="container">
   <div class="page-header">
     <h1>API Reference</h1>
-    <p>Five stock research tools. Real requests, real responses. Base URL: <code style="font-family: var(--mono); color: var(--accent); font-size: 0.9rem;">https://agent-toolbelt-production.up.railway.app</code></p>
+    <p>Five stock research tools. Real requests, real responses. Base URL: <code style="font-family: var(--mono); color: var(--accent); font-size: 0.9rem;">https://www.agenttoolbelt.live</code></p>
   </div>
 
   <div class="docs-layout">
@@ -278,13 +278,13 @@
         <div class="tool-header">
           <div class="tool-name">Authentication</div>
         </div>
-        <div class="tool-desc">All requests require a Bearer token. Get a free key (1,000 calls/month) at <a href="/register.html" style="color: var(--accent);">elephanttortoise.com/register</a>.</div>
+        <div class="tool-desc">All requests require a Bearer token. Get a free key (1,000 calls/month) at <a href="/register" style="color: var(--accent);">www.agenttoolbelt.live/register</a>.</div>
         <div class="auth-note">
           Add <code>Authorization: Bearer atb_your_key_here</code> to every request header.
         </div>
 
         <div class="block-label">Example request header</div>
-        <pre>curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/stock-thesis \
+        <pre>curl -X POST https://www.agenttoolbelt.live/api/tools/stock-thesis \
   -H <span class="s">"Authorization: Bearer atb_your_key_here"</span> \
   -H <span class="s">"Content-Type: application/json"</span> \
   -d <span class="s">'{"ticker": "NVDA"}'</span></pre>

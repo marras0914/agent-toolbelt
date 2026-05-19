@@ -22,12 +22,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 // ----- Configuration -----
-const API_BASE_URL = process.env.AGENT_TOOLBELT_URL || "https://agent-toolbelt-production.up.railway.app";
+const API_BASE_URL = process.env.AGENT_TOOLBELT_URL || "https://www.agenttoolbelt.live";
 const API_KEY = process.env.AGENT_TOOLBELT_KEY || "";
 
 const REGISTRATION_HINT =
   "No AGENT_TOOLBELT_KEY is set. Get a free key (1,000 calls/month, no credit card):\n" +
-  "  curl -X POST 'https://agent-toolbelt-production.up.railway.app/api/clients/register?source=mcp_banner' \\\n" +
+  "  curl -X POST 'https://www.agenttoolbelt.live/api/clients/register?source=mcp_banner' \\\n" +
   "    -H 'Content-Type: application/json' -d '{\"email\":\"you@example.com\"}'\n" +
   "Then set AGENT_TOOLBELT_KEY in your MCP config (claude_desktop_config.json or `claude mcp add` -e flag).";
 
@@ -409,6 +409,69 @@ server.registerTool(
       for (const [k, v] of Object.entries(m.og)) {
         lines.push(`  og:${k}: ${v}`);
       }
+    }
+
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
+// ----- Tool: Web Summarizer -----
+server.registerTool(
+  "summarize_web_page",
+  {
+    title: "Web Summarizer",
+    description:
+      "Fetch a URL, strip navigation/ads/boilerplate, and return clean Markdown plus an AI-generated summary with key points. " +
+      "Use for research, content ingestion, competitive analysis, or feeding web content to an LLM without noise. " +
+      "Returns title, a 2-4 sentence summary, up to 5 key points, and content type. Powered by Claude.",
+    inputSchema: {
+      url: z.string().url().describe("The URL to fetch and summarize"),
+      mode: z
+        .enum(["summary", "content", "both"])
+        .default("both")
+        .describe("'summary' = AI summary only, 'content' = clean markdown only, 'both' = full content + summary"),
+      focus: z.string().optional().describe("What to focus the summary on, e.g. 'pricing', 'technical architecture', 'key arguments'"),
+      maxContentLength: z.number().int().min(500).max(50000).default(20000).describe("Max characters of page content to process"),
+      timeout: z.number().int().min(1000).max(20000).default(10000).describe("Request timeout in milliseconds"),
+    },
+  },
+  async ({ url, mode, focus, maxContentLength, timeout }) => {
+    const result = await callToolApi("web-summarizer", { url, mode, focus, maxContentLength, timeout });
+    const data = result as any;
+    const r = data.result;
+
+    if (r.error) {
+      return { content: [{ type: "text" as const, text: `Error fetching ${url}: ${r.error}` }] };
+    }
+
+    const lines: string[] = [];
+    if (r.summary) {
+      lines.push(`**${r.summary.title || r.finalUrl}**`);
+      lines.push(`_URL: ${r.finalUrl}_`);
+      if (r.summary.contentType) lines.push(`_Content type: ${r.summary.contentType}_`);
+      lines.push("");
+      lines.push(`**Summary:** ${r.summary.summary}`);
+      if (r.summary.keyPoints?.length) {
+        lines.push("");
+        lines.push("**Key Points:**");
+        for (const p of r.summary.keyPoints) lines.push(`- ${p}`);
+      }
+    } else {
+      lines.push(`_URL: ${r.finalUrl}_`);
+    }
+
+    if (r.content) {
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+      lines.push("## Content");
+      lines.push("");
+      lines.push(r.content);
+    }
+
+    if (r.truncated) {
+      lines.push("");
+      lines.push(`_Content truncated. ${r.characterCount} characters processed._`);
     }
 
     return { content: [{ type: "text" as const, text: lines.join("\n") }] };
@@ -1494,16 +1557,18 @@ async function main() {
   await server.connect(transport);
 
   // Log to stderr (stdout is reserved for MCP protocol messages)
-  console.error("Agent Toolbelt MCP server started");
+  console.error("Agent Toolbelt MCP server v1.0.13 started");
   console.error(`  API: ${API_BASE_URL}`);
   console.error(`  Key: ${API_KEY ? API_KEY.slice(0, 12) + "..." : "NOT SET"}`);
+  console.error("  Tools: 27 (7 stock research + 20 utility)");
+  console.error("  New in v1.0.13: compare_stocks (head-to-head) + moat_analysis (Buffett-style) + summarize_web_page");
   if (!API_KEY) {
     console.error("");
     console.error("=================================================================");
     console.error(" ⚠  No AGENT_TOOLBELT_KEY configured — tool calls will fail.");
     console.error("");
     console.error(" Get a free key (1,000 calls/month, no credit card):");
-    console.error("   curl -X POST 'https://agent-toolbelt-production.up.railway.app/api/clients/register?source=mcp_banner' \\");
+    console.error("   curl -X POST 'https://www.agenttoolbelt.live/api/clients/register?source=mcp_banner' \\");
     console.error("     -H 'Content-Type: application/json' -d '{\"email\":\"you@example.com\"}'");
     console.error("");
     console.error(" Then add AGENT_TOOLBELT_KEY to your MCP server config.");

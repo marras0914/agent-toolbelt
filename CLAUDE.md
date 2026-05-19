@@ -123,7 +123,7 @@ export default myTool;
 
 Hosted on Railway. Auto-deploys on push to `master` via GitHub integration.
 
-- Production URL: `https://agent-toolbelt-production.up.railway.app`
+- Production URL: `https://www.agenttoolbelt.live` (Railway URL `https://agent-toolbelt-production.up.railway.app` still resolves to the same service; both work)
 - Railway project ID: `d345a508-2557-453d-953c-3acd1ae26568`
 - Persistent volume mounted at `/data` — SQLite DB survives deploys
 
@@ -186,7 +186,7 @@ railway variables --json | python3 -c "import sys,json; print(json.load(sys.stdi
 railway variables --json | python3 -c "
 import sys, json, subprocess
 secret = json.load(sys.stdin)['ADMIN_SECRET']
-r = subprocess.run(['curl', '-s', 'https://agent-toolbelt-production.up.railway.app/admin/clients',
+r = subprocess.run(['curl', '-s', 'https://www.agenttoolbelt.live/admin/clients',
   '-H', f'Authorization: Bearer {secret}'], capture_output=True, text=True)
 print(r.stdout)
 "

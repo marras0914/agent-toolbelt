@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = "https://agent-toolbelt-production.up.railway.app";
+const DEFAULT_BASE_URL = "https://www.agenttoolbelt.live";
 
 export interface AgentToolbeltOptions {
   apiKey: string;

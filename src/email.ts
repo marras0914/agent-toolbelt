@@ -17,8 +17,8 @@ export async function sendOnboardingEmail(params: {
 
   const { email, name, keyPrefix, clientId } = params;
   const greeting = name ? `Hi ${name}` : "Hi there";
-  const docsUrl = "https://agent-toolbelt-production.up.railway.app/api/docs";
-  const catalogUrl = "https://agent-toolbelt-production.up.railway.app/api/tools/catalog";
+  const docsUrl = "https://www.agenttoolbelt.live/api/docs";
+  const catalogUrl = "https://www.agenttoolbelt.live/api/tools/catalog";
 
   const html = `<!DOCTYPE html>
 <html>
@@ -59,7 +59,7 @@ export async function sendOnboardingEmail(params: {
 
       <h2>Run your first analysis</h2>
       <p>Paste this into your terminal (replace <code>&lt;your-key&gt;</code> with your API key):</p>
-      <pre>curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/stock-thesis \\
+      <pre>curl -X POST https://www.agenttoolbelt.live/api/tools/stock-thesis \\
   -H "Authorization: Bearer &lt;your-key&gt;" \\
   -H "Content-Type: application/json" \\
   -d '{"ticker": "AAPL"}'</pre>
@@ -101,7 +101,7 @@ console.log(thesis.verdict, thesis.oneLiner);</pre>
       </div>
     </div>
     <div class="footer" style="padding: 20px 40px; border-top: 1px solid #f0f0f0; font-size: 12px; color: #aaa;">
-      You're receiving this because you registered at agent-toolbelt-production.up.railway.app.
+      You're receiving this because you registered at www.agenttoolbelt.live.
       Client ID: ${clientId}
     </div>
   </div>
@@ -116,7 +116,7 @@ If you lost your key, reply to this email and we'll issue a new one.
 
 Run your first analysis — paste this into your terminal:
 
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/stock-thesis \\
+curl -X POST https://www.agenttoolbelt.live/api/tools/stock-thesis \\
   -H "Authorization: Bearer <your-key>" \\
   -H "Content-Type: application/json" \\
   -d '{"ticker": "AAPL"}'

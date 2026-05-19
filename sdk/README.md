@@ -1,8 +1,8 @@
 # agent-toolbelt
 
-Official SDK for [Agent Toolbelt](https://agent-toolbelt-production.up.railway.app) — a suite of focused API tools for AI agents and developers.
+Official SDK for [Agent Toolbelt](https://www.agenttoolbelt.live) — a suite of focused API tools for AI agents and developers.
 
-**Typed client + LangChain tool wrappers** for schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, color palette generation, brand kit creation, meeting action item extraction, prompt optimization, web summarization, and more — 20 tools total.
+**Typed client + LangChain tool wrappers** for stock research (investment thesis, earnings analysis, insider signals, valuation, bear/bull, head-to-head comparison, moat analysis), schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, color palette generation, brand kit creation, meeting action item extraction, prompt optimization, web summarization, and more — 27 tools total (7 stock + 20 utility).
 
 ## Install
 
@@ -13,7 +13,7 @@ npm install agent-toolbelt
 ## Get an API key
 
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \
+curl -X POST https://www.agenttoolbelt.live/api/clients/register \
   -H "Content-Type: application/json" \
   -d '{"email": "you@example.com"}'
 ```
@@ -27,6 +27,90 @@ import { AgentToolbelt } from "agent-toolbelt";
 
 const client = new AgentToolbelt({ apiKey: process.env.AGENT_TOOLBELT_KEY! });
 ```
+
+---
+
+## Stock Research Tools
+
+Seven tools that pull live data from Polygon.io, Finnhub, and Financial Modeling Prep, then synthesize Motley Fool-style analysis. Each call returns structured JSON with verdict, key drivers, and what to watch. **US-listed equities only** (NYSE, NASDAQ, AMEX).
+
+### Investment Thesis
+
+```ts
+const result = await client.stockThesis({
+  ticker: "NVDA",
+  timeHorizon: "3-5 years",
+});
+// result.verdict        → "bullish" | "neutral" | "bearish"
+// result.oneLiner       → "Nvidia owns the essential infrastructure for the AI revolution..."
+// result.keyStrengths   → ["Dominant ~80%+ data center GPU share", "CUDA software moat", ...]
+// result.keyRisks       → ["Customer concentration", "Cyclical demand exposure", ...]
+// result.watchFor       → "Data center revenue growth rate. Deceleration below 30% YoY..."
+```
+
+### Earnings Analysis
+
+```ts
+const result = await client.earningsAnalysis({ ticker: "MSFT" });
+// result.verdict        → "strong_compounder" | "consistent" | "mixed" | "volatile" | "deteriorating"
+// result.beatRate       → "4/5 quarters beat (80%)"
+// result.revenueTrend   → "accelerating" | "stable" | "decelerating" | "declining"
+// result.lastQuarterSummary → "..."
+```
+
+### Insider Signal
+
+```ts
+const result = await client.insiderSignal({ ticker: "AAPL" });
+// result.signal         → "strong_buy" | "buy" | "neutral" | "sell" | "strong_sell"
+// result.confidence     → "high" | "medium" | "low"
+// result.interpretation → "Two C-suite executives bought ~47k shares in March (positive alignment)..."
+```
+
+### Valuation Snapshot
+
+```ts
+const result = await client.valuationSnapshot({ ticker: "GOOGL" });
+// result.verdict        → "very_cheap" | "cheap" | "fair" | "expensive" | "very_expensive"
+// result.metrics.peRatio, result.metrics.evEbitda, result.metrics.fcfYield, result.metrics.roe
+// result.buyZone        → "Below $135. Current $172 is fair but not a bargain."
+```
+
+### Bear vs. Bull
+
+```ts
+const result = await client.bearVsBull({ ticker: "TSLA" });
+// result.verdict        → "bull_wins" | "slight_bull" | "too_close" | "slight_bear" | "bear_wins"
+// result.bullCase       → [{ argument: "...", detail: "..." }, ...]   // 3 items
+// result.bearCase       → [{ argument: "...", detail: "..." }, ...]   // 3 items
+// result.keyDebate      → "Will autonomous driving become a real revenue line by 2027?"
+```
+
+### Compare Stocks
+
+Head-to-head comparison of 2–3 tickers with a recommendation by investor goal.
+
+```ts
+const result = await client.compareStocks({ tickers: ["NVDA", "AMD"] });
+// result.winner         → "NVDA" | "AMD" | "tied"
+// result.oneLiner       → "NVDA wins on margins and software moat; AMD better value."
+// result.byTicker       → { NVDA: { strengths: [...], concerns: [...] }, AMD: {...} }
+// result.ifYouValue     → { growth: "NVDA", value: "AMD", quality: "NVDA" }
+```
+
+### Moat Analysis
+
+Buffett-style competitive moat assessment.
+
+```ts
+const result = await client.moatAnalysis({ ticker: "KO" });
+// result.moatRating     → "wide" | "narrow" | "none"
+// result.moatSources    → [{ type: "brand", strength: "strong", evidence: "..." }, ...]
+// result.durabilityRead → "Coca-Cola's brand moat is among the most durable in consumer staples..."
+// result.threats        → ["Health-conscious consumer shift", "Private label competition", ...]
+```
+
+---
 
 ### Text Extractor
 
@@ -164,6 +248,13 @@ const result = await agent.invoke({
 
 | Tool name | Description |
 |---|---|
+| `stock_thesis` | Motley Fool-style investment thesis with live data |
+| `earnings_analysis` | EPS beat/miss history + revenue trend read |
+| `insider_signal` | Form 4 interpretation: meaningful signal or routine noise? |
+| `valuation_snapshot` | P/E, P/S, EV/EBITDA, FCF yield → cheap/fair/expensive |
+| `bear_vs_bull` | Steelmanned bull and bear cases with net verdict |
+| `compare_stocks` | Head-to-head 2–3 ticker comparison with recommendation map |
+| `moat_analysis` | Buffett-style competitive moat assessment with durability outlook |
 | `extract_from_text` | Extract emails, URLs, phones, dates, currencies, addresses, names from text |
 | `count_tokens` | Count tokens and estimate cost across LLM models |
 | `generate_schema` | Generate JSON Schema / TypeScript / Zod from a description |
@@ -189,7 +280,21 @@ const result = await agent.invoke({
 
 ## All tools
 
-20 tools available. Free tier included — paid tiers available for higher volume. See [pricing](https://agent-toolbelt-production.up.railway.app/#pricing).
+27 tools available (7 stock + 20 utility). Free tier included — paid tiers available for higher volume. See [pricing](https://www.agenttoolbelt.live/#pricing).
+
+### Stock research ($0.05 per call)
+
+| Tool | Description |
+|---|---|
+| `stock-thesis` | Motley Fool-style investment thesis with verdict, strengths, risks |
+| `earnings-analysis` | EPS beat/miss history + revenue trend over 5 quarters |
+| `insider-signal` | Form 4 interpretation distinguishing real signal from routine |
+| `valuation-snapshot` | P/E, P/S, EV/EBITDA, FCF yield → cheap/fair/expensive verdict |
+| `bear-vs-bull` | Steelmanned bull and bear cases with net verdict |
+| `compare-stocks` | Head-to-head 2–3 ticker comparison with winner |
+| `moat-analysis` | Buffett-style competitive moat with durability rating |
+
+### Utility tools
 
 | Tool | Description |
 |---|---|
@@ -213,6 +318,20 @@ const result = await agent.invoke({
 | `context-window-packer` | Pack content into a token budget optimally |
 | `dependency-auditor` | Audit npm/PyPI packages for CVEs |
 | `web-summarizer` | Fetch a URL, extract clean Markdown, generate AI summary with key points |
+
+---
+
+## Going to production
+
+When the agent moves out of dev, a new set of questions shows up. What did it call last night? What arguments did it pass? Who approved the destructive one?
+
+[Cordon](https://getcordon.com) is an MCP gateway that sits in front of servers like this one. Point your client at Cordon instead of directly at Agent Toolbelt; Cordon forwards every call through and adds:
+
+- A real-time audit log of every tool invocation (name, arguments, response, latency)
+- Per-API-key policy: which tools each caller can use, under what conditions
+- Slack-based human approvals for tool calls you've flagged as high-risk
+
+From the agent's perspective nothing changes — same tools, same schemas. Free tier covers 1,000 events/month.
 
 ## License
 

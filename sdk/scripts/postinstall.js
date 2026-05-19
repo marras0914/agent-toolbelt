@@ -6,12 +6,12 @@ console.log(`
 
   Get your free API key (1,000 calls/month):
 
-    curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \\
+    curl -X POST https://www.agenttoolbelt.live/api/clients/register \\
       -H "Content-Type: application/json" \\
       -d '{"email": "you@example.com"}'
 
   Your key is returned immediately. No credit card required.
 
-  Docs: https://agent-toolbelt-production.up.railway.app
+  Docs: https://www.agenttoolbelt.live
 
 `);

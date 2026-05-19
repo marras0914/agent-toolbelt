@@ -2,7 +2,7 @@
 
 **Stock research tools for AI agents.** Live financial data + Claude-synthesized analysis, served as 7 focused tools — not raw OHLCV. Plus 20 utility tools for the rest of an agent's work.
 
-**Production API:** https://agent-toolbelt-production.up.railway.app
+**Production API:** https://www.agenttoolbelt.live
 
 ---
 
@@ -10,12 +10,12 @@
 
 ```bash
 # Get a free API key (1,000 calls/month, no credit card)
-curl -X POST 'https://agent-toolbelt-production.up.railway.app/api/clients/register' \
+curl -X POST 'https://www.agenttoolbelt.live/api/clients/register' \
   -H "Content-Type: application/json" \
   -d '{"email": "you@example.com"}'
 
 # Generate a Motley Fool-style investment thesis for any ticker
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/stock-thesis \
+curl -X POST https://www.agenttoolbelt.live/api/tools/stock-thesis \
   -H "Authorization: Bearer atb_YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"ticker": "NVDA", "timeHorizon": "3-5 years"}'
@@ -152,7 +152,7 @@ Once installed, ask Claude things like *"Give me a full analysis of NVDA — the
 Agents can auto-discover all 27 tools at runtime:
 
 ```bash
-curl https://agent-toolbelt-production.up.railway.app/api/tools/catalog
+curl https://www.agenttoolbelt.live/api/tools/catalog
 ```
 
 ---
@@ -176,6 +176,20 @@ curl https://agent-toolbelt-production.up.railway.app/api/tools/catalog
 - **OpenAI GPT Actions** — OpenAPI spec at `/openapi/openapi-gpt-actions.json`
 - **RapidAPI** — listed on the RapidAPI marketplace
 - **Smithery, Glama, PulseMCP, MCP registry** — discoverable in MCP directories
+
+---
+
+## Going to production
+
+When the agent moves out of dev, a new set of questions shows up. What did it call last night? What arguments did it pass? Who approved the destructive one?
+
+[Cordon](https://getcordon.com) is an MCP gateway that sits in front of servers like this one. Point your client at Cordon instead of directly at Agent Toolbelt; Cordon forwards every call through and adds:
+
+- A real-time audit log of every tool invocation (name, arguments, response, latency)
+- Per-API-key policy: which tools each caller can use, under what conditions
+- Slack-based human approvals for tool calls you've flagged as high-risk
+
+From the agent's perspective nothing changes — same tools, same schemas. Free tier covers 1,000 events/month.
 
 ---
 

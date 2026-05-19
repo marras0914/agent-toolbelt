@@ -268,7 +268,11 @@
       <p class="warning">This is the only time your key will be shown.</p>
 
       <div class="next-steps">
-        <h3>Next steps</h3>
+        <h3>Try it — analyze AAPL right now</h3>
+        <div class="step" id="step-try"></div>
+        <h3 style="margin-top:1.25rem;">More to try</h3>
+        <div class="step" id="step-tools"></div>
+        <h3 style="margin-top:1.25rem;">Or install the SDK / MCP</h3>
         <div class="step" id="step-sdk"></div>
         <div class="step" id="step-mcp"></div>
       </div>
@@ -282,7 +286,7 @@
 
   <p class="fine-print">
     <a href="/">Back to Agent Toolbelt</a> &nbsp;&middot;&nbsp;
-    <a href="https://agent-toolbelt-production.up.railway.app/api/tools/catalog">Browse tools</a>
+    <a href="https://www.agenttoolbelt.live/api/tools/catalog">Browse tools</a>
   </p>
 
   <script>
@@ -337,6 +341,14 @@
       document.getElementById('form-view').style.display = 'none';
       document.getElementById('result-view').style.display = 'block';
       document.getElementById('key-display').textContent = key;
+
+      const apiBase = 'https://www.agenttoolbelt.live/api/tools';
+
+      document.getElementById('step-try').innerHTML =
+        `<span class="highlight"># Full investment thesis (live data + AI synthesis)</span>\ncurl -X POST ${apiBase}/stock-thesis \\\n  -H "Authorization: Bearer ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"ticker":"AAPL"}'`;
+
+      document.getElementById('step-tools').innerHTML =
+        `<span class="highlight"># Compare two stocks head-to-head (NEW)</span>\ncurl -X POST ${apiBase}/compare-stocks -H "Authorization: Bearer ${key}" -H "Content-Type: application/json" -d '{"tickers":["NVDA","AMD"]}'\n\n<span class="highlight"># Buffett-style moat analysis (NEW)</span>\ncurl -X POST ${apiBase}/moat-analysis -H "Authorization: Bearer ${key}" -H "Content-Type: application/json" -d '{"ticker":"KO"}'\n\n<span class="highlight"># Earnings track record + revenue trend</span>\ncurl -X POST ${apiBase}/earnings-analysis -H "Authorization: Bearer ${key}" -H "Content-Type: application/json" -d '{"ticker":"MSFT"}'\n\n<span class="highlight"># Cheap, fair, or expensive?</span>\ncurl -X POST ${apiBase}/valuation-snapshot -H "Authorization: Bearer ${key}" -H "Content-Type: application/json" -d '{"ticker":"GOOGL"}'\n\n<span class="highlight"># Insider trading interpretation</span>\ncurl -X POST ${apiBase}/insider-signal -H "Authorization: Bearer ${key}" -H "Content-Type: application/json" -d '{"ticker":"NVDA"}'\n\n<span class="highlight"># Steelmanned bull vs. bear case</span>\ncurl -X POST ${apiBase}/bear-vs-bull -H "Authorization: Bearer ${key}" -H "Content-Type: application/json" -d '{"ticker":"TSLA"}'`;
 
       document.getElementById('step-sdk').innerHTML =
         `<span class="highlight"># npm SDK</span>\nnpm install agent-toolbelt\nAGENT_TOOLBELT_KEY=${key} node your-script.js`;

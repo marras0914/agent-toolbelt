@@ -96,7 +96,7 @@ async function handler(input: Input) {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; AgentToolbelt/1.0; +https://agent-toolbelt-production.up.railway.app)",
+        "User-Agent": "Mozilla/5.0 (compatible; AgentToolbelt/1.0; +https://www.agenttoolbelt.live)",
         Accept: "text/html,application/xhtml+xml,*/*",
       },
       redirect: "follow",
