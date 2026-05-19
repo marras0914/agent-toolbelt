@@ -24,6 +24,7 @@ const MAX_RECENT = 200;
 const startedAt = Date.now();
 const recent: UpstreamFailure[] = [];
 const counts = new Map<string, number>(); // key: `${host}|${status}` → count
+const negCacheHits = new Map<string, number>(); // key: `${host}` → count
 
 export function recordUpstreamFailure(args: {
   host: string;
@@ -37,31 +38,50 @@ export function recordUpstreamFailure(args: {
   counts.set(key, (counts.get(key) ?? 0) + 1);
 }
 
+/**
+ * Increment when the in-memory negative cache short-circuits an upstream call
+ * (i.e., we skipped a fetch because the same URL recently 429'd). High values
+ * here mean the circuit breaker is actively protecting against a sustained
+ * upstream outage. Counted per host since endpoint-level breakdown is captured
+ * indirectly via the failure that opened the breaker.
+ */
+export function recordNegativeCacheHit(args: { host: string; endpoint: string }): void {
+  negCacheHits.set(args.host, (negCacheHits.get(args.host) ?? 0) + 1);
+}
+
 export function getUpstreamHealth(): {
   windowStartedAt: string;
   totalFailures: number;
-  byHost: Array<{ host: string; total: number; rateLimits429: number; otherErrors: number }>;
+  totalNegativeCacheHits: number;
+  byHost: Array<{ host: string; total: number; rateLimits429: number; otherErrors: number; negCacheHits: number }>;
   byHostStatus: Array<{ host: string; status: number; count: number }>;
   recent: Array<{ ts: string; host: string; endpoint: string; status: number; message?: string }>;
 } {
   const byHostStatus: Array<{ host: string; status: number; count: number }> = [];
-  const byHostMap = new Map<string, { total: number; rateLimits429: number; otherErrors: number }>();
+  const byHostMap = new Map<string, { total: number; rateLimits429: number; otherErrors: number; negCacheHits: number }>();
 
   for (const [key, count] of counts) {
     const [host, statusStr] = key.split("|");
     const status = parseInt(statusStr, 10);
     byHostStatus.push({ host, status, count });
 
-    const h = byHostMap.get(host) ?? { total: 0, rateLimits429: 0, otherErrors: 0 };
+    const h = byHostMap.get(host) ?? { total: 0, rateLimits429: 0, otherErrors: 0, negCacheHits: 0 };
     h.total += count;
     if (status === 429) h.rateLimits429 += count;
     else h.otherErrors += count;
     byHostMap.set(host, h);
   }
 
+  for (const [host, hits] of negCacheHits) {
+    const h = byHostMap.get(host) ?? { total: 0, rateLimits429: 0, otherErrors: 0, negCacheHits: 0 };
+    h.negCacheHits = hits;
+    byHostMap.set(host, h);
+  }
+
   return {
     windowStartedAt: new Date(startedAt).toISOString(),
     totalFailures: Array.from(counts.values()).reduce((a, b) => a + b, 0),
+    totalNegativeCacheHits: Array.from(negCacheHits.values()).reduce((a, b) => a + b, 0),
     byHost: Array.from(byHostMap.entries())
       .map(([host, v]) => ({ host, ...v }))
       .sort((a, b) => b.total - a.total),

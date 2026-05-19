@@ -1,24 +1,28 @@
 import { config } from "../config";
-import { recordUpstreamFailure } from "../upstream-health";
+import { recordUpstreamFailure, recordNegativeCacheHit } from "../upstream-health";
+import { getCached, setCached, _clearAllCache } from "../db/stock-cache";
 
-/* ===== In-memory TTL cache for upstream API responses =====
- * Stock fundamentals don't change intraday — quarterly filings drive the
- * underlying data. A 6-hour TTL eliminates redundant fetches when (a) one
- * user calls multiple tools for the same ticker in succession, (b) different
- * users hit the same popular ticker, or (c) the same user runs a watchlist
- * across an hours-long session. Single-instance server, so a Map is sufficient.
- * Empty/failed results are NOT cached — that lets transient upstream failures
- * (e.g., rate-limit 429s clearing at midnight UTC) recover on the next call. */
+/* ===== Caching strategy =====
+ *
+ * Positive cache (SQLite-backed, 6h TTL): stock fundamentals don't change
+ * intraday — quarterly filings drive the underlying data. A 6-hour TTL
+ * eliminates redundant fetches when (a) one user calls multiple tools for
+ * the same ticker, (b) different users hit the same popular ticker, or
+ * (c) a watchlist gets re-run later in the day. Persisting to SQLite (via
+ * `src/db/stock-cache.ts`) means the cache survives Railway redeploys —
+ * critical because container restarts otherwise reset the cache and trigger
+ * a cold-start storm against FMP's daily 250-call cap.
+ *
+ * Negative cache (in-memory, 5min TTL): when an upstream returns 429 or a
+ * network error, we mark that (host, endpoint, ticker) tuple as "down" for
+ * 5 minutes and skip the upstream call. Without this circuit breaker, every
+ * retry during a sustained outage (e.g., FMP daily cap blown) re-hits the
+ * upstream and re-fails, amplifying the storm. In-memory is intentional —
+ * if the container restarts, we re-probe upstream rather than carry forward
+ * a stale "this is broken" belief. */
 
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
-const MAX_CACHE_SIZE = 500;
-
-interface CacheEntry<T> {
-  value: T;
-  expiresAt: number;
-}
-
-const cache = new Map<string, CacheEntry<unknown>>();
+const POSITIVE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const NEGATIVE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 function isEmpty(value: unknown): boolean {
   if (value == null) return true;
@@ -28,29 +32,61 @@ function isEmpty(value: unknown): boolean {
 }
 
 async function withCache<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
-  const now = Date.now();
-  const hit = cache.get(key);
-  if (hit && hit.expiresAt > now) return hit.value as T;
+  const hit = getCached<T>(key);
+  if (hit !== undefined) return hit;
 
   const value = await fetcher();
   if (isEmpty(value)) return value;
 
-  if (cache.size >= MAX_CACHE_SIZE) {
-    for (const [k, v] of cache) {
-      if (v.expiresAt <= now) cache.delete(k);
-    }
-    if (cache.size >= MAX_CACHE_SIZE) {
-      const firstKey = cache.keys().next().value;
-      if (firstKey !== undefined) cache.delete(firstKey);
-    }
-  }
-  cache.set(key, { value, expiresAt: now + CACHE_TTL_MS });
+  setCached(key, value, POSITIVE_CACHE_TTL_MS);
   return value;
 }
 
-/** Test-only — clears the cache so tests don't carry state across runs. */
+// ===== Negative cache (in-memory) =====
+// Keyed by URL with API key stripped — gives per-ticker, per-endpoint granularity.
+const negativeCache = new Map<string, number>(); // urlKey → expiresAt
+
+function negCacheKey(url: string): string {
+  try {
+    const u = new URL(url);
+    const params = new URLSearchParams(u.search);
+    params.delete("apikey");
+    params.delete("apiKey");
+    params.delete("token");
+    const search = params.toString();
+    return `${u.host}${u.pathname}${search ? "?" + search : ""}`;
+  } catch {
+    return url;
+  }
+}
+
+function negCacheCheck(url: string): boolean {
+  const key = negCacheKey(url);
+  const expiresAt = negativeCache.get(key);
+  if (expiresAt === undefined) return false;
+  if (expiresAt <= Date.now()) {
+    negativeCache.delete(key);
+    return false;
+  }
+  return true;
+}
+
+function negCacheSet(url: string): void {
+  const key = negCacheKey(url);
+  negativeCache.set(key, Date.now() + NEGATIVE_CACHE_TTL_MS);
+  // Opportunistic cleanup to keep map bounded.
+  if (negativeCache.size > 500) {
+    const now = Date.now();
+    for (const [k, v] of negativeCache) {
+      if (v <= now) negativeCache.delete(k);
+    }
+  }
+}
+
+/** Test-only — clears all caches so tests don't carry state across runs. */
 export function _clearStockCache(): void {
-  cache.clear();
+  _clearAllCache();
+  negativeCache.clear();
 }
 
 /* ===== Response shapes (minimal, additive — extra fields preserved via index signature) ===== */
@@ -199,6 +235,14 @@ async function safeJson<T>(url: string, fallback: T): Promise<T> {
     endpoint = u.pathname;
   } catch { /* malformed URL — leave host/endpoint empty */ }
 
+  // Circuit breaker: if this exact upstream URL (minus API key) recently failed,
+  // skip the fetch and return the fallback. Prevents the thundering herd against
+  // an exhausted upstream during sustained outages (e.g., FMP daily cap blown).
+  if (negCacheCheck(url)) {
+    recordNegativeCacheHit({ host, endpoint });
+    return fallback;
+  }
+
   try {
     const res = await fetch(url);
     if (!res.ok) {
@@ -207,6 +251,7 @@ async function safeJson<T>(url: string, fallback: T): Promise<T> {
       // is invisible until a user complains.
       console.warn(`[stock-fetcher] ${host}${endpoint} → HTTP ${res.status}`);
       recordUpstreamFailure({ host, endpoint, status: res.status });
+      negCacheSet(url);
       return fallback;
     }
     return await res.json() as T;
@@ -214,11 +259,12 @@ async function safeJson<T>(url: string, fallback: T): Promise<T> {
     const msg = err?.message || "fetch error";
     console.warn(`[stock-fetcher] ${host}${endpoint} → ${msg}`);
     recordUpstreamFailure({ host, endpoint, status: 0, message: msg });
+    negCacheSet(url);
     return fallback;
   }
 }
 
-/* ===== Fetchers — one per upstream endpoint, graceful on any failure, 5-min cache ===== */
+/* ===== Fetchers — one per upstream endpoint, graceful on any failure, 6h SQLite cache ===== */
 
 export async function fetchPolygonOverview(ticker: string): Promise<PolygonOverview> {
   return withCache(`polygon-overview:${ticker}`, async () => {

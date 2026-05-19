@@ -1,6 +1,7 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, RequestHandler } from "express";
 import { ZodType, ZodTypeDef } from "zod";
 import { authenticate } from "../middleware/auth";
+import { stockRateLimit } from "../middleware/stock-rate-limit";
 import { trackUsage } from "../middleware/usage";
 import { deductCredits } from "../db";
 
@@ -83,10 +84,17 @@ export function buildToolRouter(): Router {
 
   // Register each tool as a POST endpoint
   for (const tool of registeredTools.values()) {
+    // Stock tools fan out to multiple upstream API calls each — apply a stricter
+    // per-client rate limit so a single watchlist run can't burn an upstream
+    // daily cap (especially FMP at 250/day on free).
+    const isStockTool = tool.metadata?.tags?.includes("stocks") ?? false;
+    const middlewares: RequestHandler[] = [authenticate];
+    if (isStockTool) middlewares.push(stockRateLimit);
+    middlewares.push(trackUsage(tool.name));
+
     router.post(
       `/${tool.name}`,
-      authenticate,
-      trackUsage(tool.name),
+      ...middlewares,
       async (req: Request, res: Response) => {
         try {
           // Validate input

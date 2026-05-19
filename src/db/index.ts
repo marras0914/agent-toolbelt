@@ -54,6 +54,7 @@ db.exec(`
     tool_name TEXT NOT NULL,
     status_code INTEGER NOT NULL,
     duration_ms INTEGER NOT NULL,
+    input_fingerprint TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -66,6 +67,7 @@ db.exec(`
 
 // Migrate existing tables (safe — no-op if column already exists)
 try { db.exec(`ALTER TABLE clients ADD COLUMN credit_balance_micros INTEGER NOT NULL DEFAULT 0`); } catch { /* already exists */ }
+try { db.exec(`ALTER TABLE usage_records ADD COLUMN input_fingerprint TEXT`); } catch { /* already exists */ }
 
 // ----- Prepared Statements -----
 const stmts = {
@@ -94,10 +96,15 @@ const stmts = {
 
   // Usage
   insertUsage: db.prepare(`
-    INSERT INTO usage_records (client_id, api_key_id, tool_name, status_code, duration_ms) VALUES (?, ?, ?, ?, ?)
+    INSERT INTO usage_records (client_id, api_key_id, tool_name, status_code, duration_ms, input_fingerprint)
+    VALUES (?, ?, ?, ?, ?, ?)
   `),
   getUsageByClient: db.prepare(`
-    SELECT tool_name, COUNT(*) as calls, AVG(duration_ms) as avg_ms
+    SELECT
+      tool_name,
+      COUNT(*) as calls,
+      COUNT(DISTINCT input_fingerprint) as distinct_inputs,
+      AVG(duration_ms) as avg_ms
     FROM usage_records WHERE client_id = ? AND created_at >= ?
     GROUP BY tool_name
   `),
@@ -239,9 +246,10 @@ export function recordUsage(
   apiKeyId: string,
   toolName: string,
   statusCode: number,
-  durationMs: number
+  durationMs: number,
+  inputFingerprint: string | null = null
 ): void {
-  stmts.insertUsage.run(clientId, apiKeyId, toolName, statusCode, durationMs);
+  stmts.insertUsage.run(clientId, apiKeyId, toolName, statusCode, durationMs, inputFingerprint);
 }
 
 export function getClientUsage(clientId: string, since: string): any[] {
