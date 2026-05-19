@@ -46,6 +46,22 @@ function parsePricingMicros(pricing?: string): number {
   return Math.round(parseFloat(match[1]) * 1_000_000);
 }
 
+// Translate upstream SDK errors (Anthropic billing/rate-limit, generic 4xx/5xx
+// with JSON bodies) into clean user-facing messages. Tool-thrown errors like
+// "No data found for X" pass through unchanged.
+export function sanitizeErrorMessage(raw: string): string {
+  if (/credit balance/i.test(raw) || /insufficient.*quota/i.test(raw)) {
+    return "Service temporarily unavailable. Please try again shortly.";
+  }
+  if (/rate.?limit/i.test(raw) || /^429/.test(raw)) {
+    return "Rate limit reached. Please retry in a moment.";
+  }
+  if (/^\d{3}\s+[{[]/.test(raw)) {
+    return "An upstream service is temporarily unavailable.";
+  }
+  return raw || "An unexpected error occurred";
+}
+
 // ----- Build Express Router from registered tools -----
 export function buildToolRouter(): Router {
   const router = Router();
@@ -106,7 +122,7 @@ export function buildToolRouter(): Router {
           console.error(`Tool error [${tool.name}]:`, err);
           res.status(500).json({
             error: "tool_error",
-            message: err.message || "An unexpected error occurred",
+            message: sanitizeErrorMessage(err?.message || ""),
           });
         }
       }

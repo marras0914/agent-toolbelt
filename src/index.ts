@@ -5,7 +5,7 @@ import rateLimit from "express-rate-limit";
 import path from "path";
 import { config } from "./config";
 import { getUsageSummary, getClientUsageSummary } from "./middleware/usage";
-import { buildToolRouter, getRegisteredTools } from "./tools/registry";
+import { buildToolRouter, getRegisteredTools, sanitizeErrorMessage } from "./tools/registry";
 import { handleMcpRequest } from "./mcp-http";
 import { buildBillingRouter, buildStripeWebhookRouter } from "./middleware/billing";
 import {
@@ -196,7 +196,8 @@ app.post("/api/try/:toolName", async (req, res) => {
       }),
     });
   } catch (err: any) {
-    res.status(500).json({ error: "tool_error", message: err.message });
+    console.error(`Guest tool error [${tool.name}]:`, err);
+    res.status(500).json({ error: "tool_error", message: sanitizeErrorMessage(err?.message || "") });
   }
 });
 
