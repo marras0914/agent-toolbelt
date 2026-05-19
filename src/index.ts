@@ -375,6 +375,11 @@ app.get("/register", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "register.html"));
 });
 
+// ----- Terms of Service & Privacy Policy -----
+app.get("/terms", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "terms.html"));
+});
+
 // ----- Catch-all: serve landing page for non-API routes -----
 app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));
