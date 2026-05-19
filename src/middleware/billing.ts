@@ -2,6 +2,8 @@ import Stripe from "stripe";
 import { Request, Response, Router } from "express";
 import { config } from "../config";
 import {
+  createClient,
+  createApiKey,
   getClientByEmail,
   getClientByStripeId,
   updateClientStripe,
@@ -10,6 +12,7 @@ import {
   getClientBalance,
   Client,
 } from "../db";
+import { sendOnboardingEmail } from "../email";
 
 // ----- Stripe Client -----
 const stripe = config.stripeSecretKey
@@ -320,16 +323,210 @@ export function buildBillingRouter(): Router {
     });
   });
 
-  // Success/cancel pages
-  router.get("/success", (_req, res) => {
-    res.json({
-      message: "🎉 Subscription activated! Your API key tier has been upgraded.",
-      next: "Your existing API keys now have increased limits. Check /admin/usage for your new quotas.",
-    });
+  // Unified register-or-find + checkout flow
+  // Lets visitors pay directly from the marketing page without a separate signup step.
+  router.post("/start", async (req: Request, res: Response) => {
+    const { email, name, type, amountCents, tier } = req.body;
+
+    if (!email || !type) {
+      res.status(400).json({ error: "email and type are required" });
+      return;
+    }
+    if (type !== "topup" && type !== "subscription") {
+      res.status(400).json({ error: "type must be 'topup' or 'subscription'" });
+      return;
+    }
+    if (!stripe) {
+      res.status(503).json({ error: "Billing not configured" });
+      return;
+    }
+
+    // Find or create the client
+    let client = getClientByEmail(email);
+    let apiKey: string | undefined;
+    let isNew = false;
+
+    if (!client) {
+      client = createClient(email, name);
+      isNew = true;
+      const { key } = createApiKey(client.id, "default");
+      apiKey = key;
+
+      const source = (req.query.source as string) || (req.body?.source as string) || "billing_start";
+      const referer = req.headers.referer || req.headers.referrer || "none";
+      const userAgent = req.headers["user-agent"] || "none";
+      const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.ip || "unknown";
+      console.log(`[register] ${email} | source=${source} | referer=${referer} | ua=${userAgent} | ip=${ip}`);
+
+      sendOnboardingEmail({
+        email: client.email,
+        name: client.name,
+        apiKey: key,
+        keyPrefix: key.slice(0, 12),
+        clientId: client.id,
+      }).catch((err) => console.error("Onboarding email failed:", err));
+    }
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    try {
+      let checkoutUrl: string | null = null;
+
+      if (type === "subscription") {
+        const validTier = (tier as Client["tier"]) || "starter";
+        if (!["starter", "pro", "enterprise"].includes(validTier)) {
+          res.status(400).json({ error: "tier must be: starter, pro, or enterprise" });
+          return;
+        }
+        checkoutUrl = await createCheckoutSession(
+          client.email,
+          client.id,
+          validTier as "starter" | "pro" | "enterprise",
+          `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+          `${baseUrl}/billing/cancel`
+        );
+      } else {
+        const cents = parseInt(String(amountCents), 10);
+        if (![500, 1000, 2500, 5000].includes(cents)) {
+          res.status(400).json({ error: "amountCents must be one of: 500, 1000, 2500, 5000" });
+          return;
+        }
+        const micros = centsToMicros(cents);
+        const session = await stripe.checkout.sessions.create({
+          mode: "payment",
+          payment_method_types: ["card"],
+          customer_email: client.email,
+          line_items: [{
+            price_data: {
+              currency: "usd",
+              unit_amount: cents,
+              product_data: {
+                name: "Agent Toolbelt Credits",
+                description: CREDIT_PACKS[cents] || `${micros.toLocaleString()} credits`,
+              },
+            },
+            quantity: 1,
+          }],
+          metadata: { clientId: client.id, type: "topup", creditsMicros: String(micros) },
+          success_url: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${baseUrl}/billing/cancel`,
+        });
+        checkoutUrl = session.url;
+      }
+
+      if (!checkoutUrl) {
+        res.status(503).json({ error: "Failed to create checkout session" });
+        return;
+      }
+
+      res.json({ checkoutUrl, clientId: client.id, isNew, apiKey });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // HTML success page — browser redirect target after Stripe completes.
+  // Reads apiKey from sessionStorage (set by the modal during /billing/start) so
+  // first-time payers can see their new key.
+  router.get("/success", (req, res) => {
+    const sessionId = (req.query.session_id as string) || "";
+    res.type("html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payment successful — Agent Toolbelt</title>
+  <style>
+    :root { --bg: #0f0f10; --surface: #1a1a1c; --border: #2a2a2d; --text: #e8e8e8; --text-dim: #888; --accent: #7dd3a0; --orange: #f5a572; --mono: 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { max-width: 560px; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    .check { color: var(--accent); font-size: 32px; line-height: 1; margin-bottom: 12px; }
+    p { color: var(--text-dim); margin: 8px 0; }
+    .key-block { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0; }
+    .key-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 6px; }
+    code { font-family: var(--mono); font-size: 13px; color: var(--orange); word-break: break-all; }
+    .warning { font-size: 12px; color: var(--orange); margin-top: 8px; }
+    .btn { display: inline-block; background: var(--accent); color: #0a0a0a; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 16px; font-size: 14px; }
+    .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+    pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 14px; font-size: 12px; font-family: var(--mono); overflow-x: auto; color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="check">✓</div>
+    <h1 id="title">Payment received</h1>
+    <p id="subtitle">Your account is active.</p>
+
+    <div id="new-user-block" style="display:none">
+      <div class="key-block">
+        <div class="key-label">Your API key (save this — shown once)</div>
+        <code id="api-key"></code>
+        <div class="warning">We've also emailed a confirmation to <span id="email-display"></span>, but the full key is not in the email for security.</div>
+      </div>
+
+      <p style="color: var(--text); font-size: 14px; margin-top: 16px;">Try your first call:</p>
+      <pre id="curl-example"></pre>
+    </div>
+
+    <div id="returning-user-block" style="display:none">
+      <p>Credits have been added to your account. Use your existing API key as before.</p>
+    </div>
+
+    <a class="btn" href="/docs">Read the docs</a>
+    <a class="btn btn-ghost" href="/">Back to home</a>
+  </div>
+
+  <script>
+    const sessionId = ${JSON.stringify(sessionId)};
+    const apiKey = sessionStorage.getItem('atb_pending_key');
+    const email = sessionStorage.getItem('atb_pending_email') || '';
+
+    if (apiKey) {
+      document.getElementById('new-user-block').style.display = 'block';
+      document.getElementById('api-key').textContent = apiKey;
+      document.getElementById('email-display').textContent = email;
+      document.getElementById('curl-example').textContent =
+        'curl -X POST https://www.agenttoolbelt.live/api/tools/stock-thesis \\\\\\n' +
+        '  -H "Authorization: Bearer ' + apiKey + '" \\\\\\n' +
+        '  -H "Content-Type: application/json" \\\\\\n' +
+        "  -d '{\\"ticker\\": \\"AAPL\\"}'";
+      sessionStorage.removeItem('atb_pending_key');
+      sessionStorage.removeItem('atb_pending_email');
+    } else {
+      document.getElementById('returning-user-block').style.display = 'block';
+    }
+  </script>
+</body>
+</html>`);
   });
 
   router.get("/cancel", (_req, res) => {
-    res.json({ message: "Checkout cancelled. No changes were made." });
+    res.type("html").send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout cancelled — Agent Toolbelt</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f10; color: #e8e8e8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { max-width: 480px; width: 100%; background: #1a1a1c; border: 1px solid #2a2a2d; border-radius: 12px; padding: 32px; text-align: center; }
+    h1 { margin: 0 0 12px; font-size: 22px; }
+    p { color: #888; margin: 8px 0 20px; }
+    .btn { display: inline-block; background: #7dd3a0; color: #0a0a0a; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; margin: 0 4px; }
+    .btn-ghost { background: transparent; color: #888; border: 1px solid #2a2a2d; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Checkout cancelled</h1>
+    <p>No charges were made. Your account is unchanged.</p>
+    <a class="btn" href="/#pricing">Back to pricing</a>
+    <a class="btn btn-ghost" href="/">Home</a>
+  </div>
+</body>
+</html>`);
   });
 
   return router;

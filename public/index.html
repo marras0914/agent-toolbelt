@@ -923,7 +923,7 @@
           <div class="price-amount">$0<span>/mo</span></div>
           <div class="price-detail">1,000 calls/month included</div>
           <ul class="price-features">
-            <li>All 5 stock analysis tools</li>
+            <li>All 7 stock analysis tools</li>
             <li>All 20 utility tools</li>
             <li>10 requests/min</li>
             <li>No credit card required</li>
@@ -941,7 +941,7 @@
             <li>60 requests/min</li>
             <li>Credits never expire</li>
           </ul>
-          <a href="#get-started" class="btn btn-primary" style="width:100%;text-align:center;">Buy Credits</a>
+          <button onclick="openCheckoutModal('topup')" class="btn btn-primary" style="width:100%;text-align:center;border:none;cursor:pointer;font-family:inherit;font-size:inherit;">Buy Credits</button>
         </div>
         <div class="price-card">
           <div class="price-tier">Starter</div>
@@ -953,7 +953,7 @@
             <li>60 requests/min</li>
             <li>Priority support</li>
           </ul>
-          <a href="#get-started" class="btn btn-ghost" style="width:100%;text-align:center;">Subscribe</a>
+          <button onclick="openCheckoutModal('subscription')" class="btn btn-ghost" style="width:100%;text-align:center;border:1px solid var(--border);cursor:pointer;font-family:inherit;font-size:inherit;background:transparent;">Subscribe</button>
         </div>
       </div>
     </div>
@@ -979,6 +979,135 @@
       agent-toolbelt © 2026 — Built for the agent economy
     </div>
   </footer>
+
+  <!-- Checkout modal -->
+  <div id="checkout-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;padding:24px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:480px;width:100%;padding:28px;position:relative;">
+      <button onclick="closeCheckoutModal()" aria-label="Close" style="position:absolute;top:12px;right:12px;background:transparent;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;line-height:1;padding:4px 8px;">×</button>
+      <h3 id="modal-title" style="margin:0 0 6px;font-size:20px;color:var(--text);">Continue to payment</h3>
+      <p id="modal-subtitle" style="margin:0 0 18px;color:var(--text-dim);font-size:14px;"></p>
+
+      <div id="topup-options" style="display:none;margin-bottom:18px;">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+          <button type="button" class="pack-btn" data-cents="500" onclick="selectPack(500)">$5</button>
+          <button type="button" class="pack-btn" data-cents="1000" onclick="selectPack(1000)">$10</button>
+          <button type="button" class="pack-btn" data-cents="2500" onclick="selectPack(2500)">$25</button>
+          <button type="button" class="pack-btn" data-cents="5000" onclick="selectPack(5000)">$50</button>
+        </div>
+        <p style="margin:10px 0 0;font-size:12px;color:var(--text-dim);">Credits never expire. Stock tools $0.05/call.</p>
+      </div>
+
+      <label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;">Your email</label>
+      <input type="email" id="modal-email" placeholder="you@example.com" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px;outline:none;margin-bottom:14px;">
+
+      <button id="modal-submit" onclick="submitCheckout()" class="btn btn-primary" style="width:100%;border:none;cursor:pointer;padding:11px;font-size:15px;font-weight:600;">Continue to payment →</button>
+      <div id="modal-error" style="display:none;margin-top:10px;color:var(--orange);font-size:13px;"></div>
+      <p style="margin:14px 0 0;font-size:11px;color:var(--text-dim);line-height:1.5;">Payments handled by Stripe. We'll email your API key (new accounts only) and a receipt after checkout.</p>
+    </div>
+  </div>
+
+  <style>
+    .pack-btn { padding:14px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:var(--mono);font-size:15px;cursor:pointer;transition:border-color 0.15s, background 0.15s; }
+    .pack-btn:hover { border-color:var(--accent);background:var(--surface); }
+    .pack-btn.selected { border-color:var(--accent);background:var(--surface);color:var(--accent); }
+  </style>
+
+  <script>
+    let modalCheckoutType = null;
+    let modalSelectedCents = null;
+
+    function openCheckoutModal(type) {
+      modalCheckoutType = type;
+      modalSelectedCents = null;
+      document.getElementById('modal-error').style.display = 'none';
+      document.querySelectorAll('.pack-btn').forEach(b => b.classList.remove('selected'));
+
+      if (type === 'topup') {
+        document.getElementById('modal-title').textContent = 'Buy credits';
+        document.getElementById('modal-subtitle').textContent = 'Pick a pack and enter your email. New customers get an API key after checkout.';
+        document.getElementById('topup-options').style.display = 'block';
+      } else {
+        document.getElementById('modal-title').textContent = 'Subscribe to Starter — $29/mo';
+        document.getElementById('modal-subtitle').textContent = '50,000 calls/month, 60 req/min, all 7 stock tools + 20 utility tools.';
+        document.getElementById('topup-options').style.display = 'none';
+      }
+
+      const modal = document.getElementById('checkout-modal');
+      modal.style.display = 'flex';
+      setTimeout(() => document.getElementById('modal-email').focus(), 50);
+    }
+
+    function closeCheckoutModal() {
+      document.getElementById('checkout-modal').style.display = 'none';
+    }
+
+    function selectPack(cents) {
+      modalSelectedCents = cents;
+      document.querySelectorAll('.pack-btn').forEach(b => {
+        b.classList.toggle('selected', parseInt(b.dataset.cents, 10) === cents);
+      });
+    }
+
+    async function submitCheckout() {
+      const email = document.getElementById('modal-email').value.trim();
+      const errorEl = document.getElementById('modal-error');
+      const submitBtn = document.getElementById('modal-submit');
+      errorEl.style.display = 'none';
+
+      if (!email || !email.includes('@')) {
+        errorEl.textContent = 'Enter a valid email.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (modalCheckoutType === 'topup' && !modalSelectedCents) {
+        errorEl.textContent = 'Pick a pack ($5 / $10 / $25 / $50).';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating checkout…';
+
+      try {
+        const body = modalCheckoutType === 'topup'
+          ? { email, type: 'topup', amountCents: modalSelectedCents }
+          : { email, type: 'subscription', tier: 'starter' };
+
+        const res = await fetch('/billing/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.checkoutUrl) {
+          errorEl.textContent = data.error || 'Could not start checkout. Try again.';
+          errorEl.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Continue to payment →';
+          return;
+        }
+
+        if (data.apiKey) sessionStorage.setItem('atb_pending_key', data.apiKey);
+        sessionStorage.setItem('atb_pending_email', email);
+
+        window.location.href = data.checkoutUrl;
+      } catch (err) {
+        errorEl.textContent = 'Network error. Please try again.';
+        errorEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Continue to payment →';
+      }
+    }
+
+    // ESC closes modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeCheckoutModal();
+    });
+    document.getElementById('checkout-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'checkout-modal') closeCheckoutModal();
+    });
+  </script>
 
   <script>
     async function registerClient() {
