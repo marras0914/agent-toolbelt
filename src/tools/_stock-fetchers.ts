@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { recordUpstreamFailure } from "../upstream-health";
 
 /* ===== In-memory TTL cache for upstream API responses =====
  * Stock fundamentals don't change intraday — quarterly filings drive the
@@ -189,12 +190,14 @@ export interface FinnhubEarningsCalendarEntry {
 /* ===== Internal helper ===== */
 
 async function safeJson<T>(url: string, fallback: T): Promise<T> {
-  // Strip query string so API keys never appear in log output.
+  // Strip query string so API keys never appear in log output or health counters.
+  let host = "";
   let endpoint = "";
   try {
     const u = new URL(url);
-    endpoint = `${u.host}${u.pathname}`;
-  } catch { /* malformed URL — leave endpoint empty */ }
+    host = u.host;
+    endpoint = u.pathname;
+  } catch { /* malformed URL — leave host/endpoint empty */ }
 
   try {
     const res = await fetch(url);
@@ -202,12 +205,15 @@ async function safeJson<T>(url: string, fallback: T): Promise<T> {
       // Surface upstream non-2xx (especially 429 rate-limits) instead of silently
       // collapsing into an empty fallback. Without this, "all stock tools degrading"
       // is invisible until a user complains.
-      console.warn(`[stock-fetcher] ${endpoint} → HTTP ${res.status}`);
+      console.warn(`[stock-fetcher] ${host}${endpoint} → HTTP ${res.status}`);
+      recordUpstreamFailure({ host, endpoint, status: res.status });
       return fallback;
     }
     return await res.json() as T;
   } catch (err: any) {
-    console.warn(`[stock-fetcher] ${endpoint} → ${err?.message || "fetch error"}`);
+    const msg = err?.message || "fetch error";
+    console.warn(`[stock-fetcher] ${host}${endpoint} → ${msg}`);
+    recordUpstreamFailure({ host, endpoint, status: 0, message: msg });
     return fallback;
   }
 }

@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import path from "path";
 import { config } from "./config";
 import { getUsageSummary, getClientUsageSummary } from "./middleware/usage";
+import { getUpstreamHealth } from "./upstream-health";
 import { buildToolRouter, getRegisteredTools, sanitizeErrorMessage } from "./tools/registry";
 import { handleMcpRequest } from "./mcp-http";
 import { buildBillingRouter, buildStripeWebhookRouter } from "./middleware/billing";
@@ -318,6 +319,12 @@ app.get("/admin/clients", (_req, res) => {
 // Global usage dashboard
 app.get("/admin/usage", (_req, res) => {
   res.json(getUsageSummary());
+});
+
+// Upstream API health — surfaces FMP/Finnhub/Polygon non-2xx counts (esp. 429
+// rate-limits) since the last process restart. See src/upstream-health.ts.
+app.get("/admin/upstream-health", (_req, res) => {
+  res.json(getUpstreamHealth());
 });
 
 // API docs endpoint — Redoc UI for browsers, JSON for agents
