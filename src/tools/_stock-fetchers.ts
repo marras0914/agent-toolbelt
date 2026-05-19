@@ -1,13 +1,15 @@
 import { config } from "../config";
 
 /* ===== In-memory TTL cache for upstream API responses =====
- * Stock fundamentals don't change minute-to-minute; a 5-min TTL eliminates
- * the redundant fetches when (a) one user calls multiple tools for the same
- * ticker in succession, or (b) different users hit the same popular ticker.
- * Single-instance server, so a Map is sufficient. Empty/failed results are
- * NOT cached — that lets transient upstream failures recover on the next call. */
+ * Stock fundamentals don't change intraday — quarterly filings drive the
+ * underlying data. A 6-hour TTL eliminates redundant fetches when (a) one
+ * user calls multiple tools for the same ticker in succession, (b) different
+ * users hit the same popular ticker, or (c) the same user runs a watchlist
+ * across an hours-long session. Single-instance server, so a Map is sufficient.
+ * Empty/failed results are NOT cached — that lets transient upstream failures
+ * (e.g., rate-limit 429s clearing at midnight UTC) recover on the next call. */
 
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_CACHE_SIZE = 500;
 
 interface CacheEntry<T> {
@@ -187,11 +189,25 @@ export interface FinnhubEarningsCalendarEntry {
 /* ===== Internal helper ===== */
 
 async function safeJson<T>(url: string, fallback: T): Promise<T> {
+  // Strip query string so API keys never appear in log output.
+  let endpoint = "";
+  try {
+    const u = new URL(url);
+    endpoint = `${u.host}${u.pathname}`;
+  } catch { /* malformed URL — leave endpoint empty */ }
+
   try {
     const res = await fetch(url);
-    if (!res.ok) return fallback;
+    if (!res.ok) {
+      // Surface upstream non-2xx (especially 429 rate-limits) instead of silently
+      // collapsing into an empty fallback. Without this, "all stock tools degrading"
+      // is invisible until a user complains.
+      console.warn(`[stock-fetcher] ${endpoint} → HTTP ${res.status}`);
+      return fallback;
+    }
     return await res.json() as T;
-  } catch {
+  } catch (err: any) {
+    console.warn(`[stock-fetcher] ${endpoint} → ${err?.message || "fetch error"}`);
     return fallback;
   }
 }
