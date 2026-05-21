@@ -49,31 +49,38 @@ export function recordNegativeCacheHit(args: { host: string; endpoint: string })
   negCacheHits.set(args.host, (negCacheHits.get(args.host) ?? 0) + 1);
 }
 
+// "Cap exceeded" = upstream is telling us we're out of allowance, by any name.
+// FMP returns 402 Payment Required when over the daily plan cap; most other
+// upstreams use 429 Too Many Requests for the same intent. Count both so a
+// single number answers "are we hitting the wall?" without depending on which
+// status the provider chose.
+const CAP_EXCEEDED_STATUSES = new Set([402, 429]);
+
 export function getUpstreamHealth(): {
   windowStartedAt: string;
   totalFailures: number;
   totalNegativeCacheHits: number;
-  byHost: Array<{ host: string; total: number; rateLimits429: number; otherErrors: number; negCacheHits: number }>;
+  byHost: Array<{ host: string; total: number; upstreamCapExceeded: number; otherErrors: number; negCacheHits: number }>;
   byHostStatus: Array<{ host: string; status: number; count: number }>;
   recent: Array<{ ts: string; host: string; endpoint: string; status: number; message?: string }>;
 } {
   const byHostStatus: Array<{ host: string; status: number; count: number }> = [];
-  const byHostMap = new Map<string, { total: number; rateLimits429: number; otherErrors: number; negCacheHits: number }>();
+  const byHostMap = new Map<string, { total: number; upstreamCapExceeded: number; otherErrors: number; negCacheHits: number }>();
 
   for (const [key, count] of counts) {
     const [host, statusStr] = key.split("|");
     const status = parseInt(statusStr, 10);
     byHostStatus.push({ host, status, count });
 
-    const h = byHostMap.get(host) ?? { total: 0, rateLimits429: 0, otherErrors: 0, negCacheHits: 0 };
+    const h = byHostMap.get(host) ?? { total: 0, upstreamCapExceeded: 0, otherErrors: 0, negCacheHits: 0 };
     h.total += count;
-    if (status === 429) h.rateLimits429 += count;
+    if (CAP_EXCEEDED_STATUSES.has(status)) h.upstreamCapExceeded += count;
     else h.otherErrors += count;
     byHostMap.set(host, h);
   }
 
   for (const [host, hits] of negCacheHits) {
-    const h = byHostMap.get(host) ?? { total: 0, rateLimits429: 0, otherErrors: 0, negCacheHits: 0 };
+    const h = byHostMap.get(host) ?? { total: 0, upstreamCapExceeded: 0, otherErrors: 0, negCacheHits: 0 };
     h.negCacheHits = hits;
     byHostMap.set(host, h);
   }
