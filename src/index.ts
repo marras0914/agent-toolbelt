@@ -6,6 +6,7 @@ import path from "path";
 import { config } from "./config";
 import { getUsageSummary, getClientUsageSummary } from "./middleware/usage";
 import { getUpstreamHealth } from "./upstream-health";
+import { runCacheWarmup, getLastWarmupResult, getWarmTickers, startCacheWarmupScheduler } from "./jobs/warm-cache";
 import { buildToolRouter, getRegisteredTools, sanitizeErrorMessage } from "./tools/registry";
 import { handleMcpRequest } from "./mcp-http";
 import { buildBillingRouter, buildStripeWebhookRouter } from "./middleware/billing";
@@ -327,6 +328,21 @@ app.get("/admin/upstream-health", (_req, res) => {
   res.json(getUpstreamHealth());
 });
 
+// Cache warmup status + manual trigger. The scheduler runs daily at 00:30 UTC
+// in production; POST here to force-run after a deploy or to repopulate the
+// cache mid-day if FMP recovers. See src/jobs/warm-cache.ts.
+app.get("/admin/warm-cache", (_req, res) => {
+  res.json({ tickers: getWarmTickers(), lastRun: getLastWarmupResult() });
+});
+app.post("/admin/warm-cache", async (_req, res) => {
+  try {
+    const result = await runCacheWarmup();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
 // API docs endpoint — Redoc UI for browsers, JSON for agents
 app.get("/api/docs", (req, res) => {
   const acceptsHtml = req.accepts(["html", "json"]) === "html";
@@ -416,8 +432,10 @@ app.listen(config.port, () => {
 ║  Admin:                                            ║
 ║    GET  /admin/usage           Global stats        ║
 ║    *    /admin/clients/:id/*   Client management   ║
+║    *    /admin/warm-cache      Cache warmup        ║
 ╚═══════════════════════════════════════════════════╝
   `);
+  startCacheWarmupScheduler();
 });
 
 export default app;
