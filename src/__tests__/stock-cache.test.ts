@@ -41,8 +41,10 @@ describe("stock-cache (SQLite-backed)", () => {
     // SQLite file on disk) can't interfere with this assertion.
     const k = `clearexp-${Date.now()}-${Math.random()}`;
     setCached(k, { x: 1 }, 1);
+    // Spin past Windows' ~15.6ms Date.now() granularity so the expiresAt
+    // boundary is reliably crossed on slow/granular CI clocks.
     const start = Date.now();
-    while (Date.now() - start < 5) { /* spin */ }
+    while (Date.now() - start < 50) { /* spin */ }
     const removed = clearExpiredCache();
     expect(removed).toBeGreaterThanOrEqual(1);
     expect(getCached(k)).toBeUndefined();
