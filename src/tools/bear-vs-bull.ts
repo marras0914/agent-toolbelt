@@ -74,7 +74,7 @@ async function handler(input: Input) {
     incomeRows.length > 0 ? `\nFinancials:\n${incomeRows.join("\n")}` : "",
     fh.revenueGrowth3Y != null ? `3Y Revenue CAGR: ${Number(fh.revenueGrowth3Y).toFixed(1)}%` : "",
     `\nValuation:`,
-    (rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual) != null ? `  P/E (TTM): ${Number(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual).toFixed(1)}x` : "",
+    rt.priceToEarningsRatioTTM != null ? `  P/E (TTM): ${Number(rt.priceToEarningsRatioTTM).toFixed(1)}x` : "",
     (rt.priceToSalesRatioTTM ?? fh.psTTM) != null ? `  P/S: ${Number(rt.priceToSalesRatioTTM ?? fh.psTTM).toFixed(1)}x` : "",
     km.freeCashFlowYieldTTM != null ? `  FCF Yield: ${(Number(km.freeCashFlowYieldTTM) * 100).toFixed(1)}%` : (Number(fh.pfcfShareTTM) > 0 ? `  FCF Yield: ${(100 / Number(fh.pfcfShareTTM)).toFixed(1)}%` : ""),
     (rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"]) != null ? `  Debt/Equity: ${Number(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"]).toFixed(2)}` : "",

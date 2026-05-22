@@ -85,9 +85,13 @@ async function handler(input: Input) {
   const rt = ratiosTTM;
   const fh = metrics;
 
-  const pe = sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
+  // P/E and P/B come from FMP TTM only — Finnhub's peNormalizedAnnual and
+  // pbAnnual use different methodologies (cycle-normalized / annual book value)
+  // and substituting them under a "TTM" label produces misleading numbers for
+  // cyclical names. Mark unavailable when FMP is over its daily plan cap.
+  const pe = sane(rt.priceToEarningsRatioTTM, 0, 2000);
   const ps = sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
-  const pb = sane(rt.priceToBookRatioTTM ?? fh.pbAnnual, 0, 500);
+  const pb = sane(rt.priceToBookRatioTTM, 0, 500);
   const roe = sane(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
   const debtToEquity = sane(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
   const pfcfTTM = Number(fh.pfcfShareTTM);

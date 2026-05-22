@@ -49,7 +49,10 @@ interface TickerData {
 
 function deriveMetrics(km: FMPKeyMetrics, rt: FMPRatiosTTM, fh: FinnhubMetric): DerivedMetrics {
   return {
-    pe: sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000),
+    // P/E from FMP TTM only — Finnhub's peNormalizedAnnual is a different metric
+    // (cycle-normalized) and silently substituting it produces misleading numbers
+    // for cyclicals. Mark unavailable when FMP is over its daily plan cap.
+    pe: sane(rt.priceToEarningsRatioTTM, 0, 2000),
     ps: sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000),
     evEbitda: sane(km.evToEBITDATTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500),
     fcfYield: sane(km.freeCashFlowYieldTTM, -1, 1),

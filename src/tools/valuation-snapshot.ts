@@ -43,24 +43,78 @@ async function handler(input: Input) {
   const fh = finnhubMetrics;
   const ov = overview;
 
-  const pe = sane(rt.priceToEarningsRatioTTM ?? fh.peNormalizedAnnual, 0, 2000);
-  const ps = sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000);
-  const pb = sane(rt.priceToBookRatioTTM ?? fh.pbAnnual, 0, 500);
-  const evEbitda = sane(km.evToEBITDATTM ?? rt.enterpriseValueMultipleTTM ?? fh.evEbitdaTTM, 0, 500);
+  // Pick the first defined candidate AND track which source it came from. Used
+  // for `metricSources` in the response so downstream consumers can tell whether
+  // a metric came from FMP-TTM (preferred), a TTM-equivalent Finnhub field, or
+  // is unavailable. Returns "unavailable" when sane() rejects the value too,
+  // since a rejected value should not be attributed to its source.
+  function pickWithSource<T>(
+    saneFn: (v: unknown) => T | null | undefined,
+    ...candidates: Array<[unknown, string]>
+  ): { value: T | null; source: string } {
+    for (const [raw, src] of candidates) {
+      if (raw === undefined || raw === null) continue;
+      const v = saneFn(raw);
+      if (v !== undefined && v !== null) return { value: v, source: src };
+    }
+    return { value: null, source: "unavailable" };
+  }
+
+  // P/E and P/B: FMP TTM only. Finnhub's peNormalizedAnnual / pbAnnual use a
+  // different methodology (cycle-normalized / annual book value), and silently
+  // substituting them under a "TTM" label produced wildly wrong numbers for
+  // cyclical names like MU (99.7x normalized vs ~35x TTM). Better to mark as
+  // unavailable when FMP is over its plan cap than to mislead.
+  const peChoice = pickWithSource<number>(v => sane(v, 0, 2000), [rt.priceToEarningsRatioTTM, "fmp_ttm"]);
+  const psChoice = pickWithSource<number>(v => sane(v, 0, 1000), [rt.priceToSalesRatioTTM, "fmp_ttm"], [fh.psTTM, "finnhub_ttm"]);
+  const pbChoice = pickWithSource<number>(v => sane(v, 0, 500), [rt.priceToBookRatioTTM, "fmp_ttm"]);
+  const evEbitdaChoice = pickWithSource<number>(
+    v => sane(v, 0, 500),
+    [km.evToEBITDATTM, "fmp_ttm"],
+    [rt.enterpriseValueMultipleTTM, "fmp_ttm"],
+    [fh.evEbitdaTTM, "finnhub_ttm"],
+  );
   const pfcfTTM = Number(fh.pfcfShareTTM);
   const fcfYieldFromFh = pfcfTTM > 0 && isFinite(pfcfTTM) ? 1 / pfcfTTM : undefined;
-  const fcfYield = sane(km.freeCashFlowYieldTTM ?? fcfYieldFromFh, -1, 1);
+  const fcfYieldChoice = pickWithSource<number>(
+    v => sane(v, -1, 1),
+    [km.freeCashFlowYieldTTM, "fmp_ttm"],
+    [fcfYieldFromFh, "finnhub_ttm"],
+  );
+  const pe = peChoice.value;
+  const ps = psChoice.value;
+  const pb = pbChoice.value;
+  const evEbitda = evEbitdaChoice.value;
+  const fcfYield = fcfYieldChoice.value;
 
   // FMP ratios-ttm dividend yield is decimal; Finnhub is decimal — cap at 30% to reject bad data
   const rawDividendYield = rt.dividendYieldTTM ?? fh.dividendYieldIndicatedAnnual;
   const dividendYield = sane(rawDividendYield, 0, 0.30);
 
-  const roe = sane(km.returnOnEquityTTM ?? rt.returnOnEquityTTM ?? fhPct(fh.roeTTM), -5, 10);
+  const roeChoice = pickWithSource<number>(
+    v => sane(v, -5, 10),
+    [km.returnOnEquityTTM, "fmp_ttm"],
+    [rt.returnOnEquityTTM, "fmp_ttm"],
+    [fhPct(fh.roeTTM), "finnhub_ttm"],
+  );
+  const netMarginChoice = pickWithSource<number>(
+    v => sane(v, -1, 1),
+    [rt.netProfitMarginTTM, "fmp_ttm"],
+    [fhPct(fh.netProfitMarginTTM), "finnhub_ttm"],
+  );
+  // debtToEquity: FMP is TTM, Finnhub's totalDebt/totalEquityAnnual is annual.
+  // For a slow-moving leverage ratio the gap is small, but we tag the source so callers can tell.
+  const debtToEquityChoice = pickWithSource<number>(
+    v => sane(v, 0, 100),
+    [rt.debtToEquityRatioTTM, "fmp_ttm"],
+    [fh["totalDebt/totalEquityAnnual"], "finnhub_annual"],
+  );
+  const roe = roeChoice.value;
   const roic = sane(km.returnOnInvestedCapitalTTM ?? km.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);
-  const debtToEquity = sane(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 100);
+  const debtToEquity = debtToEquityChoice.value;
   const currentRatio = sane(km.currentRatioTTM ?? rt.currentRatioTTM ?? fh.currentRatioAnnual, 0, 50);
   const grossMargin = sane(rt.grossProfitMarginTTM ?? fhPct(fh.grossMarginTTM), -1, 1);
-  const netMargin = sane(rt.netProfitMarginTTM ?? fhPct(fh.netProfitMarginTTM), -1, 1);
+  const netMargin = netMarginChoice.value;
 
   const revenueGrowth3Y = sane(fhPct(fh.revenueGrowth3Y), -1, 10);
   const epsGrowth3Y = sane(fhPct(fh.epsGrowth3Y), -5, 50);
@@ -144,6 +198,21 @@ async function handler(input: Input) {
       roe: roe != null ? parseFloat((Number(roe) * 100).toFixed(1)) : null,
       netMargin: netMargin != null ? parseFloat((Number(netMargin) * 100).toFixed(1)) : null,
       debtToEquity: debtToEquity != null ? parseFloat(Number(debtToEquity).toFixed(2)) : null,
+    },
+    // Tells consumers which upstream methodology backs each metric. "fmp_ttm" =
+    // FMP's TTM ratios (preferred); "finnhub_ttm" = Finnhub TTM-equivalent fallback;
+    // "finnhub_annual" = Finnhub annual data (methodology gap noted in field name);
+    // "unavailable" = no source could be trusted (often because FMP is over its
+    // daily plan cap and no TTM fallback exists for this field).
+    metricSources: {
+      peRatio: peChoice.source,
+      psRatio: psChoice.source,
+      pbRatio: pbChoice.source,
+      evEbitda: evEbitdaChoice.source,
+      fcfYield: fcfYieldChoice.source,
+      roe: roeChoice.source,
+      netMargin: netMarginChoice.source,
+      debtToEquity: debtToEquityChoice.source,
     },
     dataSources: {
       fetchedAt,
