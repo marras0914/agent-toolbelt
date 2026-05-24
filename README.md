@@ -72,6 +72,14 @@ Common agent infrastructure. Rule-based tools billed at $0.0001–$0.001/call; L
 
 ---
 
+## Do you know what your agent is actually calling?
+
+You wired up the tools. Once the agent is running, though, you have no visibility into which ones it calls or what it passes to them. I also built Cordon for this. It sits in front of any MCP server and logs every call. You can write rules to block the ones you don't want touching production.
+
+[getcordon.com](https://getcordon.com) — `npx @getcordon/cli init`
+
+---
+
 ## npm SDK + LangChain
 
 ```bash
