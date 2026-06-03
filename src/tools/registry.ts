@@ -4,6 +4,24 @@ import { authenticate } from "../middleware/auth";
 import { stockRateLimit } from "../middleware/stock-rate-limit";
 import { trackUsage } from "../middleware/usage";
 import { deductCredits } from "../db";
+import { getCached, setCached } from "../db/stock-cache";
+
+// Stock-tool RESPONSE cache: the underlying market data is already cached for
+// 6h in _stock-fetchers, but every repeat call still re-ran the LLM analysis
+// on identical data. Screening agents call the same tickers over and over
+// (measured: 717 calls / 40 distinct inputs for one client), so caching the
+// final JSON for the same window slashes Anthropic spend without serving
+// staler data than the inputs already are.
+const RESPONSE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+// Deterministic cache key from validated input (sorted keys, stock inputs are flat)
+export function responseCacheKey(toolName: string, input: any): string {
+  const sorted = Object.keys(input ?? {})
+    .sort()
+    .map((k) => `${k}=${JSON.stringify(input[k])}`)
+    .join("&");
+  return `resp:v1:${toolName}:${sorted}`;
+}
 
 // ----- Tool Definition Interface -----
 export interface ToolDefinition<TInput = any, TOutput = any> {
@@ -108,12 +126,26 @@ export function buildToolRouter(): Router {
             return;
           }
 
-          // Execute tool
+          // Execute tool (stock tools: serve from the 6h response cache when warm)
           const startTime = Date.now();
-          const result = await tool.handler(parsed.data);
+          let result: any;
+          let cached = false;
+          const cacheKey = isStockTool ? responseCacheKey(tool.name, parsed.data) : null;
+          if (cacheKey) {
+            const hit = getCached<any>(cacheKey);
+            if (hit !== undefined) {
+              result = hit;
+              cached = true;
+            }
+          }
+          if (!cached) {
+            result = await tool.handler(parsed.data);
+            if (cacheKey) setCached(cacheKey, result, RESPONSE_CACHE_TTL_MS);
+          }
           const durationMs = Date.now() - startTime;
 
-          // Deduct credits for PAYG clients
+          // Deduct credits for PAYG clients (cache hits still bill — caching is
+          // a cost optimization on our side, not a different product)
           if (req.client?.tier === "payg") {
             const micros = tool.metadata?.pricingMicros ?? parsePricingMicros(tool.metadata?.pricing);
             deductCredits(req.client.clientId, micros);
@@ -124,6 +156,7 @@ export function buildToolRouter(): Router {
             tool: tool.name,
             version: tool.version,
             durationMs,
+            cached,
             result,
           });
         } catch (err: any) {

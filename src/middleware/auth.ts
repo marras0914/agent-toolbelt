@@ -21,6 +21,7 @@ declare global {
 export const TIER_LIMITS: Record<Client["tier"], { requestsPerMinute: number; monthlyRequests: number }> = {
   free: { requestsPerMinute: 10, monthlyRequests: 1_000 },
   payg: { requestsPerMinute: 60, monthlyRequests: Infinity },
+  hobby: { requestsPerMinute: 30, monthlyRequests: 10_000 },
   starter: { requestsPerMinute: 60, monthlyRequests: 50_000 },
   pro: { requestsPerMinute: 300, monthlyRequests: 500_000 },
   enterprise: { requestsPerMinute: 1_000, monthlyRequests: 5_000_000 },

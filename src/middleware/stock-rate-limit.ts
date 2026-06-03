@@ -20,6 +20,7 @@ import { Client } from "../db";
 const STOCK_LIMITS: Record<Client["tier"], number> = {
   free: 5,
   payg: 20,
+  hobby: 20,
   starter: 30,
   pro: 120,
   enterprise: Infinity,

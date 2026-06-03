@@ -7,7 +7,8 @@ import { config } from "./config";
 import { getUsageSummary, getClientUsageSummary } from "./middleware/usage";
 import { getUpstreamHealth } from "./upstream-health";
 import { runCacheWarmup, getLastWarmupResult, getWarmTickers, startCacheWarmupScheduler } from "./jobs/warm-cache";
-import { buildToolRouter, getRegisteredTools, sanitizeErrorMessage } from "./tools/registry";
+import { buildToolRouter, getRegisteredTools, sanitizeErrorMessage, responseCacheKey } from "./tools/registry";
+import { getCached, setCached } from "./db/stock-cache";
 import { handleMcpRequest } from "./mcp-http";
 import { buildBillingRouter, buildStripeWebhookRouter } from "./middleware/billing";
 import {
@@ -184,12 +185,29 @@ app.post("/api/try/:toolName", async (req, res) => {
 
   try {
     const startTime = Date.now();
-    const result = await tool.handler(parsed.data);
+    // Stock tools: reuse the 6h response cache so guest tries of popular
+    // tickers don't burn LLM spend (same freshness as authed calls).
+    const isStockTool = tool.metadata?.tags?.includes("stocks") ?? false;
+    let result: any;
+    let cached = false;
+    const cacheKey = isStockTool ? responseCacheKey(tool.name, parsed.data) : null;
+    if (cacheKey) {
+      const hit = getCached<any>(cacheKey);
+      if (hit !== undefined) {
+        result = hit;
+        cached = true;
+      }
+    }
+    if (!cached) {
+      result = await tool.handler(parsed.data);
+      if (cacheKey) setCached(cacheKey, result, 6 * 60 * 60 * 1000);
+    }
     const durationMs = Date.now() - startTime;
     res.json({
       success: true,
       tool: tool.name,
       durationMs,
+      cached,
       result,
       guest: true,
       trialCallsRemaining: remaining,

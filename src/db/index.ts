@@ -148,7 +148,7 @@ export interface Client {
   id: string;
   email: string;
   name: string | null;
-  tier: "free" | "payg" | "starter" | "pro" | "enterprise";
+  tier: "free" | "payg" | "hobby" | "starter" | "pro" | "enterprise";
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   stripe_subscription_item_id: string | null;

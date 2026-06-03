@@ -22,7 +22,7 @@ const stripe = config.stripeSecretKey
 // ----- PAYG Credit Packs -----
 // Amount in cents → label
 export const CREDIT_PACKS: Record<number, string> = {
-  500:  "$5 — 5,000,000 credits (~50,000 cheap calls / ~50 contract extractions)",
+  500:  "$5 — 5,000,000 credits (~250 stock analyses / ~50,000 cheap calls)",
   1000: "$10 — 10,000,000 credits",
   2500: "$25 — 25,000,000 credits",
   5000: "$50 — 50,000,000 credits",
@@ -36,6 +36,7 @@ function centsToMicros(cents: number): number {
 // ----- Pricing Configuration -----
 // Set these in your .env after creating products in Stripe Dashboard
 export const STRIPE_PRICES: Record<string, { priceId: string; monthlyUsd: number }> = {
+  hobby: { priceId: process.env.STRIPE_PRICE_HOBBY || "", monthlyUsd: 10 },
   starter: { priceId: process.env.STRIPE_PRICE_STARTER || "", monthlyUsd: 29 },
   pro: { priceId: process.env.STRIPE_PRICE_PRO || "", monthlyUsd: 99 },
   enterprise: { priceId: process.env.STRIPE_PRICE_ENTERPRISE || "", monthlyUsd: 499 },
@@ -62,7 +63,7 @@ export async function reportUsageToStripe(
 export async function createCheckoutSession(
   clientEmail: string,
   clientId: string,
-  tier: "starter" | "pro" | "enterprise",
+  tier: "hobby" | "starter" | "pro" | "enterprise",
   successUrl: string,
   cancelUrl: string
 ): Promise<string | null> {
@@ -203,8 +204,8 @@ export function buildBillingRouter(): Router {
       return;
     }
 
-    if (!["starter", "pro", "enterprise"].includes(tier)) {
-      res.status(400).json({ error: "tier must be: starter, pro, or enterprise" });
+    if (!["hobby", "starter", "pro", "enterprise"].includes(tier)) {
+      res.status(400).json({ error: "tier must be: hobby, starter, pro, or enterprise" });
       return;
     }
 
@@ -317,7 +318,8 @@ export function buildBillingRouter(): Router {
       approximateCalls: {
         cheapTools: Math.floor(balance / 100),    // $0.0001 tools
         midTools: Math.floor(balance / 1_000),    // $0.001 tools
-        llmTools: Math.floor(balance / 50_000),   // $0.05 tools
+        stockTools: Math.floor(balance / 20_000), // $0.02 stock analysis tools
+        llmTools: Math.floor(balance / 50_000),   // $0.05 LLM tools
         contractExtractor: Math.floor(balance / 100_000), // $0.10
       },
     });
@@ -374,14 +376,14 @@ export function buildBillingRouter(): Router {
 
       if (type === "subscription") {
         const validTier = (tier as Client["tier"]) || "starter";
-        if (!["starter", "pro", "enterprise"].includes(validTier)) {
-          res.status(400).json({ error: "tier must be: starter, pro, or enterprise" });
+        if (!["hobby", "starter", "pro", "enterprise"].includes(validTier)) {
+          res.status(400).json({ error: "tier must be: hobby, starter, pro, or enterprise" });
           return;
         }
         checkoutUrl = await createCheckoutSession(
           client.email,
           client.id,
-          validTier as "starter" | "pro" | "enterprise",
+          validTier as "hobby" | "starter" | "pro" | "enterprise",
           `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
           `${baseUrl}/billing/cancel`
         );

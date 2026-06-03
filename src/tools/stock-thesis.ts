@@ -193,8 +193,8 @@ const stockThesisTool: ToolDefinition<Input> = {
   handler,
   metadata: {
     tags: ["stocks", "investing", "finance", "analysis", "llm"],
-    pricing: "$0.05 per call",
-    pricingMicros: 50_000,
+    pricing: "$0.02 per call",
+    pricingMicros: 20_000,
     exampleInput: {
       ticker: "NVDA",
       timeHorizon: "3-5 years",
