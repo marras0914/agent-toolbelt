@@ -72,12 +72,20 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
   const { client, keyId } = result;
 
+  // Concrete next-tier pitch, so nudges name a price instead of a vague "upgrade"
+  const NEXT_TIER_PITCH: Partial<Record<Client["tier"], string>> = {
+    free: "Hobby is $10/mo for 10,000 calls (10× your current limit)",
+    hobby: "Starter is $29/mo for 50,000 calls",
+    starter: "Pro is $99/mo for 500,000 calls",
+  };
+  const pitch = NEXT_TIER_PITCH[client.tier as Client["tier"]];
+
   // Check monthly usage limit
   const tierCheck = checkTierLimit(client.id, client.tier as Client["tier"]);
   if (!tierCheck.allowed) {
     res.status(429).json({
       error: "quota_exceeded",
-      message: `Monthly limit reached (${tierCheck.used}/${tierCheck.limit}). Upgrade your plan to keep going.`,
+      message: `Monthly limit reached (${tierCheck.used}/${tierCheck.limit}).${pitch ? ` ${pitch}.` : " Upgrade your plan to keep going."}`,
       used: tierCheck.used,
       limit: tierCheck.limit,
       tier: client.tier,
@@ -98,12 +106,12 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     if (pct >= 0.95) {
       res.setHeader(
         "X-Upgrade-Nudge",
-        `You've used ${tierCheck.used} of ${limit} calls this month (${Math.round(pct * 100)}%). Almost at your limit — upgrade now: https://www.agenttoolbelt.live/#pricing`
+        `You've used ${tierCheck.used} of ${limit} calls this month (${Math.round(pct * 100)}%). Almost at your limit${pitch ? ` — ${pitch}` : ""}: https://www.agenttoolbelt.live/#pricing`
       );
     } else if (pct >= 0.80) {
       res.setHeader(
         "X-Upgrade-Nudge",
-        `You've used ${tierCheck.used} of ${limit} calls this month (${Math.round(pct * 100)}%). Consider upgrading before you hit the limit: https://www.agenttoolbelt.live/#pricing`
+        `You've used ${tierCheck.used} of ${limit} calls this month (${Math.round(pct * 100)}%). ${pitch ? `${pitch} — upgrade` : "Consider upgrading"} before you hit the limit: https://www.agenttoolbelt.live/#pricing`
       );
     }
   }
