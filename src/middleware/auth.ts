@@ -76,12 +76,35 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   if (!tierCheck.allowed) {
     res.status(429).json({
       error: "quota_exceeded",
-      message: `Monthly limit reached (${tierCheck.used}/${tierCheck.limit}). Upgrade your tier at /billing/checkout`,
+      message: `Monthly limit reached (${tierCheck.used}/${tierCheck.limit}). Upgrade your plan to keep going.`,
       used: tierCheck.used,
       limit: tierCheck.limit,
       tier: client.tier,
+      upgradeUrl: "https://www.agenttoolbelt.live/#pricing",
     });
     return;
+  }
+
+  // Attach usage headers so clients always know where they stand
+  const limit = tierCheck.limit;
+  res.setHeader("X-Usage-Used", tierCheck.used);
+  res.setHeader("X-Usage-Limit", limit === Infinity ? "unlimited" : limit);
+  res.setHeader("X-Usage-Tier", client.tier);
+
+  // Proactive nudge at 80% and 95% — before they hit the wall
+  if (limit !== Infinity) {
+    const pct = tierCheck.used / limit;
+    if (pct >= 0.95) {
+      res.setHeader(
+        "X-Upgrade-Nudge",
+        `You've used ${tierCheck.used} of ${limit} calls this month (${Math.round(pct * 100)}%). Almost at your limit — upgrade now: https://www.agenttoolbelt.live/#pricing`
+      );
+    } else if (pct >= 0.80) {
+      res.setHeader(
+        "X-Upgrade-Nudge",
+        `You've used ${tierCheck.used} of ${limit} calls this month (${Math.round(pct * 100)}%). Consider upgrading before you hit the limit: https://www.agenttoolbelt.live/#pricing`
+      );
+    }
   }
 
   // PAYG: require positive credit balance
