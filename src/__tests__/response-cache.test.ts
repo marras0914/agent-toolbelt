@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { responseCacheKey } from "../tools/registry";
 import { TIER_LIMITS } from "../middleware/auth";
+import { withHitRate } from "../middleware/usage";
 
 describe("responseCacheKey", () => {
   it("is deterministic regardless of input key order", () => {
@@ -29,6 +30,24 @@ describe("responseCacheKey", () => {
   it("handles empty/undefined input without throwing", () => {
     expect(responseCacheKey("some-tool", undefined)).toBe("resp:v1:some-tool:");
     expect(responseCacheKey("some-tool", {})).toBe("resp:v1:some-tool:");
+  });
+});
+
+describe("withHitRate", () => {
+  it("computes a 2-d.p. hit rate from calls + cache_hits", () => {
+    expect(withHitRate({ calls: 100, cache_hits: 75 }).cacheHitRate).toBe(0.75);
+    expect(withHitRate({ calls: 3, cache_hits: 1 }).cacheHitRate).toBe(0.33);
+  });
+
+  it("returns 0 for zero calls and treats null hits as 0", () => {
+    expect(withHitRate({ calls: 0, cache_hits: 0 }).cacheHitRate).toBe(0);
+    expect(withHitRate({ calls: 10, cache_hits: null }).cacheHitRate).toBe(0);
+  });
+
+  it("preserves the original row fields", () => {
+    const out = withHitRate({ tool_name: "stock-thesis", calls: 4, cache_hits: 2 } as any);
+    expect(out.tool_name).toBe("stock-thesis");
+    expect(out.cacheHitRate).toBe(0.5);
   });
 });
 

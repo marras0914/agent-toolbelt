@@ -10,9 +10,15 @@ import { getCached, setCached } from "../db/stock-cache";
 // 6h in _stock-fetchers, but every repeat call still re-ran the LLM analysis
 // on identical data. Screening agents call the same tickers over and over
 // (measured: 717 calls / 40 distinct inputs for one client), so caching the
-// final JSON for the same window slashes Anthropic spend without serving
-// staler data than the inputs already are.
-const RESPONSE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+// final JSON slashes Anthropic spend without serving staler data than the
+// inputs already are.
+//
+// TTL is 24h: the underlying signals are daily-grained (prev close, quarterly
+// statements, Form 4 filings), so a 24h window caps each (tool, ticker) at one
+// LLM call/day. That's the knob that bounds COGS on the $10 Hobby tier — a
+// once-daily watchlist sweep stays a single LLM call per pair per day instead
+// of re-billing every burst.
+const RESPONSE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 // Deterministic cache key from validated input (sorted keys, stock inputs are flat)
 export function responseCacheKey(toolName: string, input: any): string {
@@ -142,6 +148,7 @@ export function buildToolRouter(): Router {
             result = await tool.handler(parsed.data);
             if (cacheKey) setCached(cacheKey, result, RESPONSE_CACHE_TTL_MS);
           }
+          res.locals.cached = cached; // surfaced in usage stats by trackUsage
           const durationMs = Date.now() - startTime;
 
           // Deduct credits for PAYG clients (cache hits still bill — caching is

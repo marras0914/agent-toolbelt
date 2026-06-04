@@ -68,6 +68,7 @@ db.exec(`
 // Migrate existing tables (safe — no-op if column already exists)
 try { db.exec(`ALTER TABLE clients ADD COLUMN credit_balance_micros INTEGER NOT NULL DEFAULT 0`); } catch { /* already exists */ }
 try { db.exec(`ALTER TABLE usage_records ADD COLUMN input_fingerprint TEXT`); } catch { /* already exists */ }
+try { db.exec(`ALTER TABLE usage_records ADD COLUMN cached INTEGER NOT NULL DEFAULT 0`); } catch { /* already exists */ }
 
 // ----- Prepared Statements -----
 const stmts = {
@@ -96,14 +97,15 @@ const stmts = {
 
   // Usage
   insertUsage: db.prepare(`
-    INSERT INTO usage_records (client_id, api_key_id, tool_name, status_code, duration_ms, input_fingerprint)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO usage_records (client_id, api_key_id, tool_name, status_code, duration_ms, input_fingerprint, cached)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `),
   getUsageByClient: db.prepare(`
     SELECT
       tool_name,
       COUNT(*) as calls,
       COUNT(DISTINCT input_fingerprint) as distinct_inputs,
+      SUM(cached) as cache_hits,
       AVG(duration_ms) as avg_ms
     FROM usage_records WHERE client_id = ? AND created_at >= ?
     GROUP BY tool_name
@@ -126,11 +128,12 @@ const stmts = {
     SELECT
       COUNT(*) as total_calls,
       COUNT(DISTINCT client_id) as unique_clients,
+      SUM(cached) as cache_hits,
       AVG(duration_ms) as avg_duration_ms
     FROM usage_records WHERE created_at >= ?
   `),
   getToolStats: db.prepare(`
-    SELECT tool_name, COUNT(*) as calls, AVG(duration_ms) as avg_ms
+    SELECT tool_name, COUNT(*) as calls, SUM(cached) as cache_hits, AVG(duration_ms) as avg_ms
     FROM usage_records WHERE created_at >= ?
     GROUP BY tool_name ORDER BY calls DESC
   `),
@@ -247,9 +250,10 @@ export function recordUsage(
   toolName: string,
   statusCode: number,
   durationMs: number,
-  inputFingerprint: string | null = null
+  inputFingerprint: string | null = null,
+  cached: boolean = false
 ): void {
-  stmts.insertUsage.run(clientId, apiKeyId, toolName, statusCode, durationMs, inputFingerprint);
+  stmts.insertUsage.run(clientId, apiKeyId, toolName, statusCode, durationMs, inputFingerprint, cached ? 1 : 0);
 }
 
 export function getClientUsage(clientId: string, since: string): any[] {

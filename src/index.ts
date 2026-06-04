@@ -200,7 +200,7 @@ app.post("/api/try/:toolName", async (req, res) => {
     }
     if (!cached) {
       result = await tool.handler(parsed.data);
-      if (cacheKey) setCached(cacheKey, result, 6 * 60 * 60 * 1000);
+      if (cacheKey) setCached(cacheKey, result, 24 * 60 * 60 * 1000);
     }
     const durationMs = Date.now() - startTime;
     res.json({

@@ -33,9 +33,11 @@ export function trackUsage(toolName: string) {
       const clientId = req.client?.clientId || "anonymous";
       const keyId = req.client?.keyId || "unknown";
 
-      // Write to database
+      // Write to database. The tool router sets res.locals.cached when a stock
+      // result was served from the 6h/24h response cache (no LLM call made).
+      const cached = res.locals?.cached === true;
       try {
-        recordUsage(clientId, keyId, toolName, res.statusCode, durationMs, fingerprint);
+        recordUsage(clientId, keyId, toolName, res.statusCode, durationMs, fingerprint, cached);
       } catch (err) {
         console.error("Usage recording failed:", err);
       }
@@ -49,13 +51,23 @@ export function trackUsage(toolName: string) {
   };
 }
 
+// Add a cacheHitRate (0–1, 2 d.p.) to any row with `calls` + `cache_hits`.
+// Hit rate is the lever on stock-tool COGS — a low rate on a heavy client is
+// the early-warning sign of a money-losing subscriber.
+export function withHitRate<T extends { calls?: number; cache_hits?: number | null }>(row: T): T & { cacheHitRate: number } {
+  const calls = row.calls ?? 0;
+  const hits = row.cache_hits ?? 0;
+  return { ...row, cacheHitRate: calls > 0 ? Math.round((hits / calls) * 100) / 100 : 0 };
+}
+
 // ----- Query helpers (for admin endpoints) -----
 export function getUsageSummary() {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const global = getGlobalStats(since);
   return {
     period: "last_30_days",
-    global: getGlobalStats(since),
-    byTool: getToolStats(since),
+    global: withHitRate(global),
+    byTool: getToolStats(since).map(withHitRate),
   };
 }
 
@@ -64,6 +76,6 @@ export function getClientUsageSummary(clientId: string) {
   return {
     period: "last_30_days",
     clientId,
-    tools: getClientUsage(clientId, since),
+    tools: getClientUsage(clientId, since).map(withHitRate),
   };
 }
