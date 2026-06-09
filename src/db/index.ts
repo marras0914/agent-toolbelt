@@ -121,9 +121,9 @@ const stmts = {
     FROM clients ORDER BY created_at DESC
   `),
 
-  getMonthlyCallCount: db.prepare(`
+  getRolling30dCallCount: db.prepare(`
     SELECT COUNT(*) as count FROM usage_records
-    WHERE client_id = ? AND created_at >= date('now', 'start of month')
+    WHERE client_id = ? AND created_at >= datetime('now', '-30 days')
   `),
   getGlobalStats: db.prepare(`
     SELECT
@@ -261,8 +261,8 @@ export function getClientUsage(clientId: string, since: string): any[] {
   return stmts.getUsageByClient.all(clientId, since);
 }
 
-export function getMonthlyCallCount(clientId: string): number {
-  const row = stmts.getMonthlyCallCount.get(clientId) as any;
+export function getRolling30dCallCount(clientId: string): number {
+  const row = stmts.getRolling30dCallCount.get(clientId) as any;
   return row?.count || 0;
 }
 
@@ -290,9 +290,9 @@ export function getClientBalance(clientId: string): number {
 }
 
 // ----- Tier Limit Checking -----
-// Monthly quota is read from the single source of truth in src/tiers.ts.
+// Rolling 30-day quota is read from the single source of truth in src/tiers.ts.
 export function checkTierLimit(clientId: string, tier: Client["tier"]): { allowed: boolean; used: number; limit: number } {
-  const used = getMonthlyCallCount(clientId);
+  const used = getRolling30dCallCount(clientId);
   const limit = TIERS[tier]?.monthlyRequests ?? TIERS.free.monthlyRequests;
 
   return { allowed: used < limit, used, limit };
