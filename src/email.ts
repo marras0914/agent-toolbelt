@@ -1,5 +1,6 @@
 import sgMail from "@sendgrid/mail";
 import { config } from "./config";
+import { recordEmailSuccess, recordEmailFailure } from "./email-health";
 
 export async function sendOnboardingEmail(params: {
   email: string;
@@ -141,13 +142,24 @@ Need more calls? Reply to this email.
 Deploying agents to production? Check out Cordon — secrets management and access control built for AI agents: https://getcordon.com
 `;
 
-  await sgMail.send({
-    to: email,
-    from: { email: config.emailFrom, name: "Agent Toolbelt" },
-    subject: "Your API key — try analyzing AAPL first",
-    text,
-    html,
-  });
+  try {
+    await sgMail.send({
+      to: email,
+      from: { email: config.emailFrom, name: "Agent Toolbelt" },
+      subject: "Your API key — try analyzing AAPL first",
+      text,
+      html,
+    });
+  } catch (err: any) {
+    // Record + log loudly, then re-throw so callers keep their existing
+    // behavior (they .catch and log). The point is this outage is now visible
+    // at /admin/email-health instead of buried in a swallowed console.error.
+    const reason =
+      err?.response?.body?.errors?.[0]?.message || err?.message || "unknown send error";
+    recordEmailFailure(email, reason);
+    throw err;
+  }
 
+  recordEmailSuccess();
   console.log(`[email] Onboarding email sent to ${email}`);
 }

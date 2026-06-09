@@ -6,6 +6,7 @@ import path from "path";
 import { config } from "./config";
 import { getUsageSummary, getClientUsageSummary } from "./middleware/usage";
 import { getUpstreamHealth } from "./upstream-health";
+import { getEmailHealth } from "./email-health";
 import { runCacheWarmup, getLastWarmupResult, getWarmTickers, startCacheWarmupScheduler } from "./jobs/warm-cache";
 import { buildToolRouter, getRegisteredTools, sanitizeErrorMessage, responseCacheKey } from "./tools/registry";
 import { getCached, setCached } from "./db/stock-cache";
@@ -344,6 +345,13 @@ app.get("/admin/usage", (_req, res) => {
 // rate-limits) since the last process restart. See src/upstream-health.ts.
 app.get("/admin/upstream-health", (_req, res) => {
   res.json(getUpstreamHealth());
+});
+
+// Outbound email (SendGrid) health — status ok/failing/unknown, success/failure
+// counts, and recent failure reasons since the last restart. Catches silent
+// email outages (e.g., SendGrid out of credits). See src/email-health.ts.
+app.get("/admin/email-health", (_req, res) => {
+  res.json(getEmailHealth());
 });
 
 // Cache warmup status + manual trigger. The scheduler runs daily at 00:30 UTC
