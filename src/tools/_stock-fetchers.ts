@@ -24,6 +24,9 @@ import { getCached, setCached, _clearAllCache } from "../db/stock-cache";
 const POSITIVE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const NEGATIVE_CACHE_TTL_MS = 5 * 60 * 1000;
 
+/** Hard cap on any single upstream fetch. Prevents one slow API from holding up the whole Promise.all. */
+const FETCH_TIMEOUT_MS = 5000;
+
 function isEmpty(value: unknown): boolean {
   if (value == null) return true;
   if (Array.isArray(value)) return value.length === 0;
@@ -244,7 +247,14 @@ async function safeJson<T>(url: string, fallback: T): Promise<T> {
   }
 
   try {
-    const res = await fetch(url);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await fetch(url, { signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) {
       // Surface upstream non-2xx (especially 429 rate-limits) instead of silently
       // collapsing into an empty fallback. Without this, "all stock tools degrading"
