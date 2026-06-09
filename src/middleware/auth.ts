@@ -21,9 +21,8 @@ declare global {
 export const TIER_LIMITS: Record<Client["tier"], { requestsPerMinute: number; monthlyRequests: number }> = {
   free: { requestsPerMinute: 10, monthlyRequests: 1_000 },
   payg: { requestsPerMinute: 60, monthlyRequests: Infinity },
-  hobby: { requestsPerMinute: 30, monthlyRequests: 10_000 },
+  pro: { requestsPerMinute: 30, monthlyRequests: 10_000 },
   starter: { requestsPerMinute: 60, monthlyRequests: 50_000 },
-  pro: { requestsPerMinute: 300, monthlyRequests: 500_000 },
   enterprise: { requestsPerMinute: 1_000, monthlyRequests: 5_000_000 },
 };
 
@@ -74,9 +73,9 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
   // Concrete next-tier pitch, so nudges name a price instead of a vague "upgrade"
   const NEXT_TIER_PITCH: Partial<Record<Client["tier"], string>> = {
-    free: "Hobby is $10/mo for 10,000 calls (10× your current limit)",
-    hobby: "Starter is $29/mo for 50,000 calls",
-    starter: "Pro is $99/mo for 500,000 calls",
+    free: "Pro is $10/mo for 10,000 calls (10× your current limit)",
+    pro: "Starter is $29/mo for 50,000 calls",
+    starter: "Enterprise is $499/mo for 5,000,000 calls",
   };
   const pitch = NEXT_TIER_PITCH[client.tier as Client["tier"]];
 

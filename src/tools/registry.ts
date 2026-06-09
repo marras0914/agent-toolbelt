@@ -15,7 +15,7 @@ import { getCached, setCached } from "../db/stock-cache";
 //
 // TTL is 24h: the underlying signals are daily-grained (prev close, quarterly
 // statements, Form 4 filings), so a 24h window caps each (tool, ticker) at one
-// LLM call/day. That's the knob that bounds COGS on the $10 Hobby tier — a
+// LLM call/day. That's the knob that bounds COGS on the $10 Pro tier — a
 // once-daily watchlist sweep stays a single LLM call per pair per day instead
 // of re-billing every burst.
 const RESPONSE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;

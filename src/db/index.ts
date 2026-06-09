@@ -151,7 +151,7 @@ export interface Client {
   id: string;
   email: string;
   name: string | null;
-  tier: "free" | "payg" | "hobby" | "starter" | "pro" | "enterprise";
+  tier: "free" | "payg" | "pro" | "starter" | "enterprise";
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   stripe_subscription_item_id: string | null;
@@ -293,8 +293,8 @@ export function checkTierLimit(clientId: string, tier: Client["tier"]): { allowe
   const LIMITS: Record<string, number> = {
     free: 1_000,
     payg: Infinity,   // no monthly cap — gated by credit balance instead
-    starter: 50_000,
-    pro: 500_000,
+    pro: 10_000,      // $10/mo
+    starter: 50_000,  // $29/mo
     enterprise: 5_000_000,
   };
 

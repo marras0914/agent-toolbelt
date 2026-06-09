@@ -36,9 +36,11 @@ function centsToMicros(cents: number): number {
 // ----- Pricing Configuration -----
 // Set these in your .env after creating products in Stripe Dashboard
 export const STRIPE_PRICES: Record<string, { priceId: string; monthlyUsd: number }> = {
-  hobby: { priceId: process.env.STRIPE_PRICE_HOBBY || "", monthlyUsd: 10 },
+  // Stripe price for the $10 Pro tier is read from STRIPE_PRICE_HOBBY — kept
+  // under the original env var name so no Railway change is needed for the
+  // hobby→pro rename. (STRIPE_PRICE_PRO previously held the retired $99 tier.)
+  pro: { priceId: process.env.STRIPE_PRICE_HOBBY || "", monthlyUsd: 10 },
   starter: { priceId: process.env.STRIPE_PRICE_STARTER || "", monthlyUsd: 29 },
-  pro: { priceId: process.env.STRIPE_PRICE_PRO || "", monthlyUsd: 99 },
   enterprise: { priceId: process.env.STRIPE_PRICE_ENTERPRISE || "", monthlyUsd: 499 },
 };
 
@@ -63,7 +65,7 @@ export async function reportUsageToStripe(
 export async function createCheckoutSession(
   clientEmail: string,
   clientId: string,
-  tier: "hobby" | "starter" | "pro" | "enterprise",
+  tier: "pro" | "starter" | "enterprise",
   successUrl: string,
   cancelUrl: string
 ): Promise<string | null> {
@@ -204,8 +206,8 @@ export function buildBillingRouter(): Router {
       return;
     }
 
-    if (!["hobby", "starter", "pro", "enterprise"].includes(tier)) {
-      res.status(400).json({ error: "tier must be: hobby, starter, pro, or enterprise" });
+    if (!["pro", "starter", "enterprise"].includes(tier)) {
+      res.status(400).json({ error: "tier must be: pro, starter, or enterprise" });
       return;
     }
 
@@ -375,15 +377,15 @@ export function buildBillingRouter(): Router {
       let checkoutUrl: string | null = null;
 
       if (type === "subscription") {
-        const validTier = (tier as Client["tier"]) || "starter";
-        if (!["hobby", "starter", "pro", "enterprise"].includes(validTier)) {
-          res.status(400).json({ error: "tier must be: hobby, starter, pro, or enterprise" });
+        const validTier = (tier as Client["tier"]) || "pro";
+        if (!["pro", "starter", "enterprise"].includes(validTier)) {
+          res.status(400).json({ error: "tier must be: pro, starter, or enterprise" });
           return;
         }
         checkoutUrl = await createCheckoutSession(
           client.email,
           client.id,
-          validTier as "hobby" | "starter" | "pro" | "enterprise",
+          validTier as "pro" | "starter" | "enterprise",
           `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
           `${baseUrl}/billing/cancel`
         );

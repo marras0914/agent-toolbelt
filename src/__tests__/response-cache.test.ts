@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { responseCacheKey } from "../tools/registry";
 import { TIER_LIMITS } from "../middleware/auth";
 import { withHitRate } from "../middleware/usage";
+import { checkTierLimit } from "../db";
 
 describe("responseCacheKey", () => {
   it("is deterministic regardless of input key order", () => {
@@ -51,13 +52,18 @@ describe("withHitRate", () => {
   });
 });
 
-describe("hobby tier", () => {
+describe("pro tier ($10/mo, 10k calls)", () => {
   it("is registered in TIER_LIMITS with 10k monthly calls", () => {
-    expect(TIER_LIMITS.hobby).toEqual({ requestsPerMinute: 30, monthlyRequests: 10_000 });
+    expect(TIER_LIMITS.pro).toEqual({ requestsPerMinute: 30, monthlyRequests: 10_000 });
   });
 
   it("sits between free and starter", () => {
-    expect(TIER_LIMITS.hobby.monthlyRequests).toBeGreaterThan(TIER_LIMITS.free.monthlyRequests);
-    expect(TIER_LIMITS.hobby.monthlyRequests).toBeLessThan(TIER_LIMITS.starter.monthlyRequests);
+    expect(TIER_LIMITS.pro.monthlyRequests).toBeGreaterThan(TIER_LIMITS.free.monthlyRequests);
+    expect(TIER_LIMITS.pro.monthlyRequests).toBeLessThan(TIER_LIMITS.starter.monthlyRequests);
+  });
+
+  it("is enforced by checkTierLimit (regression: was missing from the enforced map)", () => {
+    const limit = checkTierLimit("nonexistent-client", "pro").limit;
+    expect(limit).toBe(10_000);
   });
 });
