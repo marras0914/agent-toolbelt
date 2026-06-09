@@ -1,4 +1,4 @@
-import sgMail from "@sendgrid/mail";
+import { Resend } from "resend";
 import { config } from "./config";
 import { recordEmailSuccess, recordEmailFailure } from "./email-health";
 
@@ -9,12 +9,12 @@ export async function sendOnboardingEmail(params: {
   keyPrefix: string;
   clientId: string;
 }): Promise<void> {
-  if (!config.sendgridApiKey) {
-    console.log(`[email] SENDGRID_API_KEY not set — skipping onboarding email for ${params.email}`);
+  if (!config.resendApiKey) {
+    console.log(`[email] RESEND_API_KEY not set — skipping onboarding email for ${params.email}`);
     return;
   }
 
-  sgMail.setApiKey(config.sendgridApiKey);
+  const resend = new Resend(config.resendApiKey);
 
   const { email, name, keyPrefix, clientId } = params;
   const greeting = name ? `Hi ${name}` : "Hi there";
@@ -142,24 +142,34 @@ Need more calls? Reply to this email.
 Deploying agents to production? Check out Cordon — secrets management and access control built for AI agents: https://getcordon.com
 `;
 
+  // Resend returns { data, error } rather than throwing on API errors, so we
+  // inspect error explicitly. Wrap the whole thing so any throw (network, etc.)
+  // is also recorded. Either way the outcome is visible at /admin/email-health
+  // instead of buried in a swallowed console.error.
   try {
-    await sgMail.send({
+    const { data, error } = await resend.emails.send({
+      from: `Agent Toolbelt <${config.emailFrom}>`,
       to: email,
-      from: { email: config.emailFrom, name: "Agent Toolbelt" },
+      replyTo: config.emailReplyTo,
       subject: "Your API key — try analyzing AAPL first",
       text,
       html,
     });
+
+    if (error) {
+      const reason = error.message || error.name || "unknown resend error";
+      recordEmailFailure(email, reason);
+      throw new Error(`Resend send failed: ${reason}`);
+    }
+
+    recordEmailSuccess();
+    console.log(`[email] Onboarding email sent to ${email} (id: ${data?.id ?? "n/a"})`);
   } catch (err: any) {
-    // Record + log loudly, then re-throw so callers keep their existing
-    // behavior (they .catch and log). The point is this outage is now visible
-    // at /admin/email-health instead of buried in a swallowed console.error.
-    const reason =
-      err?.response?.body?.errors?.[0]?.message || err?.message || "unknown send error";
-    recordEmailFailure(email, reason);
+    // recordEmailFailure already ran for the {error} path; only record here for
+    // genuine throws (network, etc.) that skipped it.
+    if (!/^Resend send failed:/.test(err?.message || "")) {
+      recordEmailFailure(email, err?.message || "unknown send error");
+    }
     throw err;
   }
-
-  recordEmailSuccess();
-  console.log(`[email] Onboarding email sent to ${email}`);
 }

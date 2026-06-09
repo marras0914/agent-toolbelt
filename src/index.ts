@@ -347,9 +347,9 @@ app.get("/admin/upstream-health", (_req, res) => {
   res.json(getUpstreamHealth());
 });
 
-// Outbound email (SendGrid) health — status ok/failing/unknown, success/failure
+// Outbound email (Resend) health — status ok/failing/unknown, success/failure
 // counts, and recent failure reasons since the last restart. Catches silent
-// email outages (e.g., SendGrid out of credits). See src/email-health.ts.
+// email outages (provider down, quota, bad key). See src/email-health.ts.
 app.get("/admin/email-health", (_req, res) => {
   res.json(getEmailHealth());
 });

@@ -1,8 +1,8 @@
 /**
- * In-memory recorder for outbound email (SendGrid) health.
+ * In-memory recorder for outbound email (Resend) health.
  *
  * Email sends used to fail silently: sendOnboardingEmail's errors were caught
- * with a bare console.error at the call site, so when the SendGrid account ran
+ * with a bare console.error at the call site, so when the email provider ran
  * out of credits, every welcome email dropped with no visible signal. This
  * tracker records success/failure outcomes so /admin/email-health answers
  * "is email actually working?" at a glance — and a failure logs loudly with a
@@ -43,7 +43,7 @@ export function recordEmailFailure(to: string, reason: string): void {
   recentFailures.push({ ts: lastFailureAt, to, reason });
   if (recentFailures.length > MAX_RECENT) recentFailures.shift();
   // Loud, greppable, NOT swallowed — this is the line that should never hide.
-  console.error(`[email] SEND FAILED to ${to}: ${reason} — check SendGrid plan/credits at /admin/email-health`);
+  console.error(`[email] SEND FAILED to ${to}: ${reason} — check email provider (Resend) key/quota; see /admin/email-health`);
 }
 
 /**

@@ -34,7 +34,10 @@ export const config = {
   finnhubApiKey: process.env.FINNHUB_API_KEY || "",
   fmpApiKey: process.env.FMP_API_KEY || "",
 
-  // Email (SendGrid)
-  sendgridApiKey: process.env.SENDGRID_API_KEY || "",
-  emailFrom: process.env.EMAIL_FROM || "hello@elephanttortoise.com",
+  // Email (Resend)
+  resendApiKey: process.env.RESEND_API_KEY || "",
+  emailFrom: process.env.EMAIL_FROM || "hello@agenttoolbelt.live",
+  // Replies route here: the branded From domain has DKIM/sending but no inbox,
+  // so a Reply-To pointing at a real mailbox keeps "reply to this email" working.
+  emailReplyTo: process.env.EMAIL_REPLY_TO || "hello@elephanttortoise.com",
 };
