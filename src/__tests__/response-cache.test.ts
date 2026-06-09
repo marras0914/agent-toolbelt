@@ -45,6 +45,10 @@ describe("withHitRate", () => {
     expect(withHitRate({ calls: 10, cache_hits: null }).cacheHitRate).toBe(0);
   });
 
+  it("uses total_calls for the global stats row (regression: global was stuck at 0)", () => {
+    expect(withHitRate({ total_calls: 100, cache_hits: 15 }).cacheHitRate).toBe(0.15);
+  });
+
   it("preserves the original row fields", () => {
     const out = withHitRate({ tool_name: "stock-thesis", calls: 4, cache_hits: 2 } as any);
     expect(out.tool_name).toBe("stock-thesis");

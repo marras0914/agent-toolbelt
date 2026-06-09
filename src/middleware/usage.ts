@@ -51,11 +51,13 @@ export function trackUsage(toolName: string) {
   };
 }
 
-// Add a cacheHitRate (0–1, 2 d.p.) to any row with `calls` + `cache_hits`.
+// Add a cacheHitRate (0–1, 2 d.p.) to any row with a call count + `cache_hits`.
+// Per-tool/per-client rows name the count `calls`; the global stats row names
+// it `total_calls` — accept either so the global hit rate isn't stuck at 0.
 // Hit rate is the lever on stock-tool COGS — a low rate on a heavy client is
 // the early-warning sign of a money-losing subscriber.
-export function withHitRate<T extends { calls?: number; cache_hits?: number | null }>(row: T): T & { cacheHitRate: number } {
-  const calls = row.calls ?? 0;
+export function withHitRate<T extends { calls?: number; total_calls?: number; cache_hits?: number | null }>(row: T): T & { cacheHitRate: number } {
+  const calls = row.calls ?? row.total_calls ?? 0;
   const hits = row.cache_hits ?? 0;
   return { ...row, cacheHitRate: calls > 0 ? Math.round((hits / calls) * 100) / 100 : 0 };
 }
