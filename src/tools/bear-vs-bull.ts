@@ -90,33 +90,34 @@ async function handler(input: Input) {
     "The bull case should be genuinely optimistic with specific data. " +
     "The bear case should be genuinely challenging — not strawman risks. " +
     "The net verdict should be your honest synthesis of both sides. " +
-    "Write clearly for a retail investor. Always respond with valid JSON.";
+    "Write clearly for a retail investor. Always respond with valid JSON. " +
+    "Be concise: every 'detail' field must be exactly 1 sentence. Every rationale field must be exactly 1 sentence.";
 
   const userPrompt =
     `Build a rigorous bull vs. bear case for ${ticker}.\n\n` +
     dataContext +
-    `\n\nReturn a JSON object with this exact structure:
-{
-  "companyName": "full company name",
-  "bullCase": [
-    { "argument": "title of the bull point", "detail": "2-3 sentences explaining it with specific data" },
-    { "argument": "title", "detail": "..." },
-    { "argument": "title", "detail": "..." }
-  ],
-  "bearCase": [
-    { "argument": "title of the bear point", "detail": "2-3 sentences explaining the genuine risk" },
-    { "argument": "title", "detail": "..." },
-    { "argument": "title", "detail": "..." }
-  ],
-  "verdict": "bull_wins" | "slight_bull" | "too_close" | "slight_bear" | "bear_wins",
-  "verdictRationale": "2-3 sentences explaining which side is more compelling and why. Be direct.",
-  "keyDebate": "the single most important question investors need to answer about this stock",
-  "forInvestorsWho": "1 sentence describing what type of investor this stock suits (or doesn't suit)"
-}`;
+    `\n\nReturn a JSON object with this exact structure:\n` +
+    `{\n` +
+    `  "companyName": "full company name",\n` +
+    `  "bullCase": [\n` +
+    `    { "argument": "title of the bull point", "detail": "1 sentence with the most compelling specific data point" },\n` +
+    `    { "argument": "title", "detail": "1 sentence" },\n` +
+    `    { "argument": "title", "detail": "1 sentence" }\n` +
+    `  ],\n` +
+    `  "bearCase": [\n` +
+    `    { "argument": "title of the bear point", "detail": "1 sentence describing the genuine risk with data" },\n` +
+    `    { "argument": "title", "detail": "1 sentence" },\n` +
+    `    { "argument": "title", "detail": "1 sentence" }\n` +
+    `  ],\n` +
+    `  "verdict": "bull_wins" | "slight_bull" | "too_close" | "slight_bear" | "bear_wins",\n` +
+    `  "verdictRationale": "1 sentence explaining which side is more compelling and why.",\n` +
+    `  "keyDebate": "the single most important question investors need to answer about this stock",\n` +
+    `  "forInvestorsWho": "1 sentence describing what type of investor this stock suits (or doesn't suit)"\n` +
+    `}`;
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 2048,
+    max_tokens: 900,
     messages: [{ role: "user", content: userPrompt }],
     system: systemPrompt,
   });
