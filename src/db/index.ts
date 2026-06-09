@@ -2,6 +2,7 @@ import Database, { Database as SQLiteDatabase } from "better-sqlite3";
 import path from "path";
 import { nanoid } from "nanoid";
 import { config } from "../config";
+import { TIERS, Tier } from "../tiers";
 
 // ----- Database Setup -----
 import fs from "fs";
@@ -151,7 +152,7 @@ export interface Client {
   id: string;
   email: string;
   name: string | null;
-  tier: "free" | "payg" | "pro" | "starter" | "enterprise";
+  tier: Tier;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   stripe_subscription_item_id: string | null;
@@ -289,17 +290,10 @@ export function getClientBalance(clientId: string): number {
 }
 
 // ----- Tier Limit Checking -----
+// Monthly quota is read from the single source of truth in src/tiers.ts.
 export function checkTierLimit(clientId: string, tier: Client["tier"]): { allowed: boolean; used: number; limit: number } {
-  const LIMITS: Record<string, number> = {
-    free: 1_000,
-    payg: Infinity,   // no monthly cap — gated by credit balance instead
-    pro: 10_000,      // $10/mo
-    starter: 50_000,  // $29/mo
-    enterprise: 5_000_000,
-  };
-
   const used = getMonthlyCallCount(clientId);
-  const limit = LIMITS[tier] ?? 1_000;
+  const limit = TIERS[tier]?.monthlyRequests ?? TIERS.free.monthlyRequests;
 
   return { allowed: used < limit, used, limit };
 }

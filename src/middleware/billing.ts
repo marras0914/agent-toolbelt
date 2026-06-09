@@ -13,6 +13,7 @@ import {
   Client,
 } from "../db";
 import { sendOnboardingEmail } from "../email";
+import { TIERS, SUBSCRIPTION_TIERS, isSubscriptionTier, Tier } from "../tiers";
 
 // ----- Stripe Client -----
 const stripe = config.stripeSecretKey
@@ -34,15 +35,15 @@ function centsToMicros(cents: number): number {
 }
 
 // ----- Pricing Configuration -----
-// Set these in your .env after creating products in Stripe Dashboard
-export const STRIPE_PRICES: Record<string, { priceId: string; monthlyUsd: number }> = {
-  // Stripe price for the $10 Pro tier is read from STRIPE_PRICE_HOBBY — kept
-  // under the original env var name so no Railway change is needed for the
-  // hobby→pro rename. (STRIPE_PRICE_PRO previously held the retired $99 tier.)
-  pro: { priceId: process.env.STRIPE_PRICE_HOBBY || "", monthlyUsd: 10 },
-  starter: { priceId: process.env.STRIPE_PRICE_STARTER || "", monthlyUsd: 29 },
-  enterprise: { priceId: process.env.STRIPE_PRICE_ENTERPRISE || "", monthlyUsd: 499 },
-};
+// Derived from the single source of truth in src/tiers.ts. Each subscription
+// tier names the env var holding its Stripe price id (set in .env / Railway).
+export const STRIPE_PRICES: Record<string, { priceId: string; monthlyUsd: number }> =
+  Object.fromEntries(
+    SUBSCRIPTION_TIERS.map((t) => [
+      t,
+      { priceId: process.env[TIERS[t].stripePriceEnv as string] || "", monthlyUsd: TIERS[t].monthlyUsd as number },
+    ])
+  );
 
 // ----- Usage Metering -----
 export async function reportUsageToStripe(
@@ -65,7 +66,7 @@ export async function reportUsageToStripe(
 export async function createCheckoutSession(
   clientEmail: string,
   clientId: string,
-  tier: "pro" | "starter" | "enterprise",
+  tier: Tier,
   successUrl: string,
   cancelUrl: string
 ): Promise<string | null> {
@@ -206,8 +207,8 @@ export function buildBillingRouter(): Router {
       return;
     }
 
-    if (!["pro", "starter", "enterprise"].includes(tier)) {
-      res.status(400).json({ error: "tier must be: pro, starter, or enterprise" });
+    if (!isSubscriptionTier(tier)) {
+      res.status(400).json({ error: `tier must be one of: ${SUBSCRIPTION_TIERS.join(", ")}` });
       return;
     }
 
@@ -377,15 +378,15 @@ export function buildBillingRouter(): Router {
       let checkoutUrl: string | null = null;
 
       if (type === "subscription") {
-        const validTier = (tier as Client["tier"]) || "pro";
-        if (!["pro", "starter", "enterprise"].includes(validTier)) {
-          res.status(400).json({ error: "tier must be: pro, starter, or enterprise" });
+        const validTier = (tier as string) || "pro";
+        if (!isSubscriptionTier(validTier)) {
+          res.status(400).json({ error: `tier must be one of: ${SUBSCRIPTION_TIERS.join(", ")}` });
           return;
         }
         checkoutUrl = await createCheckoutSession(
           client.email,
           client.id,
-          validTier as "pro" | "starter" | "enterprise",
+          validTier,
           `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
           `${baseUrl}/billing/cancel`
         );

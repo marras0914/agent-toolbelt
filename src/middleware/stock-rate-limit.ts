@@ -16,20 +16,13 @@
 
 import { Request, Response, NextFunction } from "express";
 import { Client } from "../db";
-
-const STOCK_LIMITS: Record<Client["tier"], number> = {
-  free: 5,
-  payg: 20,
-  pro: 20,
-  starter: 30,
-  enterprise: Infinity,
-};
+import { TIERS } from "../tiers";
 
 const buckets: Map<string, { count: number; resetAt: number }> = new Map();
 
 function checkRate(clientId: string, tier: Client["tier"]): { allowed: boolean; limit: number; remaining: number; resetInMs: number } {
   const now = Date.now();
-  const limit = STOCK_LIMITS[tier] ?? STOCK_LIMITS.free;
+  const limit = TIERS[tier]?.stockRequestsPerMinute ?? TIERS.free.stockRequestsPerMinute;
   const bucket = buckets.get(clientId);
 
   if (!bucket || now > bucket.resetAt) {

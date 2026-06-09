@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { responseCacheKey } from "../tools/registry";
-import { TIER_LIMITS } from "../middleware/auth";
+import { TIERS, SUBSCRIPTION_TIERS } from "../tiers";
 import { withHitRate } from "../middleware/usage";
 import { checkTierLimit } from "../db";
 
@@ -53,17 +53,36 @@ describe("withHitRate", () => {
 });
 
 describe("pro tier ($10/mo, 10k calls)", () => {
-  it("is registered in TIER_LIMITS with 10k monthly calls", () => {
-    expect(TIER_LIMITS.pro).toEqual({ requestsPerMinute: 30, monthlyRequests: 10_000 });
+  it("is registered in TIERS with 10k monthly calls and 30 req/min", () => {
+    expect(TIERS.pro.monthlyRequests).toBe(10_000);
+    expect(TIERS.pro.requestsPerMinute).toBe(30);
+    expect(TIERS.pro.monthlyUsd).toBe(10);
   });
 
   it("sits between free and starter", () => {
-    expect(TIER_LIMITS.pro.monthlyRequests).toBeGreaterThan(TIER_LIMITS.free.monthlyRequests);
-    expect(TIER_LIMITS.pro.monthlyRequests).toBeLessThan(TIER_LIMITS.starter.monthlyRequests);
+    expect(TIERS.pro.monthlyRequests).toBeGreaterThan(TIERS.free.monthlyRequests);
+    expect(TIERS.pro.monthlyRequests).toBeLessThan(TIERS.starter.monthlyRequests);
   });
 
   it("is enforced by checkTierLimit (regression: was missing from the enforced map)", () => {
     const limit = checkTierLimit("nonexistent-client", "pro").limit;
     expect(limit).toBe(10_000);
+  });
+});
+
+describe("tier source of truth", () => {
+  it("checkTierLimit agrees with TIERS for every tier (no drift between maps)", () => {
+    for (const tier of Object.keys(TIERS) as (keyof typeof TIERS)[]) {
+      expect(checkTierLimit("nonexistent-client", tier).limit).toBe(TIERS[tier].monthlyRequests);
+    }
+  });
+
+  it("subscription tiers are exactly pro, starter, enterprise", () => {
+    expect([...SUBSCRIPTION_TIERS].sort()).toEqual(["enterprise", "pro", "starter"]);
+  });
+
+  it("free and payg are not subscription tiers", () => {
+    expect(SUBSCRIPTION_TIERS).not.toContain("free");
+    expect(SUBSCRIPTION_TIERS).not.toContain("payg");
   });
 });

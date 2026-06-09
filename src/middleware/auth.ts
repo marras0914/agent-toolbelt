@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { validateApiKey, checkTierLimit, getClientBalance, Client } from "../db";
+import { TIERS } from "../tiers";
 
 // ----- Types -----
 export interface AuthenticatedClient {
@@ -17,21 +18,12 @@ declare global {
   }
 }
 
-// ----- Tier Limits -----
-export const TIER_LIMITS: Record<Client["tier"], { requestsPerMinute: number; monthlyRequests: number }> = {
-  free: { requestsPerMinute: 10, monthlyRequests: 1_000 },
-  payg: { requestsPerMinute: 60, monthlyRequests: Infinity },
-  pro: { requestsPerMinute: 30, monthlyRequests: 10_000 },
-  starter: { requestsPerMinute: 60, monthlyRequests: 50_000 },
-  enterprise: { requestsPerMinute: 1_000, monthlyRequests: 5_000_000 },
-};
-
 // ----- In-memory rate limiter (per-client, per-minute) -----
 const rateBuckets: Map<string, { count: number; resetAt: number }> = new Map();
 
 function checkPerClientRate(clientId: string, tier: Client["tier"]): boolean {
   const now = Date.now();
-  const limit = TIER_LIMITS[tier].requestsPerMinute;
+  const limit = TIERS[tier].requestsPerMinute;
   const bucket = rateBuckets.get(clientId);
 
   if (!bucket || now > bucket.resetAt) {
@@ -133,7 +125,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   if (!checkPerClientRate(client.id, client.tier as Client["tier"])) {
     res.status(429).json({
       error: "rate_limited",
-      message: `Too many requests. Your tier (${client.tier}) allows ${TIER_LIMITS[client.tier as Client["tier"]].requestsPerMinute} requests/minute.`,
+      message: `Too many requests. Your tier (${client.tier}) allows ${TIERS[client.tier as Client["tier"]].requestsPerMinute} requests/minute.`,
     });
     return;
   }
