@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reissue API Key — Agent Toolbelt</title>
+  <meta name="robots" content="noindex">
+  <style>
+    :root { --bg:#0d0f12; --surface:#15181d; --border:#262b33; --text:#e8eaed; --text-dim:#9aa3ad; --accent:#00e5a0; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; max-width:520px; width:100%; padding:32px; }
+    h1 { font-size:20px; margin:0 0 6px; }
+    p { color:var(--text-dim); font-size:14px; line-height:1.6; margin:0 0 16px; }
+    input { width:100%; padding:11px 13px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; font-family:inherit; outline:none; margin-bottom:14px; }
+    input:focus { border-color:var(--accent); }
+    button { width:100%; padding:12px; border:none; border-radius:6px; background:var(--accent); color:#04110c; font-weight:700; font-size:15px; cursor:pointer; font-family:inherit; }
+    button:disabled { opacity:.55; cursor:default; }
+    .msg { font-size:14px; margin-top:14px; }
+    .msg.err { color:#ff6b6b; }
+    .msg.ok { color:var(--accent); }
+    code { display:block; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:14px; font-family:'SF Mono',ui-monospace,monospace; font-size:13px; word-break:break-all; color:var(--accent); margin:12px 0; }
+    .hint { font-size:12px; color:var(--text-dim); }
+    a { color:var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <!-- Request mode (no token) -->
+    <div id="request">
+      <h1>Reissue your API key</h1>
+      <p>Lost your Agent Toolbelt key? Enter the email you registered with and we'll send a secure link to mint a fresh one. Your old key will be revoked.</p>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+      <button id="reqBtn" onclick="requestLink()">Send me a reissue link</button>
+      <div id="reqMsg" class="msg"></div>
+    </div>
+
+    <!-- Reveal mode (token present) -->
+    <div id="reveal" style="display:none;">
+      <h1>Reveal your new API key</h1>
+      <p>Click below to generate a fresh API key. This revokes any previous key and can only be done once with this link.</p>
+      <button id="revBtn" onclick="revealKey()">Reveal my new API key</button>
+      <div id="revMsg" class="msg"></div>
+      <div id="keyOut" style="display:none;">
+        <p style="margin-top:18px;">Here's your new key — copy it now, it won't be shown again:</p>
+        <code id="keyVal"></code>
+        <button onclick="copyKey()">Copy key</button>
+        <p class="hint" style="margin-top:14px;">Use it as <code style="display:inline;border:none;padding:0;background:none;">Authorization: Bearer &lt;key&gt;</code> on any tool call. <a href="/docs">Docs →</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = new URLSearchParams(location.search).get('token');
+    if (token) {
+      document.getElementById('request').style.display = 'none';
+      document.getElementById('reveal').style.display = 'block';
+    }
+
+    async function requestLink() {
+      const email = document.getElementById('email').value.trim();
+      const btn = document.getElementById('reqBtn');
+      const msg = document.getElementById('reqMsg');
+      msg.className = 'msg'; msg.textContent = '';
+      if (!email || !email.includes('@')) { msg.className = 'msg err'; msg.textContent = 'Enter a valid email.'; return; }
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const r = await fetch('/api/clients/reissue-key', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
+        const d = await r.json();
+        msg.className = 'msg ok';
+        msg.textContent = d.message || "If an account exists for that email, we've sent a link.";
+      } catch (e) {
+        msg.className = 'msg err'; msg.textContent = 'Something went wrong. Try again.';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Send me a reissue link';
+      }
+    }
+
+    async function revealKey() {
+      const btn = document.getElementById('revBtn');
+      const msg = document.getElementById('revMsg');
+      msg.className = 'msg'; msg.textContent = '';
+      btn.disabled = true; btn.textContent = 'Generating…';
+      try {
+        const r = await fetch('/api/clients/reissue-key/confirm', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token }) });
+        const d = await r.json();
+        if (!r.ok) {
+          msg.className = 'msg err';
+          msg.textContent = d.message || 'This link is invalid or has expired.';
+          btn.disabled = false; btn.textContent = 'Reveal my new API key';
+          return;
+        }
+        btn.style.display = 'none';
+        document.getElementById('keyVal').textContent = d.apiKey.key;
+        document.getElementById('keyOut').style.display = 'block';
+      } catch (e) {
+        msg.className = 'msg err'; msg.textContent = 'Something went wrong. Try again.';
+        btn.disabled = false; btn.textContent = 'Reveal my new API key';
+      }
+    }
+
+    function copyKey() {
+      navigator.clipboard.writeText(document.getElementById('keyVal').textContent);
+    }
+  </script>
+</body>
+</html>

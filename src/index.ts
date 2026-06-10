@@ -20,9 +20,12 @@ import {
   getClientApiKeys,
   revokeApiKey,
   getAllClients,
+  createReissueToken,
+  consumeReissueToken,
+  revokeAllClientKeys,
   DB_PATH,
 } from "./db";
-import { sendOnboardingEmail } from "./email";
+import { sendOnboardingEmail, sendKeyReissueEmail } from "./email";
 
 // ----- Import tools (auto-registers via side effect) -----
 import "./tools/schema-generator";
@@ -280,6 +283,67 @@ app.post("/api/clients/register", (req, res) => {
   });
 });
 
+// ----- Self-serve API key reissue (magic link) -----
+// Lost-your-key flow. Request emails a single-use link; confirming it revokes
+// the client's old keys and mints a fresh one. Always responds generically to
+// avoid email enumeration, and is IP-rate-limited to deter spamming inboxes.
+const reissueBuckets: Map<string, { count: number; resetAt: number }> = new Map();
+function reissueRateOk(ip: string): boolean {
+  const now = Date.now();
+  const b = reissueBuckets.get(ip);
+  if (!b || now > b.resetAt) {
+    reissueBuckets.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 }); // 5/hour/IP
+    return true;
+  }
+  if (b.count >= 5) return false;
+  b.count++;
+  return true;
+}
+
+app.post("/api/clients/reissue-key", (req, res) => {
+  const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.ip || "unknown";
+  if (!reissueRateOk(ip)) {
+    res.status(429).json({ error: "rate_limited", message: "Too many requests. Please try again later." });
+    return;
+  }
+  const { email } = req.body || {};
+  // Generic response regardless of whether the account exists (no enumeration).
+  const generic = { message: "If an account exists for that email, we've sent a link to reissue your API key. Check your inbox." };
+  if (!email || typeof email !== "string") {
+    res.status(400).json({ error: "email is required" });
+    return;
+  }
+  const client = getClientByEmail(email.trim());
+  if (client) {
+    const token = createReissueToken(client.id);
+    const link = `https://www.agenttoolbelt.live/reissue?token=${token}`;
+    sendKeyReissueEmail({ email: client.email, name: client.name, link }).catch((err) =>
+      console.error("[email] reissue send failed:", err.message)
+    );
+  }
+  res.json(generic);
+});
+
+app.post("/api/clients/reissue-key/confirm", (req, res) => {
+  const { token } = req.body || {};
+  if (!token || typeof token !== "string") {
+    res.status(400).json({ error: "token is required" });
+    return;
+  }
+  const clientId = consumeReissueToken(token);
+  if (!clientId) {
+    res.status(400).json({ error: "invalid_or_expired", message: "This link is invalid or has expired. Request a new one." });
+    return;
+  }
+  // Revoke-and-replace: any prior keys (incl. the lost one) are invalidated.
+  revokeAllClientKeys(clientId);
+  const { key, record } = createApiKey(clientId, "default");
+  res.json({
+    message: "New API key issued. Your previous key(s) have been revoked. Store this securely — it won't be shown again.",
+    apiKey: { key, prefix: record.key_prefix },
+  });
+});
+
 // ----- Admin Routes -----
 
 // Admin auth
@@ -434,6 +498,11 @@ app.get("/register", (_req, res) => {
 // ----- Terms of Service & Privacy Policy -----
 app.get("/terms", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "terms.html"));
+});
+
+// ----- Self-serve key reissue page (request link + reveal new key) -----
+app.get("/reissue", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "reissue.html"));
 });
 
 // ----- Catch-all: serve landing page for non-API routes -----

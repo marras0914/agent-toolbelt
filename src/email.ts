@@ -173,3 +173,68 @@ Deploying agents to production? Check out Cordon — secrets management and acce
     throw err;
   }
 }
+
+/**
+ * Self-serve key-reissue magic link. Contains a LINK, never a key (same policy
+ * as onboarding). The link lands on /reissue where a button mints the new key.
+ */
+export async function sendKeyReissueEmail(params: {
+  email: string;
+  name?: string | null;
+  link: string;
+}): Promise<void> {
+  if (!config.resendApiKey) {
+    console.log(`[email] RESEND_API_KEY not set — skipping reissue email for ${params.email}`);
+    return;
+  }
+  const resend = new Resend(config.resendApiKey);
+  const { email, name, link } = params;
+  const greeting = name ? `Hi ${name}` : "Hi there";
+
+  const text = `${greeting},
+
+Someone (hopefully you) requested a fresh Agent Toolbelt API key for this address.
+
+Click below to reveal your new key — the link expires in 30 minutes:
+${link}
+
+For security, issuing a new key revokes your previous one. If you didn't request this, just ignore this email — nothing changes until you click the link.
+
+— Agent Toolbelt`;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;margin:0;padding:0;">
+  <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+    <div style="background:#1a1a1a;padding:28px 36px;"><h1 style="color:#fff;margin:0;font-size:19px;">Agent Toolbelt</h1></div>
+    <div style="padding:28px 36px;color:#333;font-size:15px;line-height:1.6;">
+      <p>${greeting},</p>
+      <p>Someone (hopefully you) requested a fresh Agent Toolbelt API key for this address.</p>
+      <p style="margin:24px 0;"><a href="${link}" style="display:inline-block;background:#1a1a1a;color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:600;">Reveal my new API key →</a></p>
+      <p style="font-size:13px;color:#666;">This link expires in 30 minutes. For security, issuing a new key revokes your previous one. If you didn't request this, ignore this email — nothing changes until you click.</p>
+    </div>
+  </div>
+</body></html>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: `Agent Toolbelt <${config.emailFrom}>`,
+      to: email,
+      replyTo: config.emailReplyTo,
+      subject: "Your new Agent Toolbelt API key",
+      text,
+      html,
+    });
+    if (error) {
+      const reason = error.message || error.name || "unknown resend error";
+      recordEmailFailure(email, reason);
+      throw new Error(`Resend send failed: ${reason}`);
+    }
+    recordEmailSuccess();
+    console.log(`[email] Reissue email sent to ${email}`);
+  } catch (err: any) {
+    if (!/^Resend send failed:/.test(err?.message || "")) {
+      recordEmailFailure(email, err?.message || "unknown send error");
+    }
+    throw err;
+  }
+}

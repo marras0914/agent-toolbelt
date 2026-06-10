@@ -66,6 +66,18 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_apikeys_client ON api_keys(client_id);
 `);
 
+// Self-serve API-key reissue: short-lived, single-use, hashed tokens emailed as
+// a magic link. Like a password-reset token — we store only the hash.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS key_reissue_tokens (
+    token_hash TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL REFERENCES clients(id),
+    expires_at TEXT NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
 // Migrate existing tables (safe — no-op if column already exists)
 try { db.exec(`ALTER TABLE clients ADD COLUMN credit_balance_micros INTEGER NOT NULL DEFAULT 0`); } catch { /* already exists */ }
 try { db.exec(`ALTER TABLE usage_records ADD COLUMN input_fingerprint TEXT`); } catch { /* already exists */ }
@@ -147,6 +159,12 @@ const stmts = {
     GROUP BY u.client_id
     ORDER BY calls DESC
   `),
+
+  // Key reissue tokens
+  insertReissueToken: db.prepare(`INSERT INTO key_reissue_tokens (token_hash, client_id, expires_at) VALUES (?, ?, ?)`),
+  getReissueToken: db.prepare(`SELECT client_id, expires_at, used FROM key_reissue_tokens WHERE token_hash = ?`),
+  markReissueTokenUsed: db.prepare(`UPDATE key_reissue_tokens SET used = 1 WHERE token_hash = ?`),
+  revokeAllClientKeys: db.prepare(`UPDATE api_keys SET is_active = 0 WHERE client_id = ?`),
 };
 
 // ----- Crypto helpers -----
@@ -277,6 +295,29 @@ export function getRolling30dCallCount(clientId: string): number {
 
 export function getClientCallCounts(): Array<{ clientId: string; email: string; tier: Tier; calls: number }> {
   return stmts.getClientCallCounts.all() as any[];
+}
+
+// ----- Key reissue (self-serve, magic-link) -----
+// Returns the plaintext token (emailed to the user); only its hash is stored.
+export function createReissueToken(clientId: string, ttlMinutes = 30): string {
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + ttlMinutes * 60_000).toISOString();
+  stmts.insertReissueToken.run(hashKey(token), clientId, expiresAt);
+  return token;
+}
+
+// Validates + single-use-consumes a token. Returns the clientId, or null if the
+// token is unknown, already used, or expired.
+export function consumeReissueToken(token: string): string | null {
+  const hash = hashKey(token);
+  const row = stmts.getReissueToken.get(hash) as { client_id: string; expires_at: string; used: number } | undefined;
+  if (!row || row.used || new Date(row.expires_at).getTime() < Date.now()) return null;
+  stmts.markReissueTokenUsed.run(hash);
+  return row.client_id;
+}
+
+export function revokeAllClientKeys(clientId: string): void {
+  stmts.revokeAllClientKeys.run(clientId);
 }
 
 export function getGlobalStats(since: string): any {
