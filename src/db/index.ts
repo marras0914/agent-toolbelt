@@ -138,6 +138,15 @@ const stmts = {
     FROM usage_records WHERE created_at >= ?
     GROUP BY tool_name ORDER BY calls DESC
   `),
+  // Per-client rolling-30d call counts joined with tier — feeds the cap-watch
+  // list. Uses the same '-30 days' window that checkTierLimit enforces.
+  getClientCallCounts: db.prepare(`
+    SELECT u.client_id as clientId, c.email, c.tier, COUNT(*) as calls
+    FROM usage_records u JOIN clients c ON c.id = u.client_id
+    WHERE u.created_at >= datetime('now','-30 days')
+    GROUP BY u.client_id
+    ORDER BY calls DESC
+  `),
 };
 
 // ----- Crypto helpers -----
@@ -264,6 +273,10 @@ export function getClientUsage(clientId: string, since: string): any[] {
 export function getRolling30dCallCount(clientId: string): number {
   const row = stmts.getRolling30dCallCount.get(clientId) as any;
   return row?.count || 0;
+}
+
+export function getClientCallCounts(): Array<{ clientId: string; email: string; tier: Tier; calls: number }> {
+  return stmts.getClientCallCounts.all() as any[];
 }
 
 export function getGlobalStats(since: string): any {

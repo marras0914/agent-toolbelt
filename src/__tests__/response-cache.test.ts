@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { responseCacheKey } from "../tools/registry";
 import { TIERS, SUBSCRIPTION_TIERS } from "../tiers";
-import { withHitRate } from "../middleware/usage";
+import { withHitRate, getCapWatch } from "../middleware/usage";
 import { checkTierLimit } from "../db";
 
 describe("responseCacheKey", () => {
@@ -71,6 +71,26 @@ describe("pro tier ($10/mo, 10k calls)", () => {
   it("is enforced by checkTierLimit (regression: was missing from the enforced map)", () => {
     const limit = checkTierLimit("nonexistent-client", "pro").limit;
     expect(limit).toBe(10_000);
+  });
+});
+
+describe("getCapWatch", () => {
+  it("returns the expected shape and excludes uncapped tiers", () => {
+    const w = getCapWatch(0.8);
+    expect(w.period).toBe("rolling_30_days");
+    expect(w.threshold).toBe(0.8);
+    expect(Array.isArray(w.clients)).toBe(true);
+    // every returned client must be on a capped tier and at/over threshold
+    for (const c of w.clients) {
+      expect(c.limit).not.toBe(Infinity);
+      expect(c.pctOfCap).toBeGreaterThanOrEqual(0.8);
+      expect(typeof c.overCap).toBe("boolean");
+    }
+  });
+
+  it("defaults threshold to 0.8 and accepts an override", () => {
+    expect(getCapWatch().threshold).toBe(0.8);
+    expect(getCapWatch(0.5).threshold).toBe(0.5);
   });
 });
 

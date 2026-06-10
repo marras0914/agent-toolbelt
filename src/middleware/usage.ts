@@ -1,8 +1,9 @@
 import crypto from "crypto";
 import { Request, Response, NextFunction } from "express";
 import { config } from "../config";
-import { recordUsage, getGlobalStats, getToolStats, getClientUsage } from "../db";
+import { recordUsage, getGlobalStats, getToolStats, getClientUsage, getClientCallCounts } from "../db";
 import { reportUsageToStripe } from "./billing";
+import { TIERS } from "../tiers";
 
 /**
  * Stable, short fingerprint of the request body. Lets us compute repeat-rate
@@ -80,4 +81,31 @@ export function getClientUsageSummary(clientId: string) {
     clientId,
     tools: getClientUsage(clientId, since).map(withHitRate),
   };
+}
+
+/**
+ * Cap-watch: clients at/over `threshold` fraction of their tier's monthly call
+ * cap (rolling 30 days, matching enforcement). The cheap way to spot the next
+ * conversion candidate — a free user pressed against the 1k wall — without
+ * eyeballing the per-client breakdown by hand. Tiers with no cap (payg,
+ * enterprise=Infinity) are excluded since they can't hit a wall.
+ */
+export function getCapWatch(threshold = 0.8) {
+  const clients = getClientCallCounts()
+    .map((r) => {
+      const limit = TIERS[r.tier]?.monthlyRequests ?? TIERS.free.monthlyRequests;
+      return {
+        email: r.email,
+        tier: r.tier,
+        calls: r.calls,
+        limit,
+        pctOfCap: limit === Infinity ? 0 : Math.round((r.calls / limit) * 100) / 100,
+        overCap: limit !== Infinity && r.calls >= limit,
+      };
+    })
+    .filter((r) => r.limit !== Infinity && r.pctOfCap >= threshold)
+    .sort((a, b) => b.pctOfCap - a.pctOfCap)
+    .map((r) => ({ ...r, limit: r.limit as number }));
+
+  return { period: "rolling_30_days", threshold, count: clients.length, clients };
 }

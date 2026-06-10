@@ -4,7 +4,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { config } from "./config";
-import { getUsageSummary, getClientUsageSummary } from "./middleware/usage";
+import { getUsageSummary, getClientUsageSummary, getCapWatch } from "./middleware/usage";
 import { getUpstreamHealth } from "./upstream-health";
 import { getEmailHealth } from "./email-health";
 import { runCacheWarmup, getLastWarmupResult, getWarmTickers, startCacheWarmupScheduler } from "./jobs/warm-cache";
@@ -339,6 +339,13 @@ app.get("/admin/clients", (_req, res) => {
 // Global usage dashboard
 app.get("/admin/usage", (_req, res) => {
   res.json(getUsageSummary());
+});
+
+// Cap-watch — clients at/over a fraction of their tier's monthly cap (rolling
+// 30d). Conversion-candidate radar: ?threshold=0.8 (default). See getCapWatch.
+app.get("/admin/cap-watch", (req, res) => {
+  const t = parseFloat(String(req.query.threshold));
+  res.json(getCapWatch(Number.isFinite(t) ? t : 0.8));
 });
 
 // Upstream API health — surfaces FMP/Finnhub/Polygon non-2xx counts (esp. 429
