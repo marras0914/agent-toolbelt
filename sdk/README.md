@@ -2,7 +2,7 @@
 
 Official SDK for [Agent Toolbelt](https://www.agenttoolbelt.live) — a suite of focused API tools for AI agents and developers.
 
-**Typed client + LangChain tool wrappers** for stock research (investment thesis, earnings analysis, insider signals, valuation, bear/bull, head-to-head comparison, moat analysis), schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, color palette generation, brand kit creation, meeting action item extraction, prompt optimization, web summarization, and more — 27 tools total (7 stock + 20 utility).
+**Typed client + LangChain tool wrappers** for stock research (investment thesis, earnings analysis, insider signals, valuation, bear/bull, head-to-head comparison, moat analysis, watchlist scan), schema generation, text extraction, token counting, CSV conversion, Markdown conversion, URL metadata, regex building, cron expressions, address normalization, color palette generation, brand kit creation, meeting action item extraction, prompt optimization, web summarization, and more — 28 tools total (8 stock + 20 utility).
 
 ## Install
 
@@ -280,7 +280,7 @@ const result = await agent.invoke({
 
 ## All tools
 
-27 tools available (7 stock + 20 utility). Free tier included — paid tiers available for higher volume. See [pricing](https://www.agenttoolbelt.live/#pricing).
+28 tools available (8 stock + 20 utility). Free tier included — paid tiers available for higher volume. See [pricing](https://www.agenttoolbelt.live/#pricing).
 
 ### Stock research ($0.05 per call)
 

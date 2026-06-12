@@ -580,5 +580,26 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
         return JSON.stringify(result);
       },
     }),
+
+    // ---- Watchlist Scan ----
+    new DynamicStructuredTool({
+      name: "watchlist_scan",
+      description:
+        "Scan a watchlist of 2-15 stocks and rank them by a chosen lens in a single call. Pulls live valuation, quality, and growth metrics for each ticker, " +
+        "then ranks the whole group, names a top pick and the one to avoid, and gives an overall takeaway. " +
+        "Returns: focus, ranked list (ticker/rank/read), topPick, avoid, watchlistTakeaway, and the raw metrics per ticker. " +
+        "Use when a user wants to triage or rank a list/watchlist of stocks (e.g. 'which of these is the best value?', 'rank my watchlist by quality') instead of analyzing each one separately.",
+      schema: z.object({
+        tickers: z.array(z.string()).min(2).max(15).describe("2-15 stock tickers to scan (e.g. ['NVDA','AMD','AVGO'])"),
+        focus: z
+          .enum(["value", "quality", "growth", "income"])
+          .optional()
+          .describe("Ranking lens (default 'value'): value, quality, growth, or income"),
+      }),
+      func: async ({ tickers, focus }) => {
+        const result = await client.watchlistScan({ tickers, focus });
+        return JSON.stringify(result);
+      },
+    }),
   ];
 }

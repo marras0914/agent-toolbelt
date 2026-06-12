@@ -468,6 +468,30 @@ export interface MoatAnalysisResult {
   generatedAt: string;
 }
 
+export interface WatchlistScanResult {
+  focus: "value" | "quality" | "growth" | "income";
+  scanned: string[];
+  noDataFor?: string[];
+  ranked: Array<{ ticker: string; rank: number; read: string }>;
+  topPick: { ticker: string; why: string };
+  avoid: { ticker: string; why: string };
+  watchlistTakeaway: string;
+  metrics: Array<{
+    ticker: string;
+    name: string;
+    price: number | null;
+    marketCapB: number | null;
+    pe: number | null;
+    ps: number | null;
+    fcfYield: number | null;
+    roe: number | null;
+    revGrowth3Y: number | null;
+    netMargin: number | null;
+    divYield: number | null;
+  }>;
+  generatedAt: string;
+}
+
 export interface StockThesisResult {
   ticker: string;
   companyName: string;
@@ -744,6 +768,14 @@ export class AgentToolbelt {
   /** Buffett-style competitive moat analysis — categorizes the moat and rates durability */
   moatAnalysis(input: { ticker: string }): Promise<MoatAnalysisResult> {
     return this.call("moat-analysis", input);
+  }
+
+  /** Scan a watchlist of 2-15 tickers and rank them by value/quality/growth/income in one call */
+  watchlistScan(input: {
+    tickers: string[];
+    focus?: "value" | "quality" | "growth" | "income";
+  }): Promise<WatchlistScanResult> {
+    return this.call("watchlist-scan", input);
   }
 
   /** Fetch a URL, extract main content as clean Markdown, and generate an AI summary with key points */

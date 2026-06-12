@@ -1365,6 +1365,57 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Watchlist Scan -----
+server.registerTool(
+  "watchlist_scan",
+  {
+    title: "Watchlist Scan",
+    description:
+      "Scan a watchlist of 2-15 stocks and rank them by a chosen lens (value, quality, growth, or income) in a single call. " +
+      "Pulls live valuation/quality/growth metrics for each ticker, ranks the whole group, names a top pick and the one to avoid, " +
+      "and gives an overall takeaway. Use to triage or rank a list of stocks instead of analyzing each one separately.",
+    inputSchema: {
+      tickers: z
+        .array(z.string())
+        .min(2)
+        .max(15)
+        .describe("2-15 stock tickers to scan (e.g. ['NVDA','AMD','AVGO'])"),
+      focus: z
+        .enum(["value", "quality", "growth", "income"])
+        .optional()
+        .describe("Ranking lens (default 'value'): value, quality, growth, or income"),
+    },
+  },
+  async ({ tickers, focus }) => {
+    const result = await callToolApi("watchlist-scan", { tickers, ...(focus ? { focus } : {}) });
+    const data = result as any;
+    const r = data.result;
+
+    const lines: string[] = [
+      `**Watchlist scan — ranked by ${r.focus}** (${(r.scanned || []).join(", ")})`,
+      "",
+    ];
+
+    for (const item of r.ranked || []) {
+      lines.push(`**#${item.rank} ${item.ticker}** — ${item.read}`);
+    }
+
+    lines.push("");
+    if (r.topPick) lines.push(`**Top pick: ${r.topPick.ticker}** — ${r.topPick.why}`);
+    if (r.avoid) lines.push(`**Avoid: ${r.avoid.ticker}** — ${r.avoid.why}`);
+    if (r.watchlistTakeaway) {
+      lines.push("");
+      lines.push(`_${r.watchlistTakeaway}_`);
+    }
+    if (r.noDataFor?.length) {
+      lines.push("");
+      lines.push(`_No data for: ${r.noDataFor.join(", ")}_`);
+    }
+
+    return { content: [{ type: "text" as const, text: lines.filter(Boolean).join("\n") }] };
+  }
+);
+
 // ----- Tool: Context Window Packer -----
 server.registerTool(
   "pack_context_window",
@@ -1557,11 +1608,11 @@ async function main() {
   await server.connect(transport);
 
   // Log to stderr (stdout is reserved for MCP protocol messages)
-  console.error("Agent Toolbelt MCP server v1.0.13 started");
+  console.error("Agent Toolbelt MCP server v1.0.14 started");
   console.error(`  API: ${API_BASE_URL}`);
   console.error(`  Key: ${API_KEY ? API_KEY.slice(0, 12) + "..." : "NOT SET"}`);
-  console.error("  Tools: 27 (7 stock research + 20 utility)");
-  console.error("  New in v1.0.13: compare_stocks (head-to-head) + moat_analysis (Buffett-style) + summarize_web_page");
+  console.error("  Tools: 28 (8 stock research + 20 utility)");
+  console.error("  New in v1.0.14: watchlist_scan — rank 2-15 tickers by value/quality/growth/income in one call");
   if (!API_KEY) {
     console.error("");
     console.error("=================================================================");

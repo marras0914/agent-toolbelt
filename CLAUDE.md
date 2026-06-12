@@ -1,6 +1,6 @@
 # Agent Toolbelt
 
-LLM-powered stock research tools for AI agents. Per-call billing. 27 tools total (7 stock analysis + 20 utility).
+LLM-powered stock research tools for AI agents. Per-call billing. 28 tools total (8 stock analysis + 20 utility).
 
 ## Project structure
 
