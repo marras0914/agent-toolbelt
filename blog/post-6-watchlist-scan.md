@@ -3,7 +3,7 @@ title: "I watched everyone loop my stock API one ticker at a time, so I built a 
 description: "Usage data told me what tool to build next: rank a whole watchlist in one call instead of N. Here's the design decision and why one LLM call beats many."
 tags: ["ai", "investing", "claude", "agents"]
 published: true
-canonical_url: "https://marcoarras.com/watchlist-scan"
+canonical_url: "https://marcoarras.com/writing/watchlist-scan"
 ---
 
 I build a set of stock-research tools for AI agents. Each one takes a ticker and returns structured analysis: an investment thesis, a valuation read, insider activity, and so on. Single ticker in, structured research out.
