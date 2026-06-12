@@ -50,7 +50,7 @@ Free tier: 1,000 calls/month, no credit card. PAYG credits start at $5.
 
 Happy to answer anything — what you'd want to see, what tools are missing, how the prompting works. This is early and I'm very much building in public.
 
-Try it at: https://agent-toolbelt-production.up.railway.app
+Try it at: https://www.agenttoolbelt.live
 
 ---
 
@@ -67,7 +67,7 @@ Try it at: https://agent-toolbelt-production.up.railway.app
 ## Pre-launch checklist
 
 - [ ] Gallery images created (5 above)
-- [ ] Landing page updated (agent-toolbelt-production.up.railway.app) — make sure the demo works
+- [ ] Landing page updated (www.agenttoolbelt.live) — make sure the demo works
 - [ ] Notify the 6 current registrants — ask them to upvote + leave a comment
 - [ ] Line up 3-5 friends/colleagues to upvote in the first hour (critical for algo)
 - [ ] Schedule for Tuesday or Wednesday 12:01 AM Pacific

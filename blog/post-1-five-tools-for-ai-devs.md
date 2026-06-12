@@ -2,7 +2,7 @@
 title: "5 API Tools That Save AI Developers Hours of Boilerplate"
 description: "When you're building AI agents, you end up writing the same utility code over and over. Here are five focused APIs that handle the tedious parts so you can focus on what matters."
 tags: ["ai", "devtools", "productivity", "llm"]
-cover_image: https://agent-toolbelt-production.up.railway.app/og.png
+cover_image: https://www.agenttoolbelt.live/og.png
 published: true
 ---
 
@@ -20,7 +20,7 @@ If you've ever gotten a `context_length_exceeded` error mid-agent-run, you know 
 
 **The API:**
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/token-counter \
+curl -X POST https://www.agenttoolbelt.live/api/tools/token-counter \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -50,7 +50,7 @@ JSON Schema is powerful and absolutely miserable to write. TypeScript interfaces
 
 **The API:**
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/schema-generator \
+curl -X POST https://www.agenttoolbelt.live/api/tools/schema-generator \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -82,7 +82,7 @@ Regex is one of those things where the write-once-debug-forever rule really appl
 
 **The API:**
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/regex-builder \
+curl -X POST https://www.agenttoolbelt.live/api/tools/regex-builder \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -111,7 +111,7 @@ This one is powered by Claude and it has saved my agents from a lot of mediocre 
 
 **The API:**
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/prompt-optimizer \
+curl -X POST https://www.agenttoolbelt.live/api/tools/prompt-optimizer \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -143,7 +143,7 @@ This is the one non-developers ask me about most. Paste raw meeting notes — ho
 
 **The API:**
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/meeting-action-items \
+curl -X POST https://www.agenttoolbelt.live/api/tools/meeting-action-items \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -174,7 +174,7 @@ All five tools are available under the same API key. The pricing is per-call: mo
 
 ```bash
 # Get an API key
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/keys \
+curl -X POST https://www.agenttoolbelt.live/api/keys \
   -H "Content-Type: application/json" \
   -d '{"email": "you@example.com"}'
 ```
@@ -203,4 +203,4 @@ Stop paying the boilerplate tax. These five calls handle the tedious parts so yo
 
 ---
 
-*Agent Toolbelt is a collection of focused, pay-per-call API tools for AI developers. [See all 14 tools →](https://agent-toolbelt-production.up.railway.app)*
+*Agent Toolbelt is a collection of focused, pay-per-call API tools for AI developers. [See all 14 tools →](https://www.agenttoolbelt.live)*

@@ -123,7 +123,7 @@ export default myTool;
 
 Hosted on Railway. Auto-deploys on push to `master` via GitHub integration.
 
-- Production URL: `https://www.agenttoolbelt.live` (Railway URL `https://agent-toolbelt-production.up.railway.app` still resolves to the same service; both work)
+- Production URL: `https://www.agenttoolbelt.live` (Railway URL `https://www.agenttoolbelt.live` still resolves to the same service; both work)
 - Railway project ID: `d345a508-2557-453d-953c-3acd1ae26568`
 - Persistent volume mounted at `/data` — SQLite DB survives deploys
 

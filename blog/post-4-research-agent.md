@@ -2,7 +2,7 @@
 title: "How to Build a Research Agent in 30 Lines of TypeScript"
 description: "Most research agents are 80% plumbing. Here's how to strip that down to what actually matters."
 tags: ["ai", "typescript", "agents", "llm", "productivity"]
-cover_image: https://agent-toolbelt-production.up.railway.app/og.png
+cover_image: https://www.agenttoolbelt.live/og.png
 published: true
 ---
 
@@ -35,7 +35,7 @@ npm install agent-toolbelt openai
 
 ```bash
 # Get a free API key (1,000 calls/month)
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \
+curl -X POST https://www.agenttoolbelt.live/api/clients/register \
   -H "Content-Type: application/json" \
   -d '{"email": "you@example.com"}'
 ```
@@ -236,7 +236,7 @@ npm install agent-toolbelt
 ```
 
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/clients/register \
+curl -X POST https://www.agenttoolbelt.live/api/clients/register \
   -H "Content-Type: application/json" \
   -d '{"email": "you@example.com"}'
 ```
@@ -245,4 +245,4 @@ Free tier: 1,000 calls/month, no credit card required. The research agent above 
 
 ---
 
-*Agent Toolbelt is a collection of 20 focused API tools for developers building on top of LLMs. [See all tools →](https://agent-toolbelt-production.up.railway.app)*
+*Agent Toolbelt is a collection of 20 focused API tools for developers building on top of LLMs. [See all tools →](https://www.agenttoolbelt.live)*

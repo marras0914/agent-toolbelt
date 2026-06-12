@@ -138,7 +138,7 @@ claude mcp add agent-toolbelt \
 
 Or call the REST API directly:
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/bear-vs-bull \
+curl -X POST https://www.agenttoolbelt.live/api/tools/bear-vs-bull \
   -H "Authorization: Bearer atb_..." \
   -d '{"ticker": "TSLA"}'
 ```

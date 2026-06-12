@@ -2,7 +2,7 @@
 title: "I Stopped Writing JSON Schemas and Regex by Hand. Here's What I Do Instead."
 description: "Two of the most tedious parts of backend development — generating schemas and writing regex — can be fully automated. Here's how I handle them now."
 tags: ["typescript", "devtools", "api", "productivity"]
-cover_image: https://agent-toolbelt-production.up.railway.app/og.png
+cover_image: https://www.agenttoolbelt.live/og.png
 published: true
 ---
 
@@ -32,7 +32,7 @@ This is the classic definition of a task that should not require a human.
 ### The workflow now
 
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/schema-generator \
+curl -X POST https://www.agenttoolbelt.live/api/tools/schema-generator \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -137,7 +137,7 @@ I'll be honest: I know regex well enough to write most patterns I need. But I've
 ### Describing what you want in English
 
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/regex-builder \
+curl -X POST https://www.agenttoolbelt.live/api/tools/regex-builder \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -231,4 +231,4 @@ Both tools are available with the same API key. Pricing is fractions of a cent p
 
 ---
 
-*Agent Toolbelt is a collection of focused, pay-per-call API tools for developers and AI agents. [See all 14 tools →](https://agent-toolbelt-production.up.railway.app)*
+*Agent Toolbelt is a collection of focused, pay-per-call API tools for developers and AI agents. [See all 14 tools →](https://www.agenttoolbelt.live)*

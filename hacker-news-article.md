@@ -27,4 +27,4 @@ Ships three ways:
 
 Free tier: 1,000 calls/month, no credit card.
 
-https://agent-toolbelt-production.up.railway.app
+https://www.agenttoolbelt.live

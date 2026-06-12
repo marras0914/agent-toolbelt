@@ -113,7 +113,7 @@ The agent will call `stock-thesis` and `bear-vs-bull` for both tickers, then syn
 ## Or call the API directly
 
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/bear-vs-bull \
+curl -X POST https://www.agenttoolbelt.live/api/tools/bear-vs-bull \
   -H "Authorization: Bearer atb_..." \
   -H "Content-Type: application/json" \
   -d '{"ticker": "TSLA"}'
@@ -145,7 +145,7 @@ curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/bear-vs-
 
 Stock analysis tools are $0.05/call on the pay-as-you-go tier — prepaid credits, no subscription. A $10 pack covers 200 analyses.
 
-**Get your key:** [agent-toolbelt-production.up.railway.app](https://agent-toolbelt-production.up.railway.app)
+**Get your key:** [www.agenttoolbelt.live](https://www.agenttoolbelt.live)
 
 ---
 

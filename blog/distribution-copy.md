@@ -89,7 +89,7 @@ I'm Matt, the builder behind Agent Toolbelt — a per-call API of AI-powered sto
 Each pulls live data from Polygon.io, Finnhub, and Financial Modeling Prep in parallel and synthesizes it with Claude Haiku. Structured JSON output, ~5 seconds per call.
 
 **Links:**
-- API: https://agent-toolbelt-production.up.railway.app
+- API: https://www.agenttoolbelt.live
 - npm SDK: `npm install agent-toolbelt`
 - MCP server: `npm install agent-toolbelt-mcp`
 - Try live: elephanttortoise.com (valuation snapshot, no signup)

@@ -2,7 +2,7 @@
 title: "Three API Calls That Make Your LLM Workflow Dramatically Better"
 description: "Token overflows, weak prompts, and manual meeting cleanup are three problems you shouldn't be solving by hand. Here's how I automated them."
 tags: ["llm", "ai", "productivity", "agents"]
-cover_image: https://agent-toolbelt-production.up.railway.app/og.png
+cover_image: https://www.agenttoolbelt.live/og.png
 published: true
 ---
 
@@ -28,7 +28,7 @@ The problem is token counting is model-specific, non-obvious, and the libraries 
 ### The API approach
 
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/token-counter \
+curl -X POST https://www.agenttoolbelt.live/api/tools/token-counter \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -105,7 +105,7 @@ Analyze this customer feedback and tell me what's wrong.
 Goal: "Categorize issues by type and severity so a product manager can prioritize fixes"
 
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/prompt-optimizer \
+curl -X POST https://www.agenttoolbelt.live/api/tools/prompt-optimizer \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -166,7 +166,7 @@ The gap between "notes from a meeting" and "tasks in a project management tool" 
 ### The API
 
 ```bash
-curl -X POST https://agent-toolbelt-production.up.railway.app/api/tools/meeting-action-items \
+curl -X POST https://www.agenttoolbelt.live/api/tools/meeting-action-items \
   -H "Authorization: Bearer YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -263,4 +263,4 @@ await toolbelt.meetingActionItems({ notes });
 
 ---
 
-*Agent Toolbelt is a collection of focused API tools for developers building on top of LLMs. Pricing is per-call. [See all 14 tools →](https://agent-toolbelt-production.up.railway.app)*
+*Agent Toolbelt is a collection of focused API tools for developers building on top of LLMs. Pricing is per-call. [See all 14 tools →](https://www.agenttoolbelt.live)*
