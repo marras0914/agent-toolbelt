@@ -6,7 +6,7 @@ Try the valuation snapshot live (no signup): [www.agenttoolbelt.live](https://ww
 
 ## Step 1 — Get a free API key
 
-The MCP server requires an API key. Free tier is 1,000 calls/month, no credit card required.
+The MCP server requires an API key. Free tier is 250 calls/month, no credit card required.
 
 ```bash
 curl -X POST 'https://www.agenttoolbelt.live/api/clients/register?source=npm' \
@@ -113,8 +113,8 @@ Claude calls the tools in parallel and synthesizes a complete research note. Her
 
 ## Pricing
 
-- **Free tier:** 1,000 calls/month, no credit card
-- **Stock analysis tools:** $0.05/call (PAYG)
+- **Free tier:** 250 calls/month, no credit card
+- **Stock analysis tools:** $0.02/call (PAYG)
 - **Most utility tools:** $0.001–$0.005/call
 
 ---
@@ -129,7 +129,7 @@ When the agent moves out of dev, a new set of questions shows up. What did it ca
 - Per-API-key policy: which tools each caller can use, under what conditions
 - Slack-based human approvals for tool calls you've flagged as high-risk
 
-From the agent's perspective nothing changes — same tools, same schemas. Free tier covers 1,000 events/month.
+From the agent's perspective nothing changes — same tools, same schemas. Free tier covers 250 events/month.
 
 ---
 

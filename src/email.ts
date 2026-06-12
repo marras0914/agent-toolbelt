@@ -87,7 +87,7 @@ const thesis = await atb.stockThesis({ ticker: "AAPL" });
 console.log(thesis.verdict, thesis.oneLiner);</pre>
 
       <h2>What's included</h2>
-      <p>Your free tier includes <strong>1,000 calls/month</strong> across all 25 tools — 5 stock research tools plus 20 utility tools (schema generator, token counter, regex builder, and more).</p>
+      <p>Your free tier includes <strong>250 calls/month</strong> across all 28 tools — 8 stock research tools plus 20 utility tools (schema generator, token counter, regex builder, and more).</p>
 
       <p>
         <a class="btn" href="${docsUrl}">API docs</a>
@@ -131,7 +131,7 @@ curl -X POST https://www.agenttoolbelt.live/api/tools/stock-thesis \\
 
 All tools take {"ticker": "..."} — just change the tool name in the URL.
 
-1,000 free calls/month across all 25 tools.
+250 free calls/month across all 28 tools.
 
 API docs: ${docsUrl}
 All tools: ${catalogUrl}

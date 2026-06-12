@@ -26,7 +26,7 @@ const API_BASE_URL = process.env.AGENT_TOOLBELT_URL || "https://www.agenttoolbel
 const API_KEY = process.env.AGENT_TOOLBELT_KEY || "";
 
 const REGISTRATION_HINT =
-  "No AGENT_TOOLBELT_KEY is set. Get a free key (1,000 calls/month, no credit card):\n" +
+  "No AGENT_TOOLBELT_KEY is set. Get a free key (250 calls/month, no credit card):\n" +
   "  curl -X POST 'https://www.agenttoolbelt.live/api/clients/register?source=mcp_banner' \\\n" +
   "    -H 'Content-Type: application/json' -d '{\"email\":\"you@example.com\"}'\n" +
   "Then set AGENT_TOOLBELT_KEY in your MCP config (claude_desktop_config.json or `claude mcp add` -e flag).";
@@ -1618,7 +1618,7 @@ async function main() {
     console.error("=================================================================");
     console.error(" ⚠  No AGENT_TOOLBELT_KEY configured — tool calls will fail.");
     console.error("");
-    console.error(" Get a free key (1,000 calls/month, no credit card):");
+    console.error(" Get a free key (250 calls/month, no credit card):");
     console.error("   curl -X POST 'https://www.agenttoolbelt.live/api/clients/register?source=mcp_banner' \\");
     console.error("     -H 'Content-Type: application/json' -d '{\"email\":\"you@example.com\"}'");
     console.error("");

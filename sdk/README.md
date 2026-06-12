@@ -331,7 +331,7 @@ When the agent moves out of dev, a new set of questions shows up. What did it ca
 - Per-API-key policy: which tools each caller can use, under what conditions
 - Slack-based human approvals for tool calls you've flagged as high-risk
 
-From the agent's perspective nothing changes — same tools, same schemas. Free tier covers 1,000 events/month.
+From the agent's perspective nothing changes — same tools, same schemas. Free tier covers 250 events/month.
 
 ## License
 

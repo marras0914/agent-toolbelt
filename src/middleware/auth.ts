@@ -65,7 +65,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
   // Concrete next-tier pitch, so nudges name a price instead of a vague "upgrade"
   const NEXT_TIER_PITCH: Partial<Record<Client["tier"], string>> = {
-    free: "Pro is $10/mo for 10,000 calls (10× your current limit)",
+    free: "Pro is $10/mo for 10,000 calls (40× your current limit)",
     pro: "Starter is $29/mo for 50,000 calls",
     starter: "Enterprise is $499/mo for 5,000,000 calls",
   };

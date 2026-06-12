@@ -908,7 +908,7 @@
         <div class="step">
           <div class="step-num">01</div>
           <h3>Register</h3>
-          <p>Get a free API key in 10 seconds. 1,000 free calls/month. No credit card required.</p>
+          <p>Get a free API key in 10 seconds. 250 free calls/month. No credit card required.</p>
         </div>
         <div class="step">
           <div class="step-num">02</div>
@@ -932,7 +932,7 @@
         <div class="price-card">
           <div class="price-tier">Free</div>
           <div class="price-amount">$0<span>/mo</span></div>
-          <div class="price-detail">1,000 calls/month included</div>
+          <div class="price-detail">250 calls/month included</div>
           <ul class="price-features">
             <li>All 7 stock analysis tools</li>
             <li>All 20 utility tools</li>
@@ -985,7 +985,7 @@
   <section class="cta" id="get-started">
     <div class="container">
       <h2>Get your API key in 10 seconds</h2>
-      <p>Register with your email. 1,000 free calls included. Start analyzing stocks immediately.</p>
+      <p>Register with your email. 250 free calls included. Start analyzing stocks immediately.</p>
       <div style="max-width: 480px; margin: 0 auto;">
         <div style="display: flex; gap: 12px;">
           <input type="email" id="email-input" placeholder="agent@example.com"
@@ -1192,7 +1192,7 @@
                 <a href="#" onclick="navigator.clipboard.writeText('curl -X POST https://www.agenttoolbelt.live/api/tools/bear-vs-bull -H \\'Authorization: Bearer ${key}\\' -H \\'Content-Type: application/json\\' -d \\'{&quot;ticker&quot;: &quot;AAPL&quot;}\\''); this.textContent='Copied!'; setTimeout(() => this.textContent='bear-vs-bull', 1500); return false;" style="font-family: var(--mono); font-size: 0.75rem; padding: 4px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); text-decoration: none;">bear-vs-bull</a>
                 <a href="#" onclick="navigator.clipboard.writeText('curl -X POST https://www.agenttoolbelt.live/api/tools/insider-signal -H \\'Authorization: Bearer ${key}\\' -H \\'Content-Type: application/json\\' -d \\'{&quot;ticker&quot;: &quot;AAPL&quot;}\\''); this.textContent='Copied!'; setTimeout(() => this.textContent='insider-signal', 1500); return false;" style="font-family: var(--mono); font-size: 0.75rem; padding: 4px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); text-decoration: none;">insider-signal</a>
               </div>
-              <div style="margin-top: 10px; color: var(--text-dim); font-size: 0.75rem;">1,000 free calls/month | <a href="/api/docs" style="color: var(--accent);">API docs</a></div>
+              <div style="margin-top: 10px; color: var(--text-dim); font-size: 0.75rem;">250 free calls/month | <a href="/api/docs" style="color: var(--accent);">API docs</a></div>
             </div>
           `;
         } else {
@@ -1280,7 +1280,7 @@
         resultEl.style.display = 'block';
         if (res.status === 429) {
           resultEl.style.color = 'var(--orange)';
-          resultEl.textContent = data.message + '\n\nRegister below for 1,000 free calls/month →';
+          resultEl.textContent = data.message + '\n\nRegister below for 250 free calls/month →';
         } else if (!res.ok) {
           resultEl.style.color = 'var(--orange)';
           resultEl.textContent = JSON.stringify(data, null, 2);
@@ -1357,7 +1357,7 @@
           errorEl.innerHTML = `
             <div style="margin-bottom:8px;font-weight:600;">Daily limit reached (10 free analyses/IP/day)</div>
             <div style="color:var(--text-dim);font-size:0.82rem;margin-bottom:14px;">${data.message || ''}</div>
-            <a href="#get-started" class="btn btn-primary" style="font-size:0.8rem;padding:8px 18px;">Get API Key — 1,000 free calls/mo →</a>
+            <a href="#get-started" class="btn btn-primary" style="font-size:0.8rem;padding:8px 18px;">Get API Key — 250 free calls/mo →</a>
           `;
           errorEl.style.display = 'block';
         } else if (!res.ok) {
@@ -1403,7 +1403,7 @@
             ` : ''}
             <div class="demo-cta-row">
               <div class="demo-cta-text">10 free analyses/day · No card required${remaining != null ? ` · <strong style="color:var(--text)">${remaining}</strong> remaining today` : ''}</div>
-              <a href="#get-started" class="btn btn-primary" style="font-size:0.8rem;padding:8px 18px;">Get API Key — 1,000 free/mo →</a>
+              <a href="#get-started" class="btn btn-primary" style="font-size:0.8rem;padding:8px 18px;">Get API Key — 250 free/mo →</a>
             </div>
           `;
           resultEl.style.display = 'block';

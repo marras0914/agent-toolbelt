@@ -162,7 +162,7 @@ app.post("/api/try/:toolName", async (req, res) => {
   if (bucket && bucket.date === today && bucket.count >= GUEST_DAILY_LIMIT) {
     res.status(429).json({
       error: "guest_limit_reached",
-      message: `Free trial limit reached (${GUEST_DAILY_LIMIT} tries/day). Register for 1,000 free calls/month.`,
+      message: `Free trial limit reached (${GUEST_DAILY_LIMIT} tries/day). Register for 250 free calls/month.`,
       registerUrl: "/api/clients/register",
     });
     return;
@@ -217,7 +217,7 @@ app.post("/api/try/:toolName", async (req, res) => {
       guest: true,
       trialCallsRemaining: remaining,
       ...(remaining <= 3 && {
-        nudge: `${remaining} free tries left today. Register for 1,000 free calls/month → POST /api/clients/register`,
+        nudge: `${remaining} free tries left today. Register for 250 free calls/month → POST /api/clients/register`,
       }),
     });
   } catch (err: any) {

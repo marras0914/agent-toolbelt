@@ -29,7 +29,7 @@ export interface TierConfig {
 }
 
 export const TIERS: Record<Tier, TierConfig> = {
-  free:       { displayName: "Free",          monthlyRequests: 1_000,     requestsPerMinute: 10,    stockRequestsPerMinute: 5,        monthlyUsd: null, stripePriceEnv: null },
+  free:       { displayName: "Free",          monthlyRequests: 250,       requestsPerMinute: 10,    stockRequestsPerMinute: 5,        monthlyUsd: null, stripePriceEnv: null },
   payg:       { displayName: "Pay As You Go", monthlyRequests: Infinity,  requestsPerMinute: 60,    stockRequestsPerMinute: 20,       monthlyUsd: null, stripePriceEnv: null },
   // Stripe price for the $10 Pro tier is read from STRIPE_PRICE_HOBBY — kept
   // under the original env var name so no Railway change was needed for the

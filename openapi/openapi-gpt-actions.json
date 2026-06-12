@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Agent Toolbelt",
-    "description": "28 focused API tools for AI agents and developers: 8 LLM-powered stock research tools (investment thesis, earnings analysis, insider signals, valuation, bull/bear, comparison, moat, watchlist scan) plus 20 utility tools (data extraction, token counting, schema generation, contract clause extraction, prompt optimization, and more). Stock analysis $0.02/call; other rule-based tools from $0.0001/call. Free tier: 1,000 calls/month.",
+    "description": "28 focused API tools for AI agents and developers: 8 LLM-powered stock research tools (investment thesis, earnings analysis, insider signals, valuation, bull/bear, comparison, moat, watchlist scan) plus 20 utility tools (data extraction, token counting, schema generation, contract clause extraction, prompt optimization, and more). Stock analysis $0.02/call; other rule-based tools from $0.0001/call. Free tier: 250 calls/month.",
     "version": "1.1.0",
     "contact": {
       "name": "Agent Toolbelt Support",
