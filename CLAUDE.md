@@ -52,7 +52,7 @@ npm run test:ci      # Run tests once (no watch)
 
 1. Create `src/tools/<tool-name>.ts` — implement and call `registerTool()` at the bottom
 2. Import it in `src/index.ts` (side-effect import): `import "./tools/<tool-name>";`
-3. Add the endpoint to `openapi/openapi-gpt-actions.json` (note: this file is currently stale — minor sin to leave it that way for now)
+3. Add the endpoint to `openapi/openapi-gpt-actions.json` (now complete as of 2026-06-11 — all 28 tools present; keep it in sync when adding tools)
 4. Add typed method to `sdk/src/client.ts`
 5. Add `DynamicStructuredTool` to `sdk/src/langchain.ts`
 6. Add tool to `mcp-server/src/index.ts`

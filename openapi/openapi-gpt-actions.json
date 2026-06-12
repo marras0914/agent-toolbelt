@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Agent Toolbelt",
-    "description": "19 focused API tools for AI agents and developers. Data extraction, token counting, document analysis, contract clause extraction, prompt optimization, meeting action items, mock data generation, and more. Rule-based tools from $0.0001/call. LLM-powered tools at $0.05–$0.10/call. Free tier: 1,000 calls/month.",
-    "version": "1.0.0",
+    "description": "28 focused API tools for AI agents and developers: 8 LLM-powered stock research tools (investment thesis, earnings analysis, insider signals, valuation, bull/bear, comparison, moat, watchlist scan) plus 20 utility tools (data extraction, token counting, schema generation, contract clause extraction, prompt optimization, and more). Stock analysis $0.02/call; other rule-based tools from $0.0001/call. Free tier: 1,000 calls/month.",
+    "version": "1.1.0",
     "contact": {
       "name": "Agent Toolbelt Support",
       "url": "https://www.agenttoolbelt.live"
@@ -1356,6 +1356,227 @@
           "200": { "description": "Vulnerability report with per-package details and summary" },
           "400": { "description": "Validation error" },
           "401": { "description": "Missing or invalid API key" },
+          "429": { "description": "Rate limit or quota exceeded" }
+        }
+      }
+    },
+    "/api/tools/stock-thesis": {
+      "post": {
+        "operationId": "stockThesis",
+        "summary": "Generate an investment thesis for a stock",
+        "description": "Full Motley Fool-style investment thesis from live financial data: verdict (bullish/neutral/bearish), thesis paragraphs, key strengths, risks, valuation read, and what to watch next. Powered by Claude. $0.02/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["ticker"],
+            "properties": {
+              "ticker": { "type": "string", "description": "US-listed stock ticker (e.g. NVDA, AAPL, MSFT). US equities only." },
+              "timeHorizon": { "type": "string", "enum": ["1-2 years", "3-5 years", "5+ years"], "default": "3-5 years", "description": "Investment time-horizon framing for the thesis." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Investment thesis with verdict, strengths, risks, valuation, and watch-fors" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
+          "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
+        }
+      }
+    },
+    "/api/tools/earnings-analysis": {
+      "post": {
+        "operationId": "earningsAnalysis",
+        "summary": "Analyze a stock's earnings track record",
+        "description": "EPS beat/miss history (last 5 quarters), revenue trend, long-term read, and the upcoming earnings date. Powered by Claude. $0.02/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["ticker"],
+            "properties": {
+              "ticker": { "type": "string", "description": "US-listed stock ticker (e.g. NVDA, AAPL, MSFT). US equities only." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Earnings track record, revenue trend, and next earnings date" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
+          "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
+        }
+      }
+    },
+    "/api/tools/insider-signal": {
+      "post": {
+        "operationId": "insiderSignal",
+        "summary": "Interpret insider trading activity",
+        "description": "Reads Form 4 filings to distinguish meaningful open-market purchases from routine option-exercise noise. Returns a signal (strong_buy to strong_sell), confidence, and a plain-English verdict. Powered by Claude. $0.02/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["ticker"],
+            "properties": {
+              "ticker": { "type": "string", "description": "US-listed stock ticker (e.g. NVDA, AAPL, MSFT). US equities only." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Insider signal, confidence, and interpretation" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
+          "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
+        }
+      }
+    },
+    "/api/tools/valuation-snapshot": {
+      "post": {
+        "operationId": "valuationSnapshot",
+        "summary": "Valuation snapshot with a verdict and buy zone",
+        "description": "P/E, P/S, EV/EBITDA, FCF yield, and ROE synthesized into a verdict (very_cheap to very_expensive) plus a specific buy-zone price level. Includes a metricSources map showing which methodology backs each value. Powered by Claude. $0.02/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["ticker"],
+            "properties": {
+              "ticker": { "type": "string", "description": "US-listed stock ticker (e.g. NVDA, AAPL, MSFT). US equities only." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Valuation metrics, verdict, and buy zone" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
+          "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
+        }
+      }
+    },
+    "/api/tools/bear-vs-bull": {
+      "post": {
+        "operationId": "bearVsBull",
+        "summary": "Steelmanned bull vs. bear case for a stock",
+        "description": "Three bull arguments and three bear arguments, each steelmanned with specific data, plus a net verdict, the key debate question, and who the stock suits. Powered by Claude. $0.02/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["ticker"],
+            "properties": {
+              "ticker": { "type": "string", "description": "US-listed stock ticker (e.g. NVDA, AAPL, MSFT). US equities only." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Bull case, bear case, net verdict, and key debate" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
+          "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
+        }
+      }
+    },
+    "/api/tools/compare-stocks": {
+      "post": {
+        "operationId": "compareStocks",
+        "summary": "Head-to-head comparison of 2-3 stocks",
+        "description": "Compare 2-3 tickers on live valuation, quality, and growth metrics. Returns a winner verdict, per-ticker strengths/concerns, an ifYouValue map (growth/value/quality), and the key difference. Powered by Claude. $0.02/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["tickers"],
+            "properties": {
+              "tickers": { "type": "array", "minItems": 2, "maxItems": 3, "items": { "type": "string" }, "description": "2-3 US-listed tickers to compare (e.g. ['NVDA','AMD'])." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Winner verdict with per-ticker breakdown" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
+          "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
+        }
+      }
+    },
+    "/api/tools/moat-analysis": {
+      "post": {
+        "operationId": "moatAnalysis",
+        "summary": "Buffett-style competitive moat analysis",
+        "description": "Rates a company's moat (wide/narrow/none), identifies moat sources (brand, switching costs, network effects, scale, intangibles/IP, cost advantage), and assesses durability and threats using ROIC, margins, and capex intensity. Powered by Claude. $0.02/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["ticker"],
+            "properties": {
+              "ticker": { "type": "string", "description": "US-listed stock ticker (e.g. NVDA, AAPL, MSFT). US equities only." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Moat rating, sources, durability outlook, and threats" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
+          "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
+        }
+      }
+    },
+    "/api/tools/watchlist-scan": {
+      "post": {
+        "operationId": "watchlistScan",
+        "summary": "Rank a watchlist of 2-15 stocks",
+        "description": "Scan 2-15 tickers and rank them by a chosen lens (value, quality, growth, or income) in one call. Returns a ranked list with a one-line read per ticker, a top pick, the one to avoid, an overall takeaway, and the raw metrics. Powered by Claude. $0.05/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["tickers"],
+            "properties": {
+              "tickers": { "type": "array", "minItems": 2, "maxItems": 15, "items": { "type": "string" }, "description": "2-15 US-listed tickers to scan (e.g. ['NVDA','AMD','AVGO'])." },
+              "focus": { "type": "string", "enum": ["value", "quality", "growth", "income"], "default": "value", "description": "Ranking lens: value (cheapest vs fundamentals), quality (best returns/margins), growth (fastest durable growth), or income (best sustainable dividend)." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Ranked watchlist with top pick, one to avoid, and per-ticker reads" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
+          "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
+        }
+      }
+    },
+    "/api/tools/web-summarizer": {
+      "post": {
+        "operationId": "summarizeWebPage",
+        "summary": "Fetch a web page and summarize it",
+        "description": "Fetch a URL, extract the main content as clean Markdown, and generate an AI summary with key points. Optionally focus the summary on a specific question or topic. Powered by Claude. $0.02/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["url"],
+            "properties": {
+              "url": { "type": "string", "description": "The URL to fetch and summarize." },
+              "mode": { "type": "string", "enum": ["summary", "content", "both"], "default": "summary", "description": "Return an AI summary, the extracted Markdown content, or both." },
+              "focus": { "type": "string", "description": "Optional question or topic to focus the summary on." },
+              "maxContentLength": { "type": "integer", "description": "Optional cap on extracted content length (characters)." }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Summary and/or extracted content with key points" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
           "429": { "description": "Rate limit or quota exceeded" }
         }
       }
