@@ -26,17 +26,23 @@ export interface TierConfig {
   monthlyUsd: number | null;
   /** Name of the env var holding the Stripe price id (subscription tiers only); null otherwise. */
   stripePriceEnv: string | null;
+  /** Whether this tier gets scheduled watchlist monitoring + alerts (the paid recurring value). */
+  watchlistMonitoring: boolean;
+  /** Max saved watchlists this tier can create. */
+  maxWatchlists: number;
+  /** Max tickers per watchlist. */
+  maxWatchlistTickers: number;
 }
 
 export const TIERS: Record<Tier, TierConfig> = {
-  free:       { displayName: "Free",          monthlyRequests: 250,       requestsPerMinute: 10,    stockRequestsPerMinute: 5,        monthlyUsd: null, stripePriceEnv: null },
-  payg:       { displayName: "Pay As You Go", monthlyRequests: Infinity,  requestsPerMinute: 60,    stockRequestsPerMinute: 20,       monthlyUsd: null, stripePriceEnv: null },
+  free:       { displayName: "Free",          monthlyRequests: 250,       requestsPerMinute: 10,    stockRequestsPerMinute: 5,        monthlyUsd: null, stripePriceEnv: null,                       watchlistMonitoring: false, maxWatchlists: 1,   maxWatchlistTickers: 10 },
+  payg:       { displayName: "Pay As You Go", monthlyRequests: Infinity,  requestsPerMinute: 60,    stockRequestsPerMinute: 20,       monthlyUsd: null, stripePriceEnv: null,                       watchlistMonitoring: false, maxWatchlists: 3,   maxWatchlistTickers: 25 },
   // Stripe price for the $10 Pro tier is read from STRIPE_PRICE_HOBBY — kept
   // under the original env var name so no Railway change was needed for the
   // hobby→pro rename. (STRIPE_PRICE_PRO previously held the retired $99 tier.)
-  pro:        { displayName: "Pro",           monthlyRequests: 10_000,    requestsPerMinute: 30,    stockRequestsPerMinute: 20,       monthlyUsd: 10,   stripePriceEnv: "STRIPE_PRICE_HOBBY" },
-  starter:    { displayName: "Starter",       monthlyRequests: 50_000,    requestsPerMinute: 60,    stockRequestsPerMinute: 30,       monthlyUsd: 29,   stripePriceEnv: "STRIPE_PRICE_STARTER" },
-  enterprise: { displayName: "Enterprise",    monthlyRequests: 5_000_000, requestsPerMinute: 1_000, stockRequestsPerMinute: Infinity, monthlyUsd: 499,  stripePriceEnv: "STRIPE_PRICE_ENTERPRISE" },
+  pro:        { displayName: "Pro",           monthlyRequests: 10_000,    requestsPerMinute: 30,    stockRequestsPerMinute: 20,       monthlyUsd: 10,   stripePriceEnv: "STRIPE_PRICE_HOBBY",       watchlistMonitoring: true,  maxWatchlists: 3,   maxWatchlistTickers: 25 },
+  starter:    { displayName: "Starter",       monthlyRequests: 50_000,    requestsPerMinute: 60,    stockRequestsPerMinute: 30,       monthlyUsd: 29,   stripePriceEnv: "STRIPE_PRICE_STARTER",     watchlistMonitoring: true,  maxWatchlists: 10,  maxWatchlistTickers: 50 },
+  enterprise: { displayName: "Enterprise",    monthlyRequests: 5_000_000, requestsPerMinute: 1_000, stockRequestsPerMinute: Infinity, monthlyUsd: 499,  stripePriceEnv: "STRIPE_PRICE_ENTERPRISE", watchlistMonitoring: true,  maxWatchlists: 100, maxWatchlistTickers: 100 },
 };
 
 /** Tiers a customer can subscribe to via Stripe checkout (excludes free/payg). */

@@ -25,6 +25,17 @@ import {
   revokeAllClientKeys,
   DB_PATH,
 } from "./db";
+import {
+  createWatchlist,
+  listWatchlists,
+  countWatchlists,
+  getOwnedWatchlist,
+  updateWatchlist,
+  deleteWatchlist,
+} from "./db/watchlists";
+import { authenticate } from "./middleware/auth";
+import { TIERS } from "./tiers";
+import { isValidUSTicker, US_ONLY_HINT } from "./tools/_stock-helpers";
 import { sendOnboardingEmail, sendKeyReissueEmail } from "./email";
 
 // ----- Import tools (auto-registers via side effect) -----
@@ -343,6 +354,109 @@ app.post("/api/clients/reissue-key/confirm", (req, res) => {
     message: "New API key issued. Your previous key(s) have been revoked. Store this securely — it won't be shown again.",
     apiKey: { key, prefix: record.key_prefix },
   });
+});
+
+// ----- Watchlists (saved ticker lists; foundation for monitoring, Phase 1a) -----
+// Validate + normalize an incoming tickers array against the caller's tier cap.
+// Returns { tickers } on success or { error } with a user-facing message.
+function validateTickers(raw: unknown, maxTickers: number): { tickers: string[] } | { error: string } {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { error: "tickers must be a non-empty array of US tickers, e.g. [\"NVDA\",\"AMD\"]" };
+  }
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of raw) {
+    if (typeof t !== "string") return { error: `Invalid ticker: ${JSON.stringify(t)}` };
+    const sym = t.toUpperCase().trim();
+    if (!isValidUSTicker(sym)) return { error: `"${t}" is not a valid US ticker. ${US_ONLY_HINT}` };
+    if (!seen.has(sym)) { seen.add(sym); out.push(sym); }
+  }
+  if (out.length > maxTickers) {
+    return { error: `This tier allows up to ${maxTickers} tickers per watchlist (got ${out.length}). Upgrade for larger watchlists.` };
+  }
+  return { tickers: out };
+}
+
+// Shape a watchlist for the API response, adding a monitoring hint by tier.
+function watchlistResponse(wl: ReturnType<typeof createWatchlist>, tier: keyof typeof TIERS) {
+  const monitored = TIERS[tier].watchlistMonitoring;
+  return {
+    id: wl.id,
+    name: wl.name,
+    tickers: wl.tickers,
+    emailAlerts: wl.email_alerts,
+    monitored,
+    ...(monitored
+      ? {}
+      : { monitoringHint: "This watchlist isn't monitored on your current plan. Upgrade to Pro for daily monitoring + alerts: https://www.agenttoolbelt.live/#pricing" }),
+    createdAt: wl.created_at,
+    updatedAt: wl.updated_at,
+  };
+}
+
+app.post("/api/watchlists", authenticate, (req, res) => {
+  const client = req.client!;
+  const tier = client.tier as keyof typeof TIERS;
+  const { name, tickers, emailAlerts } = req.body || {};
+  if (!name || typeof name !== "string" || name.length > 100) {
+    res.status(400).json({ error: "name is required (max 100 chars)" });
+    return;
+  }
+  if (countWatchlists(client.clientId) >= TIERS[tier].maxWatchlists) {
+    res.status(403).json({
+      error: "watchlist_limit_reached",
+      message: `Your plan allows ${TIERS[tier].maxWatchlists} watchlist(s). Upgrade for more: https://www.agenttoolbelt.live/#pricing`,
+    });
+    return;
+  }
+  const v = validateTickers(tickers, TIERS[tier].maxWatchlistTickers);
+  if ("error" in v) { res.status(400).json({ error: "validation_error", message: v.error }); return; }
+  const wl = createWatchlist(client.clientId, name, v.tickers, emailAlerts !== false);
+  res.status(201).json({ watchlist: watchlistResponse(wl, tier) });
+});
+
+app.get("/api/watchlists", authenticate, (req, res) => {
+  const client = req.client!;
+  const tier = client.tier as keyof typeof TIERS;
+  const lists = listWatchlists(client.clientId).map((wl) => watchlistResponse(wl, tier));
+  res.json({ watchlists: lists, count: lists.length });
+});
+
+app.get("/api/watchlists/:id", authenticate, (req, res) => {
+  const client = req.client!;
+  const wl = getOwnedWatchlist(req.params.id, client.clientId);
+  if (!wl) { res.status(404).json({ error: "not_found" }); return; }
+  res.json({ watchlist: watchlistResponse(wl, client.tier as keyof typeof TIERS) });
+});
+
+app.patch("/api/watchlists/:id", authenticate, (req, res) => {
+  const client = req.client!;
+  const tier = client.tier as keyof typeof TIERS;
+  const existing = getOwnedWatchlist(req.params.id, client.clientId);
+  if (!existing) { res.status(404).json({ error: "not_found" }); return; }
+  const { name, tickers, emailAlerts } = req.body || {};
+  const newName = name !== undefined ? name : existing.name;
+  if (typeof newName !== "string" || !newName || newName.length > 100) {
+    res.status(400).json({ error: "name must be a non-empty string (max 100 chars)" });
+    return;
+  }
+  let newTickers = existing.tickers;
+  if (tickers !== undefined) {
+    const v = validateTickers(tickers, TIERS[tier].maxWatchlistTickers);
+    if ("error" in v) { res.status(400).json({ error: "validation_error", message: v.error }); return; }
+    newTickers = v.tickers;
+  }
+  const newEmail = emailAlerts !== undefined ? emailAlerts !== false : existing.email_alerts;
+  updateWatchlist(req.params.id, client.clientId, { name: newName, tickers: newTickers, emailAlerts: newEmail });
+  const updated = getOwnedWatchlist(req.params.id, client.clientId)!;
+  res.json({ watchlist: watchlistResponse(updated, tier) });
+});
+
+app.delete("/api/watchlists/:id", authenticate, (req, res) => {
+  const client = req.client!;
+  const ok = deleteWatchlist(req.params.id, client.clientId);
+  if (!ok) { res.status(404).json({ error: "not_found" }); return; }
+  res.json({ message: "Watchlist deleted", id: req.params.id });
 });
 
 // ----- Admin Routes -----
