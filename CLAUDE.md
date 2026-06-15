@@ -155,7 +155,7 @@ npm publish      # publish to npm (requires npm login)
 
 ## MCP server
 
-Package: `agent-toolbelt-mcp` on npm. Source in `mcp-server/`. Latest published: v1.0.14 (adds watchlist_scan; includes all 8 stock tools).
+Package: `agent-toolbelt-mcp` on npm. Source in `mcp-server/`. Latest published: v1.0.15 (adds watchlist management tools: create_watchlist/list_watchlists/get_watchlist_alerts; plus watchlist_scan + all 8 stock tools).
 
 ```bash
 cd mcp-server
@@ -209,7 +209,7 @@ print(r.stdout)
 
 | Channel | Status |
 |---|---|
-| npm (`agent-toolbelt` v0.5.0 + `agent-toolbelt-mcp` v1.0.14) | ✓ Live — 810/mo SDK + 200-280/day MCP installs (measured 2026-04-29). Both packages include all 8 stock tools (watchlist-scan added + published 2026-06-11/12). |
+| npm (`agent-toolbelt` v0.6.0 + `agent-toolbelt-mcp` v1.0.15) | ✓ Live — 810/mo SDK + 200-280/day MCP installs (measured 2026-04-29). All 8 stock tools + watchlist management (create/list/alerts), published 2026-06-15. |
 | RapidAPI | ✓ Listed |
 | MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted |
 | PulseMCP | ✓ Submitted |
