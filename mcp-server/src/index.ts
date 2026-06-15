@@ -61,6 +61,24 @@ async function callToolApi(toolName: string, input: Record<string, unknown>): Pr
   return response.json();
 }
 
+// General call for non-tool REST endpoints (watchlists). Returns parsed JSON.
+async function callApi(method: string, path: string, body?: Record<string, unknown>): Promise<any> {
+  if (!API_KEY) throw new Error(REGISTRATION_HINT);
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${API_KEY}` },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: response.statusText }));
+    const status = response.status;
+    const baseMsg = `Agent Toolbelt API error (${status}): ${(error as any).message || JSON.stringify(error)}`;
+    if (status === 401 || status === 403) throw new Error(`${baseMsg}\n\n${REGISTRATION_HINT}`);
+    throw new Error(baseMsg);
+  }
+  return response.json();
+}
+
 // ----- Server factory (creates a fresh instance with all tools registered) -----
 function createServer() {
   const server = new McpServer({
@@ -1416,6 +1434,77 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Create Watchlist -----
+server.registerTool(
+  "create_watchlist",
+  {
+    title: "Create Watchlist",
+    description:
+      "Save a named watchlist of stock tickers. On a Pro+ plan, saved watchlists are monitored daily and surface alerts " +
+      "(new insider buys, upcoming earnings, big price moves). Use when the user wants to track a set of stocks over time.",
+    inputSchema: {
+      name: z.string().describe("A name for the watchlist (e.g. 'AI semis')"),
+      tickers: z.array(z.string()).min(1).describe("US tickers to track (e.g. ['NVDA','AMD','AVGO'])"),
+    },
+  },
+  async ({ name, tickers }) => {
+    const data = await callApi("POST", "/api/watchlists", { name, tickers });
+    const w = data.watchlist;
+    const lines = [
+      `**Watchlist created: ${w.name}**`,
+      `Tickers: ${w.tickers.join(", ")}`,
+      `ID: ${w.id}`,
+      w.monitored ? "Monitored daily — you'll get alerts on changes." : `Not monitored on your plan. ${w.monitoringHint || ""}`,
+    ];
+    return { content: [{ type: "text" as const, text: lines.filter(Boolean).join("\n") }] };
+  }
+);
+
+// ----- Tool: List Watchlists -----
+server.registerTool(
+  "list_watchlists",
+  {
+    title: "List Watchlists",
+    description: "List the user's saved watchlists (id, name, tickers, and whether each is monitored). Use to find a watchlist's id before getting its alerts.",
+    inputSchema: {},
+  },
+  async () => {
+    const data = await callApi("GET", "/api/watchlists");
+    const lists = data.watchlists || [];
+    if (lists.length === 0) {
+      return { content: [{ type: "text" as const, text: "No saved watchlists yet. Use create_watchlist to make one." }] };
+    }
+    const lines = lists.map(
+      (w: any) => `**${w.name}** (${w.id})${w.monitored ? " · monitored" : ""}\n  ${w.tickers.join(", ")}`
+    );
+    return { content: [{ type: "text" as const, text: lines.join("\n\n") }] };
+  }
+);
+
+// ----- Tool: Get Watchlist Alerts -----
+server.registerTool(
+  "get_watchlist_alerts",
+  {
+    title: "Get Watchlist Alerts",
+    description:
+      "Get recent monitor alerts for a saved watchlist — what changed lately (new insider buys, earnings within 7 days, big daily price moves). " +
+      "Pro+ only; returns empty for plans without monitoring. Use when the user asks what's new or what changed on their watchlist.",
+    inputSchema: {
+      watchlistId: z.string().describe("The watchlist id (from list_watchlists)"),
+    },
+  },
+  async ({ watchlistId }) => {
+    const data = await callApi("GET", `/api/watchlists/${watchlistId}/alerts`);
+    const alerts = data.alerts || [];
+    if (alerts.length === 0) {
+      const hint = data.monitored ? "No alerts yet — nothing notable has changed." : (data.monitoringHint || "Monitoring requires a Pro+ plan.");
+      return { content: [{ type: "text" as const, text: hint }] };
+    }
+    const lines = alerts.map((a: any) => `**${a.ticker}** — ${a.message} _(${a.at})_`);
+    return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+  }
+);
+
 // ----- Tool: Context Window Packer -----
 server.registerTool(
   "pack_context_window",
@@ -1608,11 +1697,11 @@ async function main() {
   await server.connect(transport);
 
   // Log to stderr (stdout is reserved for MCP protocol messages)
-  console.error("Agent Toolbelt MCP server v1.0.14 started");
+  console.error("Agent Toolbelt MCP server v1.0.15 started");
   console.error(`  API: ${API_BASE_URL}`);
   console.error(`  Key: ${API_KEY ? API_KEY.slice(0, 12) + "..." : "NOT SET"}`);
-  console.error("  Tools: 28 (8 stock research + 20 utility)");
-  console.error("  New in v1.0.14: watchlist_scan — rank 2-15 tickers by value/quality/growth/income in one call");
+  console.error("  Tools: 28 (8 stock research + 20 utility) + watchlist management");
+  console.error("  New in v1.0.15: create_watchlist / list_watchlists / get_watchlist_alerts — Claude can save & monitor watchlists (alerts are Pro+)");
   if (!API_KEY) {
     console.error("");
     console.error("=================================================================");

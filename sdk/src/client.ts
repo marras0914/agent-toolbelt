@@ -468,6 +468,27 @@ export interface MoatAnalysisResult {
   generatedAt: string;
 }
 
+export interface SavedWatchlist {
+  id: string;
+  name: string;
+  tickers: string[];
+  emailAlerts: boolean;
+  /** Whether this watchlist is monitored daily (true on Pro+ tiers). */
+  monitored: boolean;
+  /** Present (upgrade nudge) when the tier doesn't include monitoring. */
+  monitoringHint?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WatchlistAlert {
+  ticker: string;
+  /** "insider_buy" | "earnings_soon" | "price_move" */
+  type: string;
+  message: string;
+  at: string;
+}
+
 export interface WatchlistScanResult {
   focus: "value" | "quality" | "growth" | "income";
   scanned: string[];
@@ -561,6 +582,56 @@ export class AgentToolbelt {
 
     const data = await res.json() as ToolResponse<T>;
     return data.result;
+  }
+
+  // General request for non-tool REST endpoints (watchlists). Returns the full
+  // JSON body rather than unwrapping a `result` field.
+  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as any;
+      throw new Error(
+        `AgentToolbelt API error (${res.status}): ${err.message || err.error || res.statusText}`
+      );
+    }
+    return res.json() as Promise<T>;
+  }
+
+  /** Create a saved watchlist. Monitoring (daily alerts) requires a Pro+ plan. */
+  createWatchlist(input: { name: string; tickers: string[]; emailAlerts?: boolean }): Promise<SavedWatchlist> {
+    return this.request<{ watchlist: SavedWatchlist }>("POST", "/api/watchlists", input).then((r) => r.watchlist);
+  }
+
+  /** List your saved watchlists. */
+  listWatchlists(): Promise<SavedWatchlist[]> {
+    return this.request<{ watchlists: SavedWatchlist[] }>("GET", "/api/watchlists").then((r) => r.watchlists);
+  }
+
+  /** Get one saved watchlist by id. */
+  getWatchlist(id: string): Promise<SavedWatchlist> {
+    return this.request<{ watchlist: SavedWatchlist }>("GET", `/api/watchlists/${id}`).then((r) => r.watchlist);
+  }
+
+  /** Update a watchlist's name, tickers, or email-alert setting. */
+  updateWatchlist(id: string, input: { name?: string; tickers?: string[]; emailAlerts?: boolean }): Promise<SavedWatchlist> {
+    return this.request<{ watchlist: SavedWatchlist }>("PATCH", `/api/watchlists/${id}`, input).then((r) => r.watchlist);
+  }
+
+  /** Delete a watchlist. */
+  deleteWatchlist(id: string): Promise<{ message: string; id: string }> {
+    return this.request("DELETE", `/api/watchlists/${id}`);
+  }
+
+  /** Recent monitor alerts for a watchlist (insider buys, earnings, big moves). Pro+ only; empty otherwise. */
+  getWatchlistAlerts(id: string): Promise<WatchlistAlert[]> {
+    return this.request<{ alerts: WatchlistAlert[] }>("GET", `/api/watchlists/${id}/alerts`).then((r) => r.alerts);
   }
 
   /** Generate JSON Schema, TypeScript, or Zod from a plain-English description */

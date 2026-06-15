@@ -1580,6 +1580,100 @@
           "429": { "description": "Rate limit or quota exceeded" }
         }
       }
+    },
+    "/api/watchlists": {
+      "get": {
+        "operationId": "listWatchlists",
+        "summary": "List your saved watchlists",
+        "description": "Returns the caller's saved watchlists, each with its tickers and whether it's monitored daily (Pro+ tiers).",
+        "responses": {
+          "200": { "description": "Array of watchlists" },
+          "401": { "description": "Missing or invalid API key" }
+        }
+      },
+      "post": {
+        "operationId": "createWatchlist",
+        "summary": "Create a saved watchlist",
+        "description": "Save a named list of US tickers. On a Pro+ plan, watchlists are monitored daily and produce alerts (new insider buys, earnings within 7 days, big price moves). Tier limits cap the number of watchlists and tickers per list.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["name", "tickers"],
+            "properties": {
+              "name": { "type": "string", "description": "Name for the watchlist (max 100 chars)." },
+              "tickers": { "type": "array", "minItems": 1, "items": { "type": "string" }, "description": "US-listed tickers (e.g. [\"NVDA\",\"AMD\"]). Capped by tier." },
+              "emailAlerts": { "type": "boolean", "default": true, "description": "Whether to email a digest when the watchlist changes (monitored tiers only)." }
+            }
+          } } }
+        },
+        "responses": {
+          "201": { "description": "Created watchlist" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "403": { "description": "Watchlist limit reached for this tier" }
+        }
+      }
+    },
+    "/api/watchlists/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Watchlist id." }
+      ],
+      "get": {
+        "operationId": "getWatchlist",
+        "summary": "Get one saved watchlist",
+        "responses": {
+          "200": { "description": "The watchlist" },
+          "401": { "description": "Missing or invalid API key" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "patch": {
+        "operationId": "updateWatchlist",
+        "summary": "Update a saved watchlist",
+        "description": "Update name, tickers, and/or emailAlerts. Any omitted field is left unchanged.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "tickers": { "type": "array", "items": { "type": "string" } },
+              "emailAlerts": { "type": "boolean" }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Updated watchlist" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteWatchlist",
+        "summary": "Delete a saved watchlist",
+        "responses": {
+          "200": { "description": "Deleted" },
+          "401": { "description": "Missing or invalid API key" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/watchlists/{id}/alerts": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Watchlist id." }
+      ],
+      "get": {
+        "operationId": "getWatchlistAlerts",
+        "summary": "Recent monitor alerts for a watchlist",
+        "description": "Recent change alerts (new insider buys, earnings within 7 days, big daily price moves) detected by the daily monitor. Pro+ only; returns an empty array (with an upgrade hint) on tiers without monitoring.",
+        "responses": {
+          "200": { "description": "Recent alerts (may be empty)" },
+          "401": { "description": "Missing or invalid API key" },
+          "404": { "description": "Not found" }
+        }
+      }
     }
   },
   "components": {

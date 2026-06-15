@@ -601,5 +601,48 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
         return JSON.stringify(result);
       },
     }),
+
+    // ---- Create Watchlist ----
+    new DynamicStructuredTool({
+      name: "create_watchlist",
+      description:
+        "Save a named watchlist of stock tickers. On a Pro+ plan, saved watchlists are monitored daily and surface alerts " +
+        "(new insider buys, upcoming earnings, big price moves). Use when a user wants to track a set of stocks over time. " +
+        "Returns the created watchlist including whether it's monitored on the current plan.",
+      schema: z.object({
+        name: z.string().describe("A name for the watchlist (e.g. 'AI semis')"),
+        tickers: z.array(z.string()).min(1).describe("US tickers to track (e.g. ['NVDA','AMD','AVGO'])"),
+      }),
+      func: async ({ name, tickers }) => {
+        const result = await client.createWatchlist({ name, tickers });
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- List Watchlists ----
+    new DynamicStructuredTool({
+      name: "list_watchlists",
+      description: "List the user's saved watchlists (id, name, tickers, and whether each is monitored). Use to find a watchlist's id before getting its alerts.",
+      schema: z.object({}),
+      func: async () => {
+        const result = await client.listWatchlists();
+        return JSON.stringify(result);
+      },
+    }),
+
+    // ---- Watchlist Alerts ----
+    new DynamicStructuredTool({
+      name: "watchlist_alerts",
+      description:
+        "Get recent monitor alerts for a saved watchlist — what changed lately (new insider buys, earnings within 7 days, big daily price moves). " +
+        "Pro+ only; returns empty for plans without monitoring. Use when a user asks 'what's new / what changed on my watchlist?'",
+      schema: z.object({
+        watchlistId: z.string().describe("The watchlist id (from list_watchlists)"),
+      }),
+      func: async ({ watchlistId }) => {
+        const result = await client.getWatchlistAlerts(watchlistId);
+        return JSON.stringify(result);
+      },
+    }),
   ];
 }
