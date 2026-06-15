@@ -24,6 +24,27 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
   CREATE INDEX IF NOT EXISTS idx_watchlists_client ON watchlists(client_id);
+
+  CREATE TABLE IF NOT EXISTS watchlist_state (
+    watchlist_id TEXT NOT NULL,
+    ticker TEXT NOT NULL,
+    last_insider_buy_date TEXT,
+    last_earnings_date TEXT,
+    last_price REAL,
+    checked_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (watchlist_id, ticker)
+  );
+
+  CREATE TABLE IF NOT EXISTS watchlist_alerts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    watchlist_id TEXT NOT NULL,
+    ticker TEXT NOT NULL,
+    type TEXT NOT NULL,
+    message TEXT NOT NULL,
+    delivered INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_alerts_watchlist ON watchlist_alerts(watchlist_id, created_at);
 `);
 
 export interface Watchlist {
@@ -114,4 +135,78 @@ export function updateWatchlist(
 export function deleteWatchlist(id: string, clientId: string): boolean {
   const res = stmts.remove.run(id, clientId) as { changes: number };
   return res.changes > 0;
+}
+
+// ----- Monitoring state + alerts (Phase 1b) -----
+
+export interface WatchlistState {
+  watchlist_id: string;
+  ticker: string;
+  last_insider_buy_date: string | null;
+  last_earnings_date: string | null;
+  last_price: number | null;
+}
+
+export interface WatchlistAlert {
+  id: number;
+  watchlist_id: string;
+  ticker: string;
+  type: string;
+  message: string;
+  created_at: string;
+}
+
+/** A watchlist joined with its owning client's tier (for the monitor job's gating). */
+export interface WatchlistWithTier extends Watchlist {
+  tier: string;
+}
+
+const monitorStmts = {
+  getState: db.prepare(`SELECT * FROM watchlist_state WHERE watchlist_id = ? AND ticker = ?`),
+  upsertState: db.prepare(`
+    INSERT INTO watchlist_state (watchlist_id, ticker, last_insider_buy_date, last_earnings_date, last_price, checked_at)
+    VALUES (?, ?, ?, ?, ?, datetime('now'))
+    ON CONFLICT(watchlist_id, ticker) DO UPDATE SET
+      last_insider_buy_date = excluded.last_insider_buy_date,
+      last_earnings_date = excluded.last_earnings_date,
+      last_price = excluded.last_price,
+      checked_at = datetime('now')
+  `),
+  insertAlert: db.prepare(`INSERT INTO watchlist_alerts (watchlist_id, ticker, type, message, delivered) VALUES (?, ?, ?, ?, ?)`),
+  recentAlerts: db.prepare(`SELECT id, watchlist_id, ticker, type, message, created_at FROM watchlist_alerts WHERE watchlist_id = ? ORDER BY created_at DESC LIMIT ?`),
+  allWithTier: db.prepare(`SELECT w.*, c.tier as tier FROM watchlists w JOIN clients c ON c.id = w.client_id`),
+};
+
+export function getWatchlistState(watchlistId: string, ticker: string): WatchlistState | undefined {
+  return monitorStmts.getState.get(watchlistId, ticker) as WatchlistState | undefined;
+}
+
+export function upsertWatchlistState(
+  watchlistId: string,
+  ticker: string,
+  s: { lastInsiderBuyDate: string | null; lastEarningsDate: string | null; lastPrice: number | null }
+): void {
+  monitorStmts.upsertState.run(watchlistId, ticker, s.lastInsiderBuyDate, s.lastEarningsDate, s.lastPrice);
+}
+
+export function insertWatchlistAlert(
+  watchlistId: string,
+  ticker: string,
+  type: string,
+  message: string,
+  delivered = false
+): void {
+  monitorStmts.insertAlert.run(watchlistId, ticker, type, message, delivered ? 1 : 0);
+}
+
+export function getRecentAlerts(watchlistId: string, limit = 50): WatchlistAlert[] {
+  return monitorStmts.recentAlerts.all(watchlistId, limit) as WatchlistAlert[];
+}
+
+/** All watchlists with their owner's tier — the monitor job filters these by TIERS[tier].watchlistMonitoring. */
+export function listAllWatchlistsWithTier(): WatchlistWithTier[] {
+  return (monitorStmts.allWithTier.all() as (WatchlistRow & { tier: string })[]).map((row) => ({
+    ...rowToWatchlist(row),
+    tier: row.tier,
+  }));
 }

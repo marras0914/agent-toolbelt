@@ -32,7 +32,9 @@ import {
   getOwnedWatchlist,
   updateWatchlist,
   deleteWatchlist,
+  getRecentAlerts,
 } from "./db/watchlists";
+import { runWatchlistMonitor, getLastMonitorResult, startWatchlistMonitorScheduler } from "./jobs/watchlist-monitor";
 import { authenticate } from "./middleware/auth";
 import { TIERS } from "./tiers";
 import { isValidUSTicker, US_ONLY_HINT } from "./tools/_stock-helpers";
@@ -459,6 +461,24 @@ app.delete("/api/watchlists/:id", authenticate, (req, res) => {
   res.json({ message: "Watchlist deleted", id: req.params.id });
 });
 
+// Recent monitor alerts for a watchlist (pull; agents poll this). Empty for
+// non-monitored tiers since the job only runs on monitored watchlists.
+app.get("/api/watchlists/:id/alerts", authenticate, (req, res) => {
+  const client = req.client!;
+  const wl = getOwnedWatchlist(req.params.id, client.clientId);
+  if (!wl) { res.status(404).json({ error: "not_found" }); return; }
+  const monitored = TIERS[client.tier as keyof typeof TIERS].watchlistMonitoring;
+  const alerts = getRecentAlerts(req.params.id, 50).map((a) => ({
+    ticker: a.ticker, type: a.type, message: a.message, at: a.created_at,
+  }));
+  res.json({
+    watchlistId: req.params.id,
+    monitored,
+    alerts,
+    ...(monitored ? {} : { monitoringHint: "Upgrade to Pro for daily monitoring + alerts: https://www.agenttoolbelt.live/#pricing" }),
+  });
+});
+
 // ----- Admin Routes -----
 
 // Admin auth
@@ -549,6 +569,19 @@ app.get("/admin/warm-cache", (_req, res) => {
 app.post("/admin/warm-cache", async (_req, res) => {
   try {
     const result = await runCacheWarmup();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// Watchlist monitor — status + manual trigger (daily job at 23:00 UTC in prod).
+app.get("/admin/watchlist-monitor", (_req, res) => {
+  res.json({ lastRun: getLastMonitorResult() });
+});
+app.post("/admin/watchlist-monitor", async (_req, res) => {
+  try {
+    const result = await runWatchlistMonitor();
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -653,6 +686,7 @@ app.listen(config.port, () => {
 ╚═══════════════════════════════════════════════════╝
   `);
   startCacheWarmupScheduler();
+  startWatchlistMonitorScheduler();
 });
 
 export default app;

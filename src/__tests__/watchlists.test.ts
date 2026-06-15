@@ -7,6 +7,11 @@ import {
   getOwnedWatchlist,
   updateWatchlist,
   deleteWatchlist,
+  getWatchlistState,
+  upsertWatchlistState,
+  insertWatchlistAlert,
+  getRecentAlerts,
+  listAllWatchlistsWithTier,
 } from "../db/watchlists";
 import { TIERS } from "../tiers";
 
@@ -58,6 +63,41 @@ describe("watchlists DB layer", () => {
     expect(deleteWatchlist(wl.id, "someone-else")).toBe(false);
     expect(deleteWatchlist(wl.id, cid)).toBe(true);
     expect(getOwnedWatchlist(wl.id, cid)).toBeUndefined();
+  });
+});
+
+describe("watchlist monitoring state + alerts", () => {
+  it("upserts and reads back per-ticker state", () => {
+    const cid = newClientId();
+    const wl = createWatchlist(cid, "s", ["NVDA"], true);
+    expect(getWatchlistState(wl.id, "NVDA")).toBeUndefined();
+    upsertWatchlistState(wl.id, "NVDA", { lastInsiderBuyDate: "2026-06-01", lastEarningsDate: null, lastPrice: 120.5 });
+    let st = getWatchlistState(wl.id, "NVDA")!;
+    expect(st.last_insider_buy_date).toBe("2026-06-01");
+    expect(st.last_price).toBe(120.5);
+    // upsert overwrites
+    upsertWatchlistState(wl.id, "NVDA", { lastInsiderBuyDate: "2026-06-10", lastEarningsDate: "2026-06-20", lastPrice: 130 });
+    st = getWatchlistState(wl.id, "NVDA")!;
+    expect(st.last_insider_buy_date).toBe("2026-06-10");
+    expect(st.last_earnings_date).toBe("2026-06-20");
+  });
+
+  it("stores and returns recent alerts newest-first", () => {
+    const cid = newClientId();
+    const wl = createWatchlist(cid, "a", ["AMD"], true);
+    insertWatchlistAlert(wl.id, "AMD", "price_move", "Moved down 12%", true);
+    insertWatchlistAlert(wl.id, "AMD", "earnings_soon", "Earnings expected 2026-06-20", false);
+    const alerts = getRecentAlerts(wl.id, 10);
+    expect(alerts.length).toBe(2);
+    expect(alerts.every((a) => a.ticker === "AMD")).toBe(true);
+  });
+
+  it("listAllWatchlistsWithTier attaches the owner tier", () => {
+    const cid = newClientId();
+    const wl = createWatchlist(cid, "t", ["MSFT"], true);
+    const found = listAllWatchlistsWithTier().find((w) => w.id === wl.id);
+    expect(found).toBeDefined();
+    expect(found!.tier).toBe("free"); // newClientId() creates free-tier clients
   });
 });
 

@@ -238,3 +238,76 @@ For security, issuing a new key revokes your previous one. If you didn't request
     throw err;
   }
 }
+
+/**
+ * Watchlist monitor digest. Sent when a monitored watchlist has new alerts.
+ * Plain templated list (no LLM) — the alert messages are already readable, so
+ * the digest costs ~nothing to produce.
+ */
+export async function sendWatchlistDigest(params: {
+  email: string;
+  name?: string | null;
+  watchlistName: string;
+  alerts: Array<{ ticker: string; message: string }>;
+}): Promise<void> {
+  if (!config.resendApiKey) {
+    console.log(`[email] RESEND_API_KEY not set — skipping watchlist digest for ${params.email}`);
+    return;
+  }
+  const resend = new Resend(config.resendApiKey);
+  const { email, name, watchlistName, alerts } = params;
+  const greeting = name ? `Hi ${name}` : "Hi there";
+  const n = alerts.length;
+
+  const text = `${greeting},
+
+${n} update${n === 1 ? "" : "s"} on your "${watchlistName}" watchlist:
+
+${alerts.map((a) => `- ${a.ticker}: ${a.message}`).join("\n")}
+
+See the full picture any time by scanning the watchlist, or manage alerts at https://www.agenttoolbelt.live
+
+— Agent Toolbelt`;
+
+  const rows = alerts
+    .map(
+      (a) =>
+        `<tr><td style="padding:8px 0;font-weight:600;width:70px;">${a.ticker}</td><td style="padding:8px 0;color:#333;">${a.message}</td></tr>`
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;margin:0;padding:0;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+    <div style="background:#1a1a1a;padding:26px 36px;"><h1 style="color:#fff;margin:0;font-size:18px;">Watchlist update — ${watchlistName}</h1></div>
+    <div style="padding:26px 36px;color:#333;font-size:15px;line-height:1.6;">
+      <p>${greeting}, ${n} update${n === 1 ? "" : "s"} on your watchlist:</p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin:12px 0;">${rows}</table>
+      <p style="font-size:13px;color:#666;margin-top:20px;">Manage this watchlist or its alerts at <a href="https://www.agenttoolbelt.live" style="color:#1a1a1a;">agenttoolbelt.live</a>.</p>
+    </div>
+  </div>
+</body></html>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: `Agent Toolbelt <${config.emailFrom}>`,
+      to: email,
+      replyTo: config.emailReplyTo,
+      subject: `Watchlist update: ${n} change${n === 1 ? "" : "s"} on ${watchlistName}`,
+      text,
+      html,
+    });
+    if (error) {
+      const reason = error.message || error.name || "unknown resend error";
+      recordEmailFailure(email, reason);
+      throw new Error(`Resend send failed: ${reason}`);
+    }
+    recordEmailSuccess();
+    console.log(`[email] Watchlist digest sent to ${email} (${n} alerts)`);
+  } catch (err: any) {
+    if (!/^Resend send failed:/.test(err?.message || "")) {
+      recordEmailFailure(email, err?.message || "unknown send error");
+    }
+    throw err;
+  }
+}
