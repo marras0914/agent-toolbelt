@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { validateApiKey, checkTierLimit, getClientBalance, Client } from "../db";
 import { TIERS } from "../tiers";
+import { config } from "../config";
+import { getRapidApiGatewayClient } from "../rapidapi-gateway";
 
 // ----- Types -----
 export interface AuthenticatedClient {
@@ -38,6 +40,18 @@ function checkPerClientRate(clientId: string, tier: Client["tier"]): boolean {
 
 // ----- Auth Middleware -----
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
+  // RapidAPI gateway bypass: if the call carries a matching proxy secret, it came
+  // through RapidAPI (which already authenticated + metered the buyer). Trust it
+  // and run as the uncapped gateway client — no atb_ key needed. (The /api/tools
+  // middleware in index.ts already 403s a *wrong* secret; this handles a right one.)
+  const proxySecret = req.headers["x-rapidapi-proxy-secret"];
+  if (proxySecret && config.rapidApiProxySecret && proxySecret === config.rapidApiProxySecret) {
+    const gw = getRapidApiGatewayClient();
+    req.client = { clientId: gw.clientId, email: "rapidapi-gateway@agenttoolbelt.live", tier: "enterprise", keyId: gw.keyId };
+    next();
+    return;
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer atb_")) {
