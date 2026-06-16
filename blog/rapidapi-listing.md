@@ -33,7 +33,7 @@ Each endpoint pulls live fundamentals from Polygon, Finnhub, and Financial Model
 - **Moat analysis** — Buffett-style competitive-moat rating with sources and durability
 - **Watchlist scan** — rank 2–15 tickers by value/quality/growth/income in one call
 
-US-listed equities. Typed responses, every metric tagged with its source. Also includes 20 general developer utilities (schema generation, token counting, etc.) at no extra cost.
+US-listed equities. Typed responses, every metric tagged with its source.
 
 ---
 
