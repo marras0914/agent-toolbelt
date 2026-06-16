@@ -40,9 +40,9 @@ export const TIERS: Record<Tier, TierConfig> = {
   // Stripe price for the $10 Pro tier is read from STRIPE_PRICE_HOBBY — kept
   // under the original env var name so no Railway change was needed for the
   // hobby→pro rename. (STRIPE_PRICE_PRO previously held the retired $99 tier.)
-  pro:        { displayName: "Pro",           monthlyRequests: 10_000,    requestsPerMinute: 30,    stockRequestsPerMinute: 20,       monthlyUsd: 10,   stripePriceEnv: "STRIPE_PRICE_HOBBY",       watchlistMonitoring: true,  maxWatchlists: 3,   maxWatchlistTickers: 25 },
-  starter:    { displayName: "Starter",       monthlyRequests: 50_000,    requestsPerMinute: 60,    stockRequestsPerMinute: 30,       monthlyUsd: 29,   stripePriceEnv: "STRIPE_PRICE_STARTER",     watchlistMonitoring: true,  maxWatchlists: 10,  maxWatchlistTickers: 50 },
-  enterprise: { displayName: "Enterprise",    monthlyRequests: 5_000_000, requestsPerMinute: 1_000, stockRequestsPerMinute: Infinity, monthlyUsd: 499,  stripePriceEnv: "STRIPE_PRICE_ENTERPRISE", watchlistMonitoring: true,  maxWatchlists: 100, maxWatchlistTickers: 100 },
+  pro:        { displayName: "Pro",           monthlyRequests: 1_000,     requestsPerMinute: 30,    stockRequestsPerMinute: 20,       monthlyUsd: 10,   stripePriceEnv: "STRIPE_PRICE_HOBBY",       watchlistMonitoring: true,  maxWatchlists: 3,   maxWatchlistTickers: 25 },
+  starter:    { displayName: "Starter",       monthlyRequests: 4_000,     requestsPerMinute: 60,    stockRequestsPerMinute: 30,       monthlyUsd: 29,   stripePriceEnv: "STRIPE_PRICE_STARTER",     watchlistMonitoring: true,  maxWatchlists: 10,  maxWatchlistTickers: 50 },
+  enterprise: { displayName: "Enterprise",    monthlyRequests: 75_000,    requestsPerMinute: 1_000, stockRequestsPerMinute: Infinity, monthlyUsd: 499,  stripePriceEnv: "STRIPE_PRICE_ENTERPRISE", watchlistMonitoring: true,  maxWatchlists: 100, maxWatchlistTickers: 100 },
 };
 
 /** Tiers a customer can subscribe to via Stripe checkout (excludes free/payg). */
