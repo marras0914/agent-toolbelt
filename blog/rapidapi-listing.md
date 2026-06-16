@@ -67,6 +67,49 @@ Position it freemium so buyers can test, then convert. **Margin note:** stock ca
 
 ---
 
+## Example responses (paste onto the endpoint pages — biggest conversion lever)
+
+Buyers subscribe once they see the output shape and quality. Real responses (trimmed to representative fields):
+
+**stock-thesis** — `{"ticker":"NVDA"}`
+```json
+{
+  "ticker": "NVDA",
+  "companyName": "Nvidia Corporation",
+  "verdict": "bullish",
+  "oneLiner": "Nvidia is riding a structural shift toward AI infrastructure with a near-monopoly in high-performance GPUs, a sticky software moat in CUDA, and margins that rival luxury goods, but you're paying a premium price for future growth.",
+  "valuation": "Nvidia trades at a 32.3 P/E and 20.3 P/S, premium multiples even for 100% revenue growth. The 2.3% FCF yield is healthy but not compelling. The stock is priced for excellence; any deviation could trigger a sharp correction.",
+  "watchFor": "Gross-margin trend and 2027+ revenue guidance; compression below 55% margin or single-digit growth guidance would challenge the thesis."
+}
+```
+
+**valuation-snapshot** — `{"ticker":"AAPL"}`
+```json
+{
+  "ticker": "AAPL",
+  "companyName": "Apple Inc.",
+  "verdict": "expensive",
+  "oneLiner": "Apple commands a premium valuation that reflects its fortress balance sheet and exceptional profitability, but offers limited margin of safety for new long-term investors at current levels.",
+  "peRead": "At 35.6x earnings, Apple trades at a significant premium to the market, justified by its brand moat and 27% net margins, but revenue grew just 1.8% over three years, so the multiple is pricing in growth that hasn't materialized.",
+  "multiplesSummary": "Consistently stretched: 35.6x P/E, 27.5x EV/EBITDA, 40.9x P/B. The 3% FCF yield is the lone bright spot."
+}
+```
+
+**watchlist-scan** — `{"tickers":["NVDA","AMD","AVGO"],"focus":"value"}`
+```json
+{
+  "focus": "value",
+  "scanned": ["NVDA", "AMD", "AVGO"],
+  "ranked": [
+    { "ticker": "NVDA", "rank": 1, "read": "NVDA trades at a 31.9x P/E with a 2.3% FCF yield and 63.0% net margin, the best combination of valuation and profitability among the three." },
+    { "ticker": "AVGO", "rank": 2, "read": "AVGO's 61.5x P/E is steep but supported by a 38.8% net margin and 36.4% ROE, the second-best value option." },
+    { "ticker": "AMD", "rank": 3, "read": "AMD's 170.1x P/E is indefensibly expensive relative to its 13.4% net margin and 8.1% ROE." }
+  ],
+  "topPick": { "ticker": "NVDA", "why": "Lowest valuation multiple with industry-leading profitability." },
+  "avoid": { "ticker": "AMD", "why": "Highest multiple, weakest margins and returns." }
+}
+```
+
 ## Notes for Marco
 - Lead with **"analysis, not raw data"** everywhere — that's the one thing competitors on RapidAPI don't have.
 - Make sure `RAPIDAPI_PROXY_SECRET` is set so gateway calls validate.
