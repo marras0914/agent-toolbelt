@@ -62,14 +62,27 @@ RapidAPI surfaces APIs through **Collections** and category browsing as well as 
 
 ---
 
+## Tier 3b — RapidAPI editorial collections (email request)
+
+RapidAPI Collections are **editorially curated, not provider-submittable** (confirmed 2026-06-17 — there is no self-add control). The only path in is traffic-driven (algorithmic collections like Popular/Trending) or a direct request to RapidAPI editorial. Cheap long-shot — short email to RapidAPI support/editorial asking for inclusion in the three relevant finance collections:
+
+> **To:** support@rapidapi.com
+> **Subject:** Collection inclusion request — Agent Toolbelt (AI Stock Research API)
+>
+> Hi — I publish **Agent Toolbelt** on the Hub (https://rapidapi.com/arrasmarco/api/agent-toolbelt1), a stock-research API that returns AI-generated *analysis* (investment thesis, valuation verdict, insider-signal read, earnings, watchlist ranking) for US equities, rather than raw market data. It's public, documented, and health-checking at 100%.
+>
+> Could it be considered for the **Best Stock Market and Brokerage APIs**, **Finance APIs**, and **Top Fintech APIs** collections? It's a differentiated fit — those collections are mostly raw-data feeds, and this is the analysis layer on top. Happy to provide anything you need. Thanks!
+
+---
+
 ## Submission tracker
 
 | Channel | Entry ready | Submitted | Merged/Live |
 |---|---|---|---|
-| public-apis/public-apis | ✓ | ☐ | ☐ |
+| public-apis/public-apis | ✓ | ✓ [#6340](https://github.com/public-apis/public-apis/pull/6340) | ☐ |
+| wilsonfreitas/awesome-quant | ✓ | ✓ [#425](https://github.com/wilsonfreitas/awesome-quant/pull/425) | ☐ |
 | marcelscruz/public-apis | ✓ | ☐ | ☐ |
 | public-api-lists/public-api-lists | ✓ | ☐ | ☐ |
-| wilsonfreitas/awesome-quant | ✓ | ☐ | ☐ |
 | awesome-fintech (TBD) | ✓ | ☐ | ☐ |
-| RapidAPI Collections | n/a | ☐ | ☐ |
-| Category/tags audit | n/a | ☐ | ☐ |
+| RapidAPI editorial email | ✓ | ☐ | ☐ |
+| Category audit (Finance set) | n/a | ✓ | ✓ |
