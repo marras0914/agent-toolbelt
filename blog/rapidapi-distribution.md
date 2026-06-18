@@ -81,8 +81,8 @@ RapidAPI Collections are **editorially curated, not provider-submittable** (conf
 |---|---|---|---|
 | public-apis/public-apis | ✓ | ✓ [#6340](https://github.com/public-apis/public-apis/pull/6340) | ☐ |
 | wilsonfreitas/awesome-quant | ✓ | ✓ [#425](https://github.com/wilsonfreitas/awesome-quant/pull/425) | ☐ |
-| marcelscruz/public-apis | ✓ | ☐ | ☐ |
-| public-api-lists/public-api-lists | ✓ | ☐ | ☐ |
+| marcelscruz/public-apis | ✓ | ✓ [#950](https://github.com/marcelscruz/public-apis/pull/950) | ☐ |
+| public-api-lists/public-api-lists | ✓ | ✓ [#513](https://github.com/public-api-lists/public-api-lists/pull/513) | ☐ |
 | awesome-fintech (TBD) | ✓ | ☐ | ☐ |
 | post-7 crosspost → dev.to | ✓ (`post-7-stock-analysis-api.devto.md`) | ✓ (2026-06-18) | ✓ [live](https://dev.to/marras0914/the-stock-analysis-api-you-dont-have-to-build-2jcc) (canonical → marcoarras.com confirmed) |
 | post-7 crosspost → Medium (import-by-URL) | ✓ | ✓ (2026-06-18) | ✓ [live](https://medium.com/@arras.marco/the-stock-analysis-api-you-dont-have-to-build-822044fdd5db) |
