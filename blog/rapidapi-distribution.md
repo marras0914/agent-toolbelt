@@ -84,7 +84,7 @@ RapidAPI Collections are **editorially curated, not provider-submittable** (conf
 | marcelscruz/public-apis | ✓ | ☐ | ☐ |
 | public-api-lists/public-api-lists | ✓ | ☐ | ☐ |
 | awesome-fintech (TBD) | ✓ | ☐ | ☐ |
-| post-7 crosspost → dev.to | ✓ (`post-7-stock-analysis-api.devto.md`) | ✓ (2026-06-18) | ✓ live |
-| post-7 crosspost → Medium (import-by-URL) | ✓ | ✓ (2026-06-18) | ✓ live |
+| post-7 crosspost → dev.to | ✓ (`post-7-stock-analysis-api.devto.md`) | ✓ (2026-06-18) | ✓ [live](https://dev.to/marras0914/the-stock-analysis-api-you-dont-have-to-build-2jcc) (canonical → marcoarras.com confirmed) |
+| post-7 crosspost → Medium (import-by-URL) | ✓ | ✓ (2026-06-18) | ✓ [live](https://medium.com/@arras.marco/the-stock-analysis-api-you-dont-have-to-build-822044fdd5db) |
 | RapidAPI editorial email | ✓ | ✓ (sent 2026-06-18) | ☐ |
 | Category audit (Finance set) | n/a | ✓ | ✓ |
