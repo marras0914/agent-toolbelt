@@ -2,7 +2,7 @@
 
 *Goal: drive API-buying devs to the RapidAPI listing. RapidAPI's own marketplace search ranks by popularity, so a new listing gets ~no organic traffic — these external "list" channels are where devs actually shop for an API to consume. Different audience from `awesome-list-prs.md` (that file targets MCP/LangChain tinkerers; this one targets people picking an API to pay for).*
 
-**Listing URL:** `https://rapidapi.com/arrasmarco/api/agent-toolbelt1` (filled in below). Most of these lists prefer a stable docs/home URL — so the public-apis entries link to `https://www.agenttoolbelt.live` (the home/docs), and the RapidAPI link is the marketplace/billing entry referenced in the Tier-2/3 copy.
+**Listing URL:** `https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1` (filled in below). Most of these lists prefer a stable docs/home URL — so the public-apis entries link to `https://www.agenttoolbelt.live` (the home/docs), and the RapidAPI link is the marketplace/billing entry referenced in the Tier-2/3 copy.
 
 ---
 
@@ -69,7 +69,7 @@ RapidAPI Collections are **editorially curated, not provider-submittable** (conf
 > **To:** support@rapidapi.com
 > **Subject:** Collection inclusion request — Agent Toolbelt (AI Stock Research API)
 >
-> Hi — I publish **Agent Toolbelt** on the Hub (https://rapidapi.com/arrasmarco/api/agent-toolbelt1), a stock-research API that returns AI-generated *analysis* (investment thesis, valuation verdict, insider-signal read, earnings, watchlist ranking) for US equities, rather than raw market data. It's public, documented, and health-checking at 100%.
+> Hi — I publish **Agent Toolbelt** on the Hub (https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1), a stock-research API that returns AI-generated *analysis* (investment thesis, valuation verdict, insider-signal read, earnings, watchlist ranking) for US equities, rather than raw market data. It's public, documented, and health-checking at 100%.
 >
 > Could it be considered for the **Best Stock Market and Brokerage APIs**, **Finance APIs**, and **Top Fintech APIs** collections? It's a differentiated fit — those collections are mostly raw-data feeds, and this is the analysis layer on top. Happy to provide anything you need. Thanks!
 

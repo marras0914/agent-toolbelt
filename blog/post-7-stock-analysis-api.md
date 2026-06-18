@@ -2,7 +2,7 @@
 
 *Target: devs who are shopping for a stock API and land here via search ("stock analysis API", "investment thesis API", "stock fundamental data API"). Funnels to the RapidAPI listing. Publish on dev.to + Medium + marcoarras.com/writing. Buyer framing — no MCP/Claude-tinkerer angle. Distinct from post-5 (that one was "I gave Claude stock analysis"); this is "I needed analysis in my app and bought it instead of building it."*
 
-*Listing link used below: `https://rapidapi.com/arrasmarco/api/agent-toolbelt1`.*
+*Listing link used below: `https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1`.*
 
 ---
 
@@ -16,7 +16,7 @@ So I'd be wiring three data providers, normalizing their conflicting field names
 
 A single endpoint. Ticker in, **analysis** out — already synthesized, already structured.
 
-That's what I ended up building for myself and then put on RapidAPI: **[Agent Toolbelt — AI Stock Research API](https://rapidapi.com/arrasmarco/api/agent-toolbelt1)**. It pulls live fundamentals from Polygon, Finnhub, and Financial Modeling Prep, then returns a Motley-Fool-style read as typed JSON. The numbers are in there too, but the point is the verdict and the reasoning.
+That's what I ended up building for myself and then put on RapidAPI: **[Agent Toolbelt — AI Stock Research API](https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1)**. It pulls live fundamentals from Polygon, Finnhub, and Financial Modeling Prep, then returns a Motley-Fool-style read as typed JSON. The numbers are in there too, but the point is the verdict and the reasoning.
 
 Here's a real `stock-thesis` response:
 
@@ -75,7 +75,7 @@ There's a free tier to test against before you wire it into anything. Paid plans
 
 If you need tick-level price feeds, options chains, or to run your own models on raw fundamentals — buy raw data; this isn't that. This is for when you want the *judgment layer* (a verdict, a thesis, a ranked watchlist) without building and maintaining it yourself. Output is AI-generated and informational, not investment advice — do your own due diligence.
 
-If that's the layer you were about to build: **[it's on RapidAPI here](https://rapidapi.com/arrasmarco/api/agent-toolbelt1)**. I'd rather you spend the afternoon on your actual product.
+If that's the layer you were about to build: **[it's on RapidAPI here](https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1)**. I'd rather you spend the afternoon on your actual product.
 
 ---
 

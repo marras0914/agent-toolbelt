@@ -210,7 +210,7 @@ print(r.stdout)
 | Channel | Status |
 |---|---|
 | npm (`agent-toolbelt` v0.6.0 + `agent-toolbelt-mcp` v1.0.15) | ✓ Live — 810/mo SDK + 200-280/day MCP installs (measured 2026-04-29). All 8 stock tools + watchlist management (create/list/alerts), published 2026-06-15. |
-| RapidAPI | ✓ Live — [rapidapi.com/arrasmarco/api/agent-toolbelt1](https://rapidapi.com/arrasmarco/api/agent-toolbelt1) (8 stock tools, proxy-secret gateway verified) |
+| RapidAPI | ✓ Live — [rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1](https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1) (8 stock tools, proxy-secret gateway verified) |
 | MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted |
 | PulseMCP | ✓ Submitted |
 | Glama | ✓ Live (quality check passed 2026-03-30) |
