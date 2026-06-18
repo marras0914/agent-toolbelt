@@ -210,18 +210,21 @@ print(r.stdout)
 | Channel | Status |
 |---|---|
 | npm (`agent-toolbelt` v0.6.0 + `agent-toolbelt-mcp` v1.0.15) | ✓ Live — 810/mo SDK + 200-280/day MCP installs (measured 2026-04-29). All 8 stock tools + watchlist management (create/list/alerts), published 2026-06-15. |
-| RapidAPI | ✓ Listed |
+| RapidAPI | ✓ Live — [rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1](https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1) (8 stock tools, proxy-secret gateway verified) |
 | MCP registry (registry.modelcontextprotocol.io) | ✓ Submitted |
 | PulseMCP | ✓ Submitted |
 | Glama | ✓ Live (quality check passed 2026-03-30) |
 | Landing pages (elephanttortoise.com) | ✓ Live |
 | Blog posts 1-5 (dev.to / Medium) | ✓ Published |
+| Blog post 7 (buyer-framed: "the stock-analysis API you don't have to build") | ✓ Published — marcoarras.com (canonical) + [dev.to](https://dev.to/marras0914/the-stock-analysis-api-you-dont-have-to-build-2jcc) + [Medium](https://medium.com/@arras.marco/the-stock-analysis-api-you-dont-have-to-build-822044fdd5db) (canonicals verified) |
 | HN article | ✓ Posted 2026-03-09 — flopped |
-| Smithery | ✓ Live — shttp bundle shows 5 stock tools |
-| Awesome lists | ✓ PRs open — punkpeye/awesome-mcp-servers #2947, kyrolabs/awesome-langchain #207, appcypher/awesome-mcp-servers #532, tensorchord/Awesome-LLMOps #284, mcpservers.org submitted |
-| Reddit | r/LocalLLaMA ✓, r/SideProject ✓, r/ValueInvesting ✓ — r/ClaudeAI pending approval; r/algotrading blocked by karma |
+| Smithery | ✓ Live — shttp bundle shows stock tools |
+| Awesome lists (MCP/LangChain audience) | ✓ PRs open — punkpeye/awesome-mcp-servers #2947, kyrolabs/awesome-langchain #207, appcypher/awesome-mcp-servers #532, tensorchord/Awesome-LLMOps #284, mcpservers.org submitted |
+| API-discovery lists (buyer audience, 2026-06) | ✓ 5 PRs open — public-apis #6340, awesome-quant #425, marcelscruz/public-apis #950, public-api-lists #513, moov-io/awesome-fintech #92 |
+| RapidAPI editorial collections | ✓ Email sent 2026-06-18 (fire-and-forget, no SLA) |
+| Reddit | r/LocalLLaMA ✓, r/SideProject ✓, r/ValueInvesting ✓, r/mcp ✓ — r/algotrading blocked by karma |
 | HN comments | Pending — 3 templates in blog/reddit-posts.md |
 | Toolhouse.ai | Email sent 2026-03-20 — no reply |
 | Product Hunt | Launched 2026-04-02 — 0 upvotes, flopped. Not a growth channel. |
 | Cordon cross-promo | ✓ Live — onboarding email + /register success page → getcordon.com |
-| **Metrics (2026-04-30)** | 39 registrations, 101 calls/30d, 6 unique clients, $0 MRR |
+| **Metrics (2026-06-18)** | ~131 registrations, ~3,540 calls/30d, 24 unique clients, $0 MRR. 80% of calls = 2 capped whales (Filip non-responsive to $10 pitch). Buyer-channel pivot live; watching for first paying RapidAPI buyer. |

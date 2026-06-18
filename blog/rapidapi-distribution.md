@@ -2,7 +2,7 @@
 
 *Goal: drive API-buying devs to the RapidAPI listing. RapidAPI's own marketplace search ranks by popularity, so a new listing gets ~no organic traffic — these external "list" channels are where devs actually shop for an API to consume. Different audience from `awesome-list-prs.md` (that file targets MCP/LangChain tinkerers; this one targets people picking an API to pay for).*
 
-**Listing URL:** `https://rapidapi.com/arrasmarco/api/agent-toolbelt1` (filled in below). Most of these lists prefer a stable docs/home URL — so the public-apis entries link to `https://www.agenttoolbelt.live` (the home/docs), and the RapidAPI link is the marketplace/billing entry referenced in the Tier-2/3 copy.
+**Listing URL:** `https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1` (filled in below). Most of these lists prefer a stable docs/home URL — so the public-apis entries link to `https://www.agenttoolbelt.live` (the home/docs), and the RapidAPI link is the marketplace/billing entry referenced in the Tier-2/3 copy.
 
 ---
 
@@ -48,7 +48,12 @@ Notes: their bot/maintainers are strict on format and dedupe — one entry, alph
 
 ### 5. Awesome fintech / financial-data lists
 
-Search GitHub for `awesome fintech`, `awesome financial data`, `awesome stock market` and submit the Tier-2 entry above to any with an active "APIs / Data Sources" section. Candidates to check: `7kfpun/awesome-fintech`, `josephmisiti/awesome-machine-learning` (Finance section), `EthicalML/awesome-production-machine-learning` (data section, only if it fits).
+Search GitHub for `awesome fintech`, `awesome financial data`, `awesome stock market` and submit the Tier-2 entry above to any with an active "APIs / Data Sources" section.
+
+Scouted 2026-06-18:
+- **moov-io/awesome-fintech** (322★, active) — has a "Financial Data & APIs" section → **PR'd [#92](https://github.com/moov-io/awesome-fintech/pull/92)** (flagged as hosted/commercial, not OSS, since the section skews OSS libraries).
+- `7kfpun/awesome-fintech` (356★) — **SKIP**: organized as Libraries-by-language + Charts + Books; no APIs/Data section, no fit for a hosted API.
+- `josephmisiti/awesome-machine-learning` (73k★) — **SKIP**: its Finance section is ML libraries/papers, not commercial APIs; wrong character.
 
 ---
 
@@ -69,7 +74,7 @@ RapidAPI Collections are **editorially curated, not provider-submittable** (conf
 > **To:** support@rapidapi.com
 > **Subject:** Collection inclusion request — Agent Toolbelt (AI Stock Research API)
 >
-> Hi — I publish **Agent Toolbelt** on the Hub (https://rapidapi.com/arrasmarco/api/agent-toolbelt1), a stock-research API that returns AI-generated *analysis* (investment thesis, valuation verdict, insider-signal read, earnings, watchlist ranking) for US equities, rather than raw market data. It's public, documented, and health-checking at 100%.
+> Hi — I publish **Agent Toolbelt** on the Hub (https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1), a stock-research API that returns AI-generated *analysis* (investment thesis, valuation verdict, insider-signal read, earnings, watchlist ranking) for US equities, rather than raw market data. It's public, documented, and health-checking at 100%.
 >
 > Could it be considered for the **Best Stock Market and Brokerage APIs**, **Finance APIs**, and **Top Fintech APIs** collections? It's a differentiated fit — those collections are mostly raw-data feeds, and this is the analysis layer on top. Happy to provide anything you need. Thanks!
 
@@ -81,8 +86,10 @@ RapidAPI Collections are **editorially curated, not provider-submittable** (conf
 |---|---|---|---|
 | public-apis/public-apis | ✓ | ✓ [#6340](https://github.com/public-apis/public-apis/pull/6340) | ☐ |
 | wilsonfreitas/awesome-quant | ✓ | ✓ [#425](https://github.com/wilsonfreitas/awesome-quant/pull/425) | ☐ |
-| marcelscruz/public-apis | ✓ | ☐ | ☐ |
-| public-api-lists/public-api-lists | ✓ | ☐ | ☐ |
-| awesome-fintech (TBD) | ✓ | ☐ | ☐ |
-| RapidAPI editorial email | ✓ | ☐ | ☐ |
+| marcelscruz/public-apis | ✓ | ✓ [#950](https://github.com/marcelscruz/public-apis/pull/950) | ☐ |
+| public-api-lists/public-api-lists | ✓ | ✓ [#513](https://github.com/public-api-lists/public-api-lists/pull/513) | ☐ |
+| moov-io/awesome-fintech | ✓ | ✓ [#92](https://github.com/moov-io/awesome-fintech/pull/92) | ☐ |
+| post-7 crosspost → dev.to | ✓ (`post-7-stock-analysis-api.devto.md`) | ✓ (2026-06-18) | ✓ [live](https://dev.to/marras0914/the-stock-analysis-api-you-dont-have-to-build-2jcc) (canonical → marcoarras.com confirmed) |
+| post-7 crosspost → Medium (import-by-URL) | ✓ | ✓ (2026-06-18) | ✓ [live](https://medium.com/@arras.marco/the-stock-analysis-api-you-dont-have-to-build-822044fdd5db) |
+| RapidAPI editorial email | ✓ | ✓ (sent 2026-06-18) | ☐ |
 | Category audit (Finance set) | n/a | ✓ | ✓ |

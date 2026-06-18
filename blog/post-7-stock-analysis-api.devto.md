@@ -1,9 +1,10 @@
-# The stock-analysis API you don't have to build
-
-*Target: devs who are shopping for a stock API and land here via search ("stock analysis API", "investment thesis API", "stock fundamental data API"). Funnels to the RapidAPI listing. Publish on dev.to + Medium + marcoarras.com/writing. Buyer framing — no MCP/Claude-tinkerer angle. Distinct from post-5 (that one was "I gave Claude stock analysis"); this is "I needed analysis in my app and bought it instead of building it."*
-
-*Listing link used below: `https://rapidapi.com/agent-toolbelt-agent-toolbelt-default/api/agent-toolbelt1`.*
-
+---
+title: The stock-analysis API you don't have to build
+published: false
+description: Every finance API sells raw data. I wanted the analysis layer — verdict, thesis, valuation read — as one HTTP call, so I built it and put it on RapidAPI.
+tags: api, finance, ai, webdev
+canonical_url: https://www.marcoarras.com/writing/stock-analysis-api
+# cover_image: https://www.marcoarras.com/writing/cover-stock-analysis-api.png  # uncomment if the asset is publicly served
 ---
 
 I was building a feature that needed to say something *useful* about a stock — not just print its P/E, but actually read the situation: is this cheap or expensive, what's the bull case, is the insider buying real or routine. I went looking for an API.
@@ -80,3 +81,4 @@ If that's the layer you were about to build: **[it's on RapidAPI here](https://r
 ---
 
 *Built by [Marco Arras](https://www.marcoarras.com). Questions → hello@elephanttortoise.com.*
+</content>

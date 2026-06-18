@@ -2,7 +2,6 @@ node_modules/
 dist/
 build/
 data/
-memory-bank/
 *.db
 .env
 .DS_Store
