@@ -220,7 +220,7 @@ print(r.stdout)
 | HN article | ✓ Posted 2026-03-09 — flopped |
 | Smithery | ✓ Live — shttp bundle shows stock tools |
 | Awesome lists (MCP/LangChain audience) | ✓ PRs open — punkpeye/awesome-mcp-servers #2947, kyrolabs/awesome-langchain #207, appcypher/awesome-mcp-servers #532, tensorchord/Awesome-LLMOps #284, mcpservers.org submitted |
-| API-discovery lists (buyer audience, 2026-06) | ✓ 5 PRs open — public-apis #6340, awesome-quant #425, marcelscruz/public-apis #950, public-api-lists #513, moov-io/awesome-fintech #92 |
+| API-discovery lists (buyer audience, 2026-06) | public-api-lists #513 ✓ MERGED 2026-07-06 (live in Finance section). 4 PRs still open — public-apis #6340, awesome-quant #425, marcelscruz/public-apis #950, moov-io/awesome-fintech #92 |
 | RapidAPI editorial collections | ✓ Email sent 2026-06-18 (fire-and-forget, no SLA) |
 | Reddit | r/LocalLLaMA ✓, r/SideProject ✓, r/ValueInvesting ✓, r/mcp ✓ — r/algotrading blocked by karma |
 | HN comments | Pending — 3 templates in blog/reddit-posts.md |
