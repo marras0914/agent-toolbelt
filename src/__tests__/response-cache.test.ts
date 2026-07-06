@@ -56,9 +56,9 @@ describe("withHitRate", () => {
   });
 });
 
-describe("pro tier ($10/mo, 10k calls)", () => {
-  it("is registered in TIERS with 10k monthly calls and 30 req/min", () => {
-    expect(TIERS.pro.monthlyRequests).toBe(10_000);
+describe("pro tier ($10/mo, 1k calls)", () => {
+  it("is registered in TIERS with 1k monthly calls and 30 req/min", () => {
+    expect(TIERS.pro.monthlyRequests).toBe(1_000);
     expect(TIERS.pro.requestsPerMinute).toBe(30);
     expect(TIERS.pro.monthlyUsd).toBe(10);
   });
@@ -70,7 +70,7 @@ describe("pro tier ($10/mo, 10k calls)", () => {
 
   it("is enforced by checkTierLimit (regression: was missing from the enforced map)", () => {
     const limit = checkTierLimit("nonexistent-client", "pro").limit;
-    expect(limit).toBe(10_000);
+    expect(limit).toBe(1_000);
   });
 });
 
