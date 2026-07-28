@@ -38,6 +38,64 @@ function checkPerClientRate(clientId: string, tier: Client["tier"]): boolean {
   return true;
 }
 
+/** Test-only — clears all buckets so tests don't carry state. */
+export function _clearAuthRateBuckets(): void {
+  rateBuckets.clear();
+}
+
+// ----- Upgrade nudge -----
+/**
+ * Concrete next-tier pitch, so nudges name a price instead of a vague "upgrade".
+ * Exported so tests can assert the real shipped copy survives header sanitization
+ * — this copy is prose, and prose is where the invalid header characters come from.
+ */
+export const NEXT_TIER_PITCH: Partial<Record<Client["tier"], string>> = {
+  free: "Pro is $10/mo for 1,000 calls (4× your current limit)",
+  pro: "Starter is $29/mo for 4,000 calls",
+  starter: "Enterprise is $499/mo for 75,000 calls",
+};
+
+/**
+ * Fold a prose string down to printable ASCII so it is safe as an HTTP header
+ * value. Node's setHeader throws ERR_INVALID_CHAR on code points > 255, and an
+ * em dash in the nudge copy did exactly that: every call from a free/pro/starter
+ * client in the 80–100% cap band 500'd in auth before reaching the tool, for
+ * ~8 weeks (shipped 7779774, found 2026-07-28). Nudge text is marketing copy, so
+ * it will keep attracting typographic punctuation — sanitize rather than trust it.
+ *
+ * Dropping the rest of the non-ASCII range also strips CR/LF, so this doubles as
+ * header-injection protection if any of this copy ever becomes client-influenced.
+ */
+export function toHeaderSafe(value: string): string {
+  return value
+    .replace(/[‐-―]/g, "-") // hyphens, en/em dashes
+    .replace(/[‘’]/g, "'") // curly single quotes
+    .replace(/[“”]/g, '"') // curly double quotes
+    .replace(/…/g, "...") // ellipsis
+    .replace(/ /g, " ") // non-breaking space
+    .replace(/×/g, "x") // multiplication sign, as in "4x your current limit"
+    .replace(/[^\x20-\x7E]/g, ""); // anything else non-printable-ASCII
+}
+
+/**
+ * The nudge message for a client at `used`/`limit`, or null if they aren't close
+ * enough to the cap to warrant one. Split out from the middleware so the copy is
+ * unit-testable — the original bug survived because nothing asserted on it.
+ */
+export function buildUpgradeNudge(used: number, limit: number, pitch?: string): string | null {
+  if (!Number.isFinite(limit) || limit <= 0) return null; // payg/enterprise are uncapped
+
+  const pct = used / limit;
+  if (pct < 0.80) return null;
+
+  const url = "https://www.agenttoolbelt.live/#pricing";
+  const prefix = `You've used ${used} of ${limit} calls this month (${Math.round(pct * 100)}%).`;
+
+  return pct >= 0.95
+    ? `${prefix} Almost at your limit${pitch ? `, ${pitch}` : ""}: ${url}`
+    : `${prefix} ${pitch ? `${pitch}, upgrade` : "Consider upgrading"} before you hit the limit: ${url}`;
+}
+
 // ----- Auth Middleware -----
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   // RapidAPI gateway bypass: if the call carries a matching proxy secret, it came
@@ -77,12 +135,6 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
   const { client, keyId } = result;
 
-  // Concrete next-tier pitch, so nudges name a price instead of a vague "upgrade"
-  const NEXT_TIER_PITCH: Partial<Record<Client["tier"], string>> = {
-    free: "Pro is $10/mo for 1,000 calls (4× your current limit)",
-    pro: "Starter is $29/mo for 4,000 calls",
-    starter: "Enterprise is $499/mo for 75,000 calls",
-  };
   const pitch = NEXT_TIER_PITCH[client.tier as Client["tier"]];
 
   // Check monthly usage limit
@@ -106,18 +158,15 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   res.setHeader("X-Usage-Tier", client.tier);
 
   // Proactive nudge at 80% and 95% — before they hit the wall
-  if (limit !== Infinity) {
-    const pct = tierCheck.used / limit;
-    if (pct >= 0.95) {
-      res.setHeader(
-        "X-Upgrade-Nudge",
-        `You've used ${tierCheck.used} of ${limit} calls this month (${Math.round(pct * 100)}%). Almost at your limit${pitch ? ` — ${pitch}` : ""}: https://www.agenttoolbelt.live/#pricing`
-      );
-    } else if (pct >= 0.80) {
-      res.setHeader(
-        "X-Upgrade-Nudge",
-        `You've used ${tierCheck.used} of ${limit} calls this month (${Math.round(pct * 100)}%). ${pitch ? `${pitch} — upgrade` : "Consider upgrading"} before you hit the limit: https://www.agenttoolbelt.live/#pricing`
-      );
+  const nudge = buildUpgradeNudge(tierCheck.used, limit, pitch);
+  if (nudge) {
+    // Belt and braces. toHeaderSafe() should make a throw unreachable, but a
+    // cosmetic marketing header must never be the thing that fails a billable
+    // request — which is exactly what happened when this was set unguarded.
+    try {
+      res.setHeader("X-Upgrade-Nudge", toHeaderSafe(nudge));
+    } catch (err) {
+      console.error("[nudge] failed to set X-Upgrade-Nudge:", err);
     }
   }
 
