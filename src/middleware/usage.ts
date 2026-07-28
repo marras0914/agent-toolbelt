@@ -1,7 +1,16 @@
 import crypto from "crypto";
 import { Request, Response, NextFunction } from "express";
 import { config } from "../config";
-import { recordUsage, getGlobalStats, getToolStats, getClientUsage, getClientCallCounts } from "../db";
+import {
+  recordUsage,
+  getGlobalStats,
+  getToolStats,
+  getClientUsage,
+  getClientCallCounts,
+  getClientStatusBreakdown,
+  getErrorBreakdown,
+  sqliteSince,
+} from "../db";
 import { reportUsageToStripe } from "./billing";
 import { TIERS } from "../tiers";
 
@@ -57,15 +66,22 @@ export function trackUsage(toolName: string) {
 // it `total_calls` — accept either so the global hit rate isn't stuck at 0.
 // Hit rate is the lever on stock-tool COGS — a low rate on a heavy client is
 // the early-warning sign of a money-losing subscriber.
-export function withHitRate<T extends { calls?: number; total_calls?: number; cache_hits?: number | null }>(row: T): T & { cacheHitRate: number } {
+export function withHitRate<T extends { calls?: number; total_calls?: number; cache_hits?: number | null; errors?: number | null }>(
+  row: T
+): T & { cacheHitRate: number; errorRate: number } {
   const calls = row.calls ?? row.total_calls ?? 0;
   const hits = row.cache_hits ?? 0;
-  return { ...row, cacheHitRate: calls > 0 ? Math.round((hits / calls) * 100) / 100 : 0 };
+  const errors = row.errors ?? 0;
+  const rate = (n: number): number => (calls > 0 ? Math.round((n / calls) * 100) / 100 : 0);
+  // errorRate sits next to cacheHitRate because the two together are what
+  // distinguish "quiet" from "broken": a client at 200 calls with errorRate 1.0
+  // is not a user who lost interest, it's an integration we are failing.
+  return { ...row, cacheHitRate: rate(hits), errorRate: rate(errors) };
 }
 
 // ----- Query helpers (for admin endpoints) -----
 export function getUsageSummary() {
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const since = sqliteSince(30);
   const global = getGlobalStats(since);
   return {
     period: "last_30_days",
@@ -75,11 +91,29 @@ export function getUsageSummary() {
 }
 
 export function getClientUsageSummary(clientId: string) {
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const since = sqliteSince(30);
   return {
     period: "last_30_days",
     clientId,
     tools: getClientUsage(clientId, since).map(withHitRate),
+    // Full status split, not just an error count: 401 vs 429 vs 500 are three very
+    // different conversations to have with the client.
+    byStatus: getClientStatusBreakdown(clientId, since),
+  };
+}
+
+/**
+ * Every failing (client, tool, status) tuple in the window, worst first. The
+ * fastest way to answer "is anyone silently broken right now?" — which previously
+ * required inferring from cache-hit rates and average latency.
+ */
+export function getErrorSummary(sinceDays = 30) {
+  const rows = getErrorBreakdown(sqliteSince(sinceDays));
+  return {
+    period: `last_${sinceDays}_days`,
+    totalErrors: rows.reduce((sum, r) => sum + r.calls, 0),
+    count: rows.length,
+    errors: rows,
   };
 }
 

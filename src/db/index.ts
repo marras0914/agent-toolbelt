@@ -119,9 +119,28 @@ const stmts = {
       COUNT(*) as calls,
       COUNT(DISTINCT input_fingerprint) as distinct_inputs,
       SUM(cached) as cache_hits,
+      SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors,
       AVG(duration_ms) as avg_ms
     FROM usage_records WHERE client_id = ? AND created_at >= ?
     GROUP BY tool_name
+  `),
+  // status_code has always been recorded but was never read back, so a client
+  // whose every call 4xx/5xx'd looked identical to a healthy one in /admin/usage.
+  // That is how an 8-week 500 outage on the upgrade-nudge path stayed invisible.
+  getClientStatusBreakdown: db.prepare(`
+    SELECT tool_name, status_code, COUNT(*) as calls, MAX(created_at) as last_seen
+    FROM usage_records WHERE client_id = ? AND created_at >= ?
+    GROUP BY tool_name, status_code
+    ORDER BY calls DESC
+  `),
+  // Global error triage: which (client, tool, status) tuples are failing, worst first.
+  getErrorBreakdown: db.prepare(`
+    SELECT c.email, c.tier, u.tool_name, u.status_code,
+           COUNT(*) as calls, MAX(u.created_at) as last_seen
+    FROM usage_records u JOIN clients c ON c.id = u.client_id
+    WHERE u.status_code >= 400 AND u.created_at >= ?
+    GROUP BY u.client_id, u.tool_name, u.status_code
+    ORDER BY calls DESC
   `),
   // Credits (PAYG)
   addCredits: db.prepare(`UPDATE clients SET credit_balance_micros = credit_balance_micros + ?, updated_at = datetime('now') WHERE id = ?`),
@@ -142,11 +161,14 @@ const stmts = {
       COUNT(*) as total_calls,
       COUNT(DISTINCT client_id) as unique_clients,
       SUM(cached) as cache_hits,
+      SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors,
       AVG(duration_ms) as avg_duration_ms
     FROM usage_records WHERE created_at >= ?
   `),
   getToolStats: db.prepare(`
-    SELECT tool_name, COUNT(*) as calls, SUM(cached) as cache_hits, AVG(duration_ms) as avg_ms
+    SELECT tool_name, COUNT(*) as calls, SUM(cached) as cache_hits,
+           SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors,
+           AVG(duration_ms) as avg_ms
     FROM usage_records WHERE created_at >= ?
     GROUP BY tool_name ORDER BY calls DESC
   `),
@@ -326,6 +348,49 @@ export function getGlobalStats(since: string): any {
 
 export function getToolStats(since: string): any[] {
   return stmts.getToolStats.all(since);
+}
+
+/**
+ * SQLite writes `created_at` as "YYYY-MM-DD HH:MM:SS" (UTC) via datetime('now'), and
+ * every usage query filters it with a string comparison. Date#toISOString() produces
+ * "YYYY-MM-DDTHH:MM:SS.mmmZ" — the 'T' at index 10 sorts ABOVE the ' ' in the stored
+ * form, so any window whose start falls on the same calendar day as the rows excludes
+ * all of them. Multi-day windows (the only ones we shipped) happened to compare on the
+ * date digits first, which is why this never surfaced. Bind through here instead.
+ */
+export function sqliteTimestamp(d: Date): string {
+  return d.toISOString().slice(0, 19).replace("T", " ");
+}
+
+/** Window start `days` ago, in SQLite's stored timestamp format. */
+export function sqliteSince(days: number): string {
+  return sqliteTimestamp(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+}
+
+/**
+ * Cheap liveness probe for /health. Runs a real query rather than just checking that
+ * the handle exists, so a corrupt or unwritable volume surfaces as unhealthy instead
+ * of the process happily reporting ok while every tool call fails.
+ */
+export function pingDb(): boolean {
+  try {
+    const row = db.prepare("SELECT 1 as ok").get() as { ok?: number } | undefined;
+    return row?.ok === 1;
+  } catch {
+    return false;
+  }
+}
+
+export function getClientStatusBreakdown(clientId: string, since: string): Array<{
+  tool_name: string; status_code: number; calls: number; last_seen: string;
+}> {
+  return stmts.getClientStatusBreakdown.all(clientId, since) as any[];
+}
+
+export function getErrorBreakdown(since: string): Array<{
+  email: string; tier: string; tool_name: string; status_code: number; calls: number; last_seen: string;
+}> {
+  return stmts.getErrorBreakdown.all(since) as any[];
 }
 
 // ----- Credit Operations (PAYG) -----

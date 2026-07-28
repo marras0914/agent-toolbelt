@@ -4,7 +4,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { config } from "./config";
-import { getUsageSummary, getClientUsageSummary, getCapWatch } from "./middleware/usage";
+import { getUsageSummary, getClientUsageSummary, getCapWatch, getErrorSummary } from "./middleware/usage";
 import { getUpstreamHealth } from "./upstream-health";
 import { getEmailHealth } from "./email-health";
 import { runCacheWarmup, getLastWarmupResult, getWarmTickers, startCacheWarmupScheduler } from "./jobs/warm-cache";
@@ -23,6 +23,7 @@ import {
   createReissueToken,
   consumeReissueToken,
   revokeAllClientKeys,
+  pingDb,
   DB_PATH,
 } from "./db";
 import {
@@ -137,7 +138,30 @@ app.get("/.well-known/ai-plugin.json", (_req, res) => {
 
 // ----- Public Routes -----
 
-// Health check / service info
+/**
+ * Liveness/readiness probe for uptime monitoring.
+ *
+ * Must be a real route: the `app.get("*")` catch-all at the bottom of this file
+ * serves the landing page for anything unmatched, so before this existed a request
+ * to /health returned 200 + marketing HTML. An uptime monitor pointed at it would
+ * have reported "up" no matter how broken the service was.
+ *
+ * Returns 503 when the SQLite volume is unreachable, since every tool call needs it
+ * for auth and usage recording.
+ */
+app.get("/health", (_req, res) => {
+  const dbOk = pingDb();
+  res.status(dbOk ? 200 : 503).json({
+    status: dbOk ? "ok" : "degraded",
+    checks: { database: dbOk ? "ok" : "unreachable" },
+    uptimeSeconds: Math.floor(process.uptime()),
+    tools: getRegisteredTools().length,
+    version: "1.0.0",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Service info
 app.get("/api", (_req, res) => {
   res.json({
     service: "Agent Toolbelt",
@@ -540,6 +564,14 @@ app.get("/admin/usage", (_req, res) => {
   res.json(getUsageSummary());
 });
 
+// Error triage — every failing (client, tool, status) tuple in the window, worst
+// first. ?days=N (default 30). Answers "is anyone silently broken?" directly, which
+// used to require inferring it from cache-hit rate and average latency.
+app.get("/admin/errors", (req, res) => {
+  const d = parseInt(String(req.query.days), 10);
+  res.json(getErrorSummary(Number.isFinite(d) && d > 0 ? d : 30));
+});
+
 // Cap-watch — clients at/over a fraction of their tier's monthly cap (rolling
 // 30d). Conversion-candidate radar: ?threshold=0.8 (default). See getCapWatch.
 app.get("/admin/cap-watch", (req, res) => {
@@ -673,6 +705,7 @@ app.listen(config.port, () => {
 ╠═══════════════════════════════════════════════════╣
 ║  Public:                                           ║
 ║    GET  /                      Landing page        ║
+║    GET  /health                Liveness probe      ║
 ║    GET  /api                   Service info        ║
 ║    GET  /api/tools/catalog     Tool discovery      ║
 ║    GET  /api/docs              API documentation   ║
@@ -681,6 +714,7 @@ app.listen(config.port, () => {
 ║    POST /billing/checkout      Upgrade plan        ║
 ║  Admin:                                            ║
 ║    GET  /admin/usage           Global stats        ║
+║    GET  /admin/errors          Failing calls       ║
 ║    *    /admin/clients/:id/*   Client management   ║
 ║    *    /admin/warm-cache      Cache warmup        ║
 ╚═══════════════════════════════════════════════════╝

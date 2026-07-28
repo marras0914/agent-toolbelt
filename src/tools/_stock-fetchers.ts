@@ -11,7 +11,7 @@ import { getCached, setCached, _clearAllCache } from "../db/stock-cache";
  * (c) a watchlist gets re-run later in the day. Persisting to SQLite (via
  * `src/db/stock-cache.ts`) means the cache survives Railway redeploys —
  * critical because container restarts otherwise reset the cache and trigger
- * a cold-start storm against FMP's daily 250-call cap.
+ * a cold-start storm against FMP's daily call cap.
  *
  * Negative cache (in-memory, 5min TTL): when an upstream returns 429 or a
  * network error, we mark that (host, endpoint, ticker) tuple as "down" for
@@ -274,12 +274,44 @@ async function safeJson<T>(url: string, fallback: T): Promise<T> {
   }
 }
 
+/* ===== Symbol normalization =====
+ *
+ * The three upstreams disagree on the share-class separator, and each rejects the
+ * other's form, so one raw ticker cannot be handed to all three. Verified against
+ * all three live APIs on 2026-07-28:
+ *
+ *   Polygon  wants BRK.B  — "BRK-B" → HTTP 400 {"error":"Invalid ticker: BRK-B"}
+ *   FMP      wants BRK-B  — "BRK.B" → HTTP 402 "This value set for 'symbol' is not
+ *                           available under your current subscription"
+ *   Finnhub  accepts either form and returns identical data.
+ *
+ * FMP's 402 is the trap: it reads like a billing/plan problem and gets classified as
+ * a cap-exceeded event, so a symbol-format bug masquerades as "we outgrew our plan".
+ * BRK.B is in the cache warm list, which is why it produced 3 FMP 402s every single
+ * night. `usTickerSchema` already uppercases and trims, and deliberately permits both
+ * separators, so per-provider translation belongs here at the call boundary.
+ *
+ * Normalizing the cache key alongside the URL also collapses BRK.B and BRK-B onto a
+ * single cache entry instead of paying for the same data twice.
+ */
+
+/** Polygon (and our canonical display form) uses a dot: BRK.B */
+export function toPolygonSymbol(ticker: string): string {
+  return ticker.replace(/-/g, ".");
+}
+
+/** FMP uses a hyphen: BRK-B */
+export function toFmpSymbol(ticker: string): string {
+  return ticker.replace(/\./g, "-");
+}
+
 /* ===== Fetchers — one per upstream endpoint, graceful on any failure, 6h SQLite cache ===== */
 
 export async function fetchPolygonOverview(ticker: string): Promise<PolygonOverview> {
-  return withCache(`polygon-overview:${ticker}`, async () => {
+  const sym = toPolygonSymbol(ticker);
+  return withCache(`polygon-overview:${sym}`, async () => {
     const data = await safeJson<{ results?: PolygonOverview }>(
-      `https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${config.polygonApiKey}`,
+      `https://api.polygon.io/v3/reference/tickers/${sym}?apiKey=${config.polygonApiKey}`,
       {}
     );
     return data.results || {};
@@ -287,9 +319,10 @@ export async function fetchPolygonOverview(ticker: string): Promise<PolygonOverv
 }
 
 export async function fetchPolygonPrevClose(ticker: string): Promise<PolygonPrevClose> {
-  return withCache(`polygon-prevclose:${ticker}`, async () => {
+  const sym = toPolygonSymbol(ticker);
+  return withCache(`polygon-prevclose:${sym}`, async () => {
     const data = await safeJson<{ results?: PolygonPrevClose[] }>(
-      `https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?adjusted=true&apiKey=${config.polygonApiKey}`,
+      `https://api.polygon.io/v2/aggs/ticker/${sym}/prev?adjusted=true&apiKey=${config.polygonApiKey}`,
       {}
     );
     return data.results?.[0] || {};
@@ -297,9 +330,10 @@ export async function fetchPolygonPrevClose(ticker: string): Promise<PolygonPrev
 }
 
 export async function fetchFMPKeyMetrics(ticker: string): Promise<FMPKeyMetrics> {
-  return withCache(`fmp-keymetrics:${ticker}`, async () => {
+  const sym = toFmpSymbol(ticker);
+  return withCache(`fmp-keymetrics:${sym}`, async () => {
     const data = await safeJson<FMPKeyMetrics[]>(
-      `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`,
+      `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${sym}&apikey=${config.fmpApiKey}`,
       []
     );
     return Array.isArray(data) && data.length > 0 ? data[0] : {};
@@ -307,9 +341,10 @@ export async function fetchFMPKeyMetrics(ticker: string): Promise<FMPKeyMetrics>
 }
 
 export async function fetchFMPRatiosTTM(ticker: string): Promise<FMPRatiosTTM> {
-  return withCache(`fmp-ratiosttm:${ticker}`, async () => {
+  const sym = toFmpSymbol(ticker);
+  return withCache(`fmp-ratiosttm:${sym}`, async () => {
     const data = await safeJson<FMPRatiosTTM[]>(
-      `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${ticker}&apikey=${config.fmpApiKey}`,
+      `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${sym}&apikey=${config.fmpApiKey}`,
       []
     );
     return Array.isArray(data) && data.length > 0 ? data[0] : {};
@@ -322,9 +357,10 @@ export async function fetchFMPIncomeStatement(
   period: "annual" | "quarter" = "annual",
   limit: number = 5
 ): Promise<FMPIncomeStatement[]> {
-  return withCache(`fmp-income:${ticker}:${period}:${limit}`, async () => {
+  const sym = toFmpSymbol(ticker);
+  return withCache(`fmp-income:${sym}:${period}:${limit}`, async () => {
     const data = await safeJson<FMPIncomeStatement[]>(
-      `https://financialmodelingprep.com/stable/income-statement?symbol=${ticker}&period=${period}&limit=${limit}&apikey=${config.fmpApiKey}`,
+      `https://financialmodelingprep.com/stable/income-statement?symbol=${sym}&period=${period}&limit=${limit}&apikey=${config.fmpApiKey}`,
       []
     );
     return Array.isArray(data) ? data : [];
@@ -333,9 +369,10 @@ export async function fetchFMPIncomeStatement(
 
 /** FMP /stable/earnings. limit capped at 5. Includes upcoming earnings (epsActual=null). */
 export async function fetchFMPEarnings(ticker: string, limit: number = 5): Promise<FMPEarnings[]> {
-  return withCache(`fmp-earnings:${ticker}:${limit}`, async () => {
+  const sym = toFmpSymbol(ticker);
+  return withCache(`fmp-earnings:${sym}:${limit}`, async () => {
     const data = await safeJson<FMPEarnings[]>(
-      `https://financialmodelingprep.com/stable/earnings?symbol=${ticker}&limit=${limit}&apikey=${config.fmpApiKey}`,
+      `https://financialmodelingprep.com/stable/earnings?symbol=${sym}&limit=${limit}&apikey=${config.fmpApiKey}`,
       []
     );
     return Array.isArray(data) ? data : [];
