@@ -3,9 +3,15 @@
  * `withCache` in _stock-fetchers.ts) for a curated list of popular US tickers,
  * so user-facing requests during the day hit the cache instead of FMP.
  *
- * Sized to fit inside FMP's free-tier 250 calls/day cap: 50 tickers × 3
- * endpoints = 150 calls/run, leaving ~100 calls/day for organic traffic on
- * tickers not in the warm list.
+ * 50 tickers × 3 endpoints = 150 calls/run. This was originally sized against
+ * FMP's free-tier 250 calls/day cap; the account is on Starter now, so the run is
+ * well inside the allowance and the headroom is for organic traffic on tickers
+ * outside the warm list.
+ *
+ * Symbols go through `toFmpSymbol` inside the fetchers, so class shares like BRK.B
+ * are translated to FMP's BRK-B form. Before that, BRK.B 402'd on all three
+ * endpoints every night and the misleading "not available under your current
+ * subscription" body made it look like a plan-cap problem.
  *
  * Runs once per day at 00:30 UTC, 30 minutes after FMP's daily cap reset.
  */
