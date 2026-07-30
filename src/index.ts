@@ -77,6 +77,43 @@ const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 
+// ----- Canonical host redirect -----
+// Old Reddit and dev.to posts still link to the raw Railway deploy hostname, and
+// it was still pulling real visitors as of 2026-07-30 (9 in a week, some from
+// Reddit). Those land off-brand and split analytics and SEO across two hosts.
+// Send human page views to the branded domain instead.
+//
+// Deliberately narrow — machine traffic is NOT redirected. Existing API and MCP
+// clients may have the old host hardcoded, and a 301 makes many clients replay a
+// POST as a GET, which would silently break them. So this only moves GET/HEAD
+// requests that actually want HTML, and only from the known legacy host (never
+// localhost, so local dev is unaffected).
+const CANONICAL_HOST = "www.agenttoolbelt.live";
+const LEGACY_HOSTS = new Set(["agent-toolbelt-production.up.railway.app"]);
+const MACHINE_PREFIXES = [
+  "/api",
+  "/admin",
+  "/stripe",
+  "/billing",
+  "/mcp",
+  "/openapi",
+  "/health",
+  "/.well-known",
+];
+
+app.use((req, res, next) => {
+  const forwarded = req.headers["x-forwarded-host"];
+  const rawHost = (Array.isArray(forwarded) ? forwarded[0] : forwarded) ?? req.headers.host ?? "";
+  const host = rawHost.split(",")[0].trim().toLowerCase();
+
+  if (!LEGACY_HOSTS.has(host)) return next();
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  if (MACHINE_PREFIXES.some((p) => req.path === p || req.path.startsWith(`${p}/`))) return next();
+  if (!req.accepts("html")) return next();
+
+  return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
+});
+
 // Stripe webhooks need raw body — must come BEFORE express.json()
 app.use("/stripe", express.raw({ type: "application/json" }), buildStripeWebhookRouter());
 
