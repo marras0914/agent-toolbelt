@@ -12,7 +12,7 @@ import {
   FMPRatiosTTM,
   FinnhubMetric,
 } from "./_stock-fetchers";
-import { sane, fhPct, fmt, fmtPct, round1, usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
+import { sane, fhPct, fmt, fmtPct, round1, usTickerSchema, UnsupportedTickerError } from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
@@ -116,7 +116,7 @@ async function handler(input: Input) {
     (d) => Object.keys(d.overview).length === 0 && Object.keys(d.km).length === 0 && Object.keys(d.fh).length === 0
   );
   if (empties.length > 0) {
-    throw new Error(`No data found for: ${empties.map((d) => d.ticker).join(", ")}. ${US_ONLY_HINT}`);
+    throw new UnsupportedTickerError(empties.map((d) => d.ticker));
   }
 
   const dataContext = [
