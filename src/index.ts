@@ -3,6 +3,8 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import path from "path";
+import fs from "fs";
+import os from "os";
 import { config } from "./config";
 import { getUsageSummary, getClientUsageSummary, getCapWatch, getErrorSummary } from "./middleware/usage";
 import { getUpstreamHealth } from "./upstream-health";
@@ -23,7 +25,9 @@ import {
   createReissueToken,
   consumeReissueToken,
   revokeAllClientKeys,
+  deleteClientCascade,
   pingDb,
+  backupTo,
   DB_PATH,
 } from "./db";
 import {
@@ -36,6 +40,7 @@ import {
   getRecentAlerts,
 } from "./db/watchlists";
 import { runWatchlistMonitor, getLastMonitorResult, startWatchlistMonitorScheduler } from "./jobs/watchlist-monitor";
+import { RAPIDAPI_GATEWAY_EMAIL } from "./rapidapi-gateway";
 import { authenticate } from "./middleware/auth";
 import { TIERS } from "./tiers";
 import { isValidUSTicker, US_ONLY_HINT } from "./tools/_stock-helpers";
@@ -597,6 +602,80 @@ app.get("/admin/clients", (_req, res) => {
   res.json({ total: clients.length, clients });
 });
 
+/**
+ * Hard-delete a client and every row that hangs off it. There is no undo.
+ *
+ * Guards, in order of how easy the mistake is to make:
+ *  - `?confirm=<email>` must match the client's email exactly. Client IDs are opaque
+ *    nanoids, so a typo or a stale ID from a scrollback is otherwise indistinguishable
+ *    from the intended target. This makes you name the victim.
+ *  - The RapidAPI gateway client is refused outright. It is infrastructure, not a
+ *    customer: all RapidAPI traffic authenticates as it, and deleting it detaches
+ *    that channel's usage history.
+ *  - Paid tiers and non-zero credit balances are refused unless `?force=true`, so a
+ *    cleanup sweep can't quietly delete someone who has given us money.
+ *  - `?dryRun=true` reports the exact row counts without deleting anything.
+ *
+ * Take a backup first if the target is anything but obvious junk: GET /admin/backup.
+ */
+app.delete("/admin/clients/:clientId", (req, res) => {
+  const { clientId } = req.params;
+  const confirm = typeof req.query.confirm === "string" ? req.query.confirm : "";
+  const dryRun = req.query.dryRun === "true";
+  const force = req.query.force === "true";
+
+  const client = getClientById(clientId);
+  if (!client) {
+    res.status(404).json({ error: "not_found", message: `Client '${clientId}' not found.` });
+    return;
+  }
+
+  if (client.email === RAPIDAPI_GATEWAY_EMAIL) {
+    res.status(409).json({
+      error: "protected_client",
+      message: "The RapidAPI gateway client is infrastructure — all RapidAPI traffic authenticates as it. Refusing to delete.",
+    });
+    return;
+  }
+
+  if (confirm !== client.email) {
+    res.status(400).json({
+      error: "confirmation_required",
+      message: "Pass ?confirm=<email> matching the client's email exactly. Client IDs are opaque, so this is the guard against deleting the wrong row.",
+      expected: client.email,
+      received: confirm || null,
+    });
+    return;
+  }
+
+  const paidTier = client.tier !== "free";
+  const hasCredits = (client.credit_balance_micros ?? 0) > 0;
+  if ((paidTier || hasCredits) && !force) {
+    res.status(409).json({
+      error: "paying_client",
+      message: "This client is on a paid tier or holds credits. Re-send with &force=true if you really mean it.",
+      tier: client.tier,
+      creditBalanceMicros: client.credit_balance_micros ?? 0,
+    });
+    return;
+  }
+
+  try {
+    const deleted = deleteClientCascade(clientId, dryRun);
+    console.log(`[admin] ${dryRun ? "dry-run delete" : "DELETED"} client ${clientId} <${client.email}>: ${JSON.stringify(deleted)}`);
+    res.json({
+      ...(dryRun ? { dryRun: true, message: "Nothing was deleted." } : { deleted: true }),
+      clientId,
+      email: client.email,
+      tier: client.tier,
+      rows: deleted,
+    });
+  } catch (err: any) {
+    console.error(`[admin] delete client ${clientId} failed:`, err);
+    res.status(500).json({ error: "delete_failed", message: err?.message || "Unknown error" });
+  }
+});
+
 // Global usage dashboard
 app.get("/admin/usage", (_req, res) => {
   res.json(getUsageSummary());
@@ -621,6 +700,40 @@ app.get("/admin/cap-watch", (req, res) => {
 // rate-limits) since the last process restart. See src/upstream-health.ts.
 app.get("/admin/upstream-health", (_req, res) => {
   res.json(getUpstreamHealth());
+});
+
+/**
+ * Full database snapshot, for offsite backup.
+ *
+ * This database is SQLite on a Railway volume, so there is no connection string
+ * a CI job could dial into the way a managed Postgres would allow. Exposing the
+ * snapshot over the existing admin auth is what makes an automated offsite backup
+ * possible at all — see .github/workflows/db-backup.yml, which curls this weekly
+ * and ships the result to private R2 storage.
+ *
+ * Security note: this returns the entire database. `api_keys` rows contain
+ * `key_hash`, not recoverable plaintext keys, so a leaked snapshot does not hand
+ * over working credentials — but it does contain every customer email and their
+ * usage history. Treat the output as sensitive and keep the bucket private.
+ */
+app.get("/admin/backup", (_req, res) => {
+  const stamp = new Date().toISOString().split("T")[0];
+  // VACUUM INTO refuses to overwrite, so the name has to be unique per call.
+  const tmp = path.join(os.tmpdir(), `agent-toolbelt-backup-${Date.now()}-${process.pid}.db`);
+
+  try {
+    backupTo(tmp);
+  } catch (err: any) {
+    res.status(500).json({ error: "backup_failed", message: err.message });
+    return;
+  }
+
+  // Stream it, then clean up whether or not the transfer succeeded — otherwise a
+  // client that hangs up mid-download leaves a full DB copy on the volume, and
+  // the volume is the thing we are trying to protect.
+  res.download(tmp, `agent-toolbelt-backup-${stamp}.db`, () => {
+    fs.promises.unlink(tmp).catch(() => {});
+  });
 });
 
 // Outbound email (Resend) health — status ok/failing/unknown, success/failure
@@ -753,6 +866,7 @@ app.listen(config.port, () => {
 ║  Admin:                                            ║
 ║    GET  /admin/usage           Global stats        ║
 ║    GET  /admin/errors          Failing calls       ║
+║    DEL  /admin/clients/:id     Delete client       ║
 ║    *    /admin/clients/:id/*   Client management   ║
 ║    *    /admin/warm-cache      Cache warmup        ║
 ╚═══════════════════════════════════════════════════╝
