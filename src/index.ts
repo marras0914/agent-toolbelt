@@ -8,7 +8,7 @@ import { getUsageSummary, getClientUsageSummary, getCapWatch, getErrorSummary } 
 import { getUpstreamHealth } from "./upstream-health";
 import { getEmailHealth } from "./email-health";
 import { runCacheWarmup, getLastWarmupResult, getWarmTickers, startCacheWarmupScheduler } from "./jobs/warm-cache";
-import { buildToolRouter, getRegisteredTools, sanitizeErrorMessage, responseCacheKey } from "./tools/registry";
+import { buildToolRouter, getRegisteredTools, responseCacheKey, sendToolError } from "./tools/registry";
 import { getCached, setCached } from "./db/stock-cache";
 import { handleMcpRequest } from "./mcp-http";
 import { buildBillingRouter, buildStripeWebhookRouter } from "./middleware/billing";
@@ -295,8 +295,9 @@ app.post("/api/try/:toolName", async (req, res) => {
       }),
     });
   } catch (err: any) {
-    console.error(`Guest tool error [${tool.name}]:`, err);
-    res.status(500).json({ error: "tool_error", message: sanitizeErrorMessage(err?.message || "") });
+    // Shared with the authenticated router so an unusable ticker returns the same
+    // terminal 422 here. This path is a prospective user's first impression.
+    sendToolError(res, tool.name, err, "Guest tool error");
   }
 });
 

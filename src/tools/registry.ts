@@ -88,6 +88,35 @@ export function sanitizeErrorMessage(raw: string): string {
   return raw || "An unexpected error occurred";
 }
 
+/**
+ * The single place that decides which HTTP status a thrown tool error becomes.
+ *
+ * Two code paths execute tool handlers: this router (authenticated) and the guest
+ * `POST /api/try/:toolName` endpoint in index.ts. They had independently written
+ * catch blocks, so the first cut of the 422 fix only corrected one of them — a
+ * delisted ticker still 500'd on the guest path, which is the first thing a
+ * prospective user ever hits. Both now call this, so the mapping cannot drift again.
+ */
+export function sendToolError(res: Response, toolName: string, err: any, label = "Tool error"): void {
+  // A ticker with no upstream data is the caller's problem and will never succeed.
+  // 500 would tell them "transient, retry me" — which is how one client retried a
+  // delisted ticker 250 times and burned their whole quota.
+  if (err instanceof UnsupportedTickerError) {
+    res.status(422).json({
+      error: "unsupported_ticker",
+      message: err.message,
+      tickers: err.tickers,
+      retryable: false,
+    });
+    return;
+  }
+  console.error(`${label} [${toolName}]:`, err);
+  res.status(500).json({
+    error: "tool_error",
+    message: sanitizeErrorMessage(err?.message || ""),
+  });
+}
+
 // ----- Build Express Router from registered tools -----
 export function buildToolRouter(): Router {
   const router = Router();
@@ -168,24 +197,7 @@ export function buildToolRouter(): Router {
             result,
           });
         } catch (err: any) {
-          // A ticker with no upstream data is a client error, not a server fault.
-          // Returning 500 here told callers "transient, retry" for a request that
-          // could never succeed — one client retried a delisted ticker 250 times.
-          // 422 is terminal, so a sane client stops and a human sees why.
-          if (err instanceof UnsupportedTickerError) {
-            res.status(422).json({
-              error: "unsupported_ticker",
-              message: err.message,
-              tickers: err.tickers,
-              retryable: false,
-            });
-            return;
-          }
-          console.error(`Tool error [${tool.name}]:`, err);
-          res.status(500).json({
-            error: "tool_error",
-            message: sanitizeErrorMessage(err?.message || ""),
-          });
+          sendToolError(res, tool.name, err);
         }
       }
     );

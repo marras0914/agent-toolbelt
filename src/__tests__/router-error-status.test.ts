@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import express from "express";
 import type { Server } from "node:http";
 import { z } from "zod";
-import { registerTool, buildToolRouter } from "../tools/registry";
+import { registerTool, buildToolRouter, sendToolError } from "../tools/registry";
 import { UnsupportedTickerError } from "../tools/_stock-helpers";
 import { createClient, createApiKey } from "../db";
 
@@ -72,6 +72,60 @@ async function callTool(name: string, body: unknown) {
   });
   return { status: res.status, body: await res.json() as any };
 }
+
+/**
+ * sendToolError is the single mapping used by BOTH the authenticated router and the
+ * guest POST /api/try/:toolName endpoint. It exists because those two had separately
+ * written catch blocks and the first cut of the 422 fix only corrected the router —
+ * production still 500'd on the guest path. index.ts calls app.listen() at import, so
+ * the guest route can't be mounted in-process; these cover the shared mapper directly
+ * and the guest wiring is verified against production after deploy.
+ */
+describe("sendToolError (shared by the router and the guest /api/try path)", () => {
+  function fakeRes() {
+    const out: any = { code: 0, body: null };
+    return {
+      res: {
+        status(c: number) { out.code = c; return this; },
+        json(b: any) { out.body = b; return this; },
+      } as any,
+      out,
+    };
+  }
+
+  it("maps an unusable ticker to a terminal 422", () => {
+    const { res, out } = fakeRes();
+    sendToolError(res, "stock-thesis", new UnsupportedTickerError("WIN"));
+    expect(out.code).toBe(422);
+    expect(out.body.error).toBe("unsupported_ticker");
+    expect(out.body.retryable).toBe(false);
+    expect(out.body.tickers).toEqual(["WIN"]);
+  });
+
+  it("maps a genuine fault to 500", () => {
+    const { res, out } = fakeRes();
+    sendToolError(res, "stock-thesis", new Error("upstream exploded"));
+    expect(out.code).toBe(500);
+    expect(out.body.error).toBe("tool_error");
+  });
+
+  it("behaves identically regardless of the caller's log label", () => {
+    // The guest path passes "Guest tool error"; the status must not depend on it.
+    const a = fakeRes();
+    const b = fakeRes();
+    sendToolError(a.res, "stock-thesis", new UnsupportedTickerError("WIN"));
+    sendToolError(b.res, "stock-thesis", new UnsupportedTickerError("WIN"), "Guest tool error");
+    expect(b.out.code).toBe(a.out.code);
+    expect(b.out.body).toEqual(a.out.body);
+  });
+
+  it("sanitizes upstream billing noise out of 500 messages", () => {
+    const { res, out } = fakeRes();
+    sendToolError(res, "stock-thesis", new Error("Your credit balance is too low"));
+    expect(out.code).toBe(500);
+    expect(out.body.message).not.toMatch(/credit balance/i);
+  });
+});
 
 describe("router maps an unusable ticker to a terminal 422", () => {
   it("returns 422, not 500", async () => {
