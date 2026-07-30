@@ -350,6 +350,93 @@ export function getToolStats(since: string): any[] {
   return stmts.getToolStats.all(since);
 }
 
+/** Whether a table is present in this database file. */
+function tableExists(name: string): boolean {
+  return db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?").get(name) !== undefined;
+}
+
+/** Row counts removed by deleteClientCascade, per table. */
+export interface ClientDeletionCounts {
+  watchlist_alerts: number;
+  watchlist_state: number;
+  watchlists: number;
+  key_reissue_tokens: number;
+  usage_records: number;
+  api_keys: number;
+  clients: number;
+}
+
+/**
+ * Hard-delete a client and everything hanging off it, atomically.
+ *
+ * Order is not cosmetic. Foreign keys are ON, so children must go before parents,
+ * and `usage_records` references BOTH clients and api_keys — delete it before
+ * api_keys or the api_keys delete fails.
+ *
+ * `watchlist_state` and `watchlist_alerts` key off watchlist_id but declare NO
+ * foreign key, so SQLite will happily let them be orphaned silently. They are
+ * cleaned explicitly here; a plain "DELETE FROM clients" would leave them behind
+ * with nothing pointing at them.
+ *
+ * Wrapped in a transaction so a failure part-way cannot leave a half-deleted
+ * client whose keys still authenticate.
+ *
+ * `dryRun` runs the same counting queries and rolls back, so callers can preview
+ * the blast radius before committing to it.
+ */
+export function deleteClientCascade(clientId: string, dryRun = false): ClientDeletionCounts {
+  const counts: ClientDeletionCounts = {
+    watchlist_alerts: 0, watchlist_state: 0, watchlists: 0,
+    key_reissue_tokens: 0, usage_records: 0, api_keys: 0, clients: 0,
+  };
+
+  const run = db.transaction((): void => {
+    // The watchlist tables are created by a side effect in ./watchlists.ts, which
+    // this module does not import (that would be circular — watchlists.ts imports
+    // `db` from here). So they exist only if something else loaded that module
+    // first. src/index.ts does, but a job, script, or test entry point might not,
+    // and an unguarded DELETE then dies with "no such table: watchlists" — taking
+    // the whole transaction with it and deleting nothing.
+    if (tableExists("watchlists")) {
+      const watchlistIds = (db.prepare("SELECT id FROM watchlists WHERE client_id = ?").all(clientId) as Array<{ id: string }>)
+        .map((r) => r.id);
+
+      for (const wid of watchlistIds) {
+        if (tableExists("watchlist_alerts")) {
+          counts.watchlist_alerts += (db.prepare("DELETE FROM watchlist_alerts WHERE watchlist_id = ?").run(wid) as { changes: number }).changes;
+        }
+        if (tableExists("watchlist_state")) {
+          counts.watchlist_state += (db.prepare("DELETE FROM watchlist_state WHERE watchlist_id = ?").run(wid) as { changes: number }).changes;
+        }
+      }
+
+      counts.watchlists = (db.prepare("DELETE FROM watchlists WHERE client_id = ?").run(clientId) as { changes: number }).changes;
+    }
+    counts.key_reissue_tokens = (db.prepare("DELETE FROM key_reissue_tokens WHERE client_id = ?").run(clientId) as { changes: number }).changes;
+    // Before api_keys: usage_records has an FK to both.
+    counts.usage_records = (db.prepare("DELETE FROM usage_records WHERE client_id = ?").run(clientId) as { changes: number }).changes;
+    counts.api_keys = (db.prepare("DELETE FROM api_keys WHERE client_id = ?").run(clientId) as { changes: number }).changes;
+    counts.clients = (db.prepare("DELETE FROM clients WHERE id = ?").run(clientId) as { changes: number }).changes;
+
+    if (dryRun) {
+      // Abort the transaction so nothing is persisted; better-sqlite3 surfaces the
+      // throw to the caller, which we swallow below.
+      throw new DryRunAbort();
+    }
+  });
+
+  try {
+    run();
+  } catch (err) {
+    if (!(err instanceof DryRunAbort)) throw err;
+  }
+
+  return counts;
+}
+
+/** Sentinel used to roll back a dry-run transaction. Never escapes this module. */
+class DryRunAbort extends Error {}
+
 /**
  * SQLite writes `created_at` as "YYYY-MM-DD HH:MM:SS" (UTC) via datetime('now'), and
  * every usage query filters it with a string comparison. Date#toISOString() produces
@@ -415,6 +502,25 @@ export function checkTierLimit(clientId: string, tier: Client["tier"]): { allowe
   const limit = TIERS[tier]?.monthlyRequests ?? TIERS.free.monthlyRequests;
 
   return { allowed: used < limit, used, limit };
+}
+
+// ----- Backup -----
+
+/**
+ * Write a consistent snapshot of the database to `destPath`.
+ *
+ * Uses SQLite's `VACUUM INTO` rather than copying the file. That matters here:
+ * this database runs in WAL mode, so a plain file copy captures a torn state and
+ * silently drops anything still sitting in the -wal file. `VACUUM INTO` is safe
+ * to run against a live database, includes committed WAL contents, and compacts
+ * the result.
+ *
+ * `destPath` must not already exist — SQLite refuses to overwrite.
+ * Not parameterizable (VACUUM takes no bound values), so the quote is escaped;
+ * callers pass a server-generated path, never user input.
+ */
+export function backupTo(destPath: string): void {
+  db.exec(`VACUUM INTO '${destPath.replace(/'/g, "''")}'`);
 }
 
 export { db };

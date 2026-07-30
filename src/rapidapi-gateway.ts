@@ -13,7 +13,10 @@
 
 import { getClientByEmail, createClient, getClientApiKeys, createApiKey, updateClientTier } from "./db";
 
-const GATEWAY_EMAIL = "rapidapi-gateway@agenttoolbelt.live";
+/** Identity of the shared RapidAPI origin client. Exported so admin tooling can
+ *  refuse to delete it — it is infrastructure, not a customer. */
+export const RAPIDAPI_GATEWAY_EMAIL = "rapidapi-gateway@agenttoolbelt.live";
+const GATEWAY_EMAIL = RAPIDAPI_GATEWAY_EMAIL;
 
 let cached: { clientId: string; keyId: string } | null = null;
 
