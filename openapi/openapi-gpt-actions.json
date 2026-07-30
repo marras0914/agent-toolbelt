@@ -1379,6 +1379,7 @@
         "responses": {
           "200": { "description": "Investment thesis with verdict, strengths, risks, valuation, and watch-fors" },
           "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "422": { "description": "Ticker is well-formed but has no data at any upstream provider (delisted, OTC, or non-US listing). Terminal — retrying will not help. Body carries the offending tickers and retryable=false.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Missing or invalid API key" },
           "402": { "description": "Insufficient credits (PAYG)" },
           "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
@@ -1451,6 +1452,7 @@
         "responses": {
           "200": { "description": "Valuation metrics, verdict, and buy zone" },
           "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "422": { "description": "Ticker is well-formed but has no data at any upstream provider (delisted, OTC, or non-US listing). Terminal — retrying will not help. Body carries the offending tickers and retryable=false.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Missing or invalid API key" },
           "402": { "description": "Insufficient credits (PAYG)" },
           "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
@@ -1475,6 +1477,7 @@
         "responses": {
           "200": { "description": "Bull case, bear case, net verdict, and key debate" },
           "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "422": { "description": "Ticker is well-formed but has no data at any upstream provider (delisted, OTC, or non-US listing). Terminal — retrying will not help. Body carries the offending tickers and retryable=false.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Missing or invalid API key" },
           "402": { "description": "Insufficient credits (PAYG)" },
           "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
@@ -1499,6 +1502,7 @@
         "responses": {
           "200": { "description": "Winner verdict with per-ticker breakdown" },
           "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "422": { "description": "Ticker is well-formed but has no data at any upstream provider (delisted, OTC, or non-US listing). Terminal — retrying will not help. Body carries the offending tickers and retryable=false.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Missing or invalid API key" },
           "402": { "description": "Insufficient credits (PAYG)" },
           "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
@@ -1523,6 +1527,7 @@
         "responses": {
           "200": { "description": "Moat rating, sources, durability outlook, and threats" },
           "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "422": { "description": "Ticker is well-formed but has no data at any upstream provider (delisted, OTC, or non-US listing). Terminal — retrying will not help. Body carries the offending tickers and retryable=false.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "401": { "description": "Missing or invalid API key" },
           "402": { "description": "Insufficient credits (PAYG)" },
           "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }

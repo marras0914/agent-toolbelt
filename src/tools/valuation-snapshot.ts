@@ -8,7 +8,7 @@ import {
   fetchFMPRatiosTTM,
   fetchFinnhubMetrics,
 } from "./_stock-fetchers";
-import { sane, fhPct, fmt, fmtPct, round1, usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
+import { sane, fhPct, fmt, fmtPct, round1, usTickerSchema, UnsupportedTickerError } from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
@@ -35,7 +35,7 @@ async function handler(input: Input) {
 
   const hasData = Object.keys(keyMetrics).length > 0 || Object.keys(finnhubMetrics).length > 0;
   if (!hasData) {
-    throw new Error(`No valuation data found for "${ticker}". ${US_ONLY_HINT}`);
+    throw new UnsupportedTickerError(ticker);
   }
 
   const km = keyMetrics;

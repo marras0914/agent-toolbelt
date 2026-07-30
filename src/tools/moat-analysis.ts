@@ -8,7 +8,7 @@ import {
   fetchFMPRatiosTTM,
   fetchFinnhubMetrics,
 } from "./_stock-fetchers";
-import { sane, fhPct, fmtPct, usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
+import { sane, fhPct, fmtPct, usTickerSchema, UnsupportedTickerError } from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
@@ -34,7 +34,7 @@ async function handler(input: Input) {
   ]);
 
   if (Object.keys(overview).length === 0 && Object.keys(km).length === 0 && Object.keys(fh).length === 0) {
-    throw new Error(`No data found for "${ticker}". ${US_ONLY_HINT}`);
+    throw new UnsupportedTickerError(ticker);
   }
 
   const roic = sane(km.returnOnInvestedCapitalTTM ?? km.returnOnCapitalEmployedTTM ?? fhPct(fh.roicTTM), -5, 10);

@@ -12,7 +12,7 @@ import {
   fetchFMPKeyMetrics,
   fetchFMPRatiosTTM,
 } from "./_stock-fetchers";
-import { sane, fhPct, round1, usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
+import { sane, fhPct, round1, usTickerSchema, UnsupportedTickerError } from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
@@ -52,7 +52,7 @@ async function handler(input: Input) {
     Object.keys(metrics).length > 0;
 
   if (!hasData) {
-    throw new Error(`No data found for ticker "${ticker}". ${US_ONLY_HINT}`);
+    throw new UnsupportedTickerError(ticker);
   }
 
   const companyName = overview.name || ticker;

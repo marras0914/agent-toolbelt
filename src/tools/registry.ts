@@ -5,6 +5,7 @@ import { stockRateLimit } from "../middleware/stock-rate-limit";
 import { trackUsage } from "../middleware/usage";
 import { deductCredits } from "../db";
 import { getCached, setCached } from "../db/stock-cache";
+import { UnsupportedTickerError } from "./_stock-helpers";
 
 // Stock-tool RESPONSE cache: the underlying market data is already cached for
 // 6h in _stock-fetchers, but every repeat call still re-ran the LLM analysis
@@ -167,6 +168,19 @@ export function buildToolRouter(): Router {
             result,
           });
         } catch (err: any) {
+          // A ticker with no upstream data is a client error, not a server fault.
+          // Returning 500 here told callers "transient, retry" for a request that
+          // could never succeed — one client retried a delisted ticker 250 times.
+          // 422 is terminal, so a sane client stops and a human sees why.
+          if (err instanceof UnsupportedTickerError) {
+            res.status(422).json({
+              error: "unsupported_ticker",
+              message: err.message,
+              tickers: err.tickers,
+              retryable: false,
+            });
+            return;
+          }
           console.error(`Tool error [${tool.name}]:`, err);
           res.status(500).json({
             error: "tool_error",

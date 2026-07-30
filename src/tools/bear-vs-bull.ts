@@ -12,7 +12,7 @@ import {
   fetchFinnhubRecommendations,
   fetchFinnhubInsiders,
 } from "./_stock-fetchers";
-import { usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
+import { usTickerSchema, UnsupportedTickerError } from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 const inputSchema = z.object({
@@ -44,7 +44,7 @@ async function handler(input: Input) {
 
   const hasData = Object.keys(overview).length > 0 || incomeStatements.length > 0;
   if (!hasData) {
-    throw new Error(`No data found for "${ticker}". ${US_ONLY_HINT}`);
+    throw new UnsupportedTickerError(ticker);
   }
 
   const ov = overview;
