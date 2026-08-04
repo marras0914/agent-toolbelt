@@ -705,6 +705,41 @@ app.get("/admin/upstream-health", (_req, res) => {
 /**
  * Full database snapshot, for offsite backup.
  *
+ * This database is SQLite on a Railway volume, so there is no connection string a
+ * CI job could dial into the way managed Postgres would allow, and the file is
+ * only reachable from inside the container. Exposing the snapshot over the
+ * existing admin auth is what makes an automated offsite backup possible at all
+ * — see .github/workflows/db-backup.yml, which calls this weekly and ships the
+ * result to private R2 storage.
+ *
+ * Security note: this returns the entire database. `api_keys` rows contain
+ * `key_hash`, not recoverable plaintext keys, so a leaked snapshot does not hand
+ * over working credentials — but it does contain every customer email and their
+ * usage history. Treat the output as sensitive and keep the bucket private.
+ */
+app.get("/admin/backup", (_req, res) => {
+  const stamp = new Date().toISOString().split("T")[0];
+  // VACUUM INTO refuses to overwrite, so the name has to be unique per call.
+  const tmp = path.join(os.tmpdir(), `agent-toolbelt-backup-${Date.now()}-${process.pid}.db`);
+
+  try {
+    backupTo(tmp);
+  } catch (err: any) {
+    res.status(500).json({ error: "backup_failed", message: err.message });
+    return;
+  }
+
+  // Stream it, then clean up whether or not the transfer succeeded — otherwise a
+  // client that hangs up mid-download leaves a full DB copy on the volume, and
+  // the volume is the thing we are trying to protect.
+  res.download(tmp, `agent-toolbelt-backup-${stamp}.db`, () => {
+    fs.promises.unlink(tmp).catch(() => {});
+  });
+});
+
+/**
+ * Full database snapshot, for offsite backup.
+ *
  * This database is SQLite on a Railway volume, so there is no connection string
  * a CI job could dial into the way a managed Postgres would allow. Exposing the
  * snapshot over the existing admin auth is what makes an automated offsite backup

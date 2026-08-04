@@ -1,0 +1,101 @@
+name: DB backup → R2
+
+# Weekly offsite backup of the Agent Toolbelt SQLite database to a private
+# Cloudflare R2 bucket.
+#
+# Why this looks different from cordon-server's equivalent: that service uses
+# managed Postgres, so its workflow just dials a public DATABASE_URL. This one is
+# SQLite on a Railway volume — there is no connection string, and the file is only
+# reachable from inside the container. Rather than depend on `railway ssh` and a
+# Railway CI token (which caused enough project-token friction on cordon-server
+# that the approach was dropped there), this pulls a consistent snapshot over the
+# service's own authenticated admin endpoint. CI needs nothing but an HTTPS call.
+#
+# The endpoint (GET /admin/backup) builds the snapshot with SQLite `VACUUM INTO`,
+# which is safe against a live database and — unlike copying the file — captures
+# committed WAL contents instead of a torn mid-write state.
+#
+# ── One-time setup (GitHub → repo Settings → Secrets and variables → Actions) ──
+#   ADMIN_SECRET          Same value as the Railway ADMIN_SECRET env var.
+#                         Get it: railway variables --json | jq -r .ADMIN_SECRET
+#   R2_ACCESS_KEY_ID      Cloudflare R2 API token access key id
+#   R2_SECRET_ACCESS_KEY  R2 API token secret
+#   R2_ENDPOINT           https://<accountid>.r2.cloudflarestorage.com
+#   R2_BUCKET             private bucket name (cordon-backups is fine — this
+#                         writes under an agent-toolbelt/ prefix, so it will not
+#                         collide with the cordon-server backups)
+#   BACKUP_BASE_URL       optional; defaults to https://www.agenttoolbelt.live
+#
+# These are per-repository secrets, so the R2 values must be added here even
+# though cordon-server already has them.
+#
+# Test it immediately after adding secrets: Actions tab → this workflow →
+# Run workflow. Then confirm the object landed in R2.
+
+on:
+  schedule:
+    - cron: '30 14 * * 1'   # Mondays 14:30 UTC — 30 min after cordon-server's, to keep the two runs distinct
+  workflow_dispatch: {}      # manual trigger from the Actions tab
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download snapshot from the service
+        env:
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          BASE_URL: ${{ secrets.BACKUP_BASE_URL || 'https://www.agenttoolbelt.live' }}
+        run: |
+          set -euo pipefail
+          mkdir -p backups
+          STAMP="$(date -u +%Y-%m-%d)"
+          OUT="backups/agent-toolbelt-backup-${STAMP}.db"
+
+          # --fail so an auth failure or 5xx is a failed job rather than a
+          # committed HTML error page masquerading as a backup.
+          curl --fail --silent --show-error --location \
+            --max-time 300 \
+            -H "Authorization: Bearer ${ADMIN_SECRET}" \
+            "${BASE_URL}/admin/backup" \
+            -o "$OUT"
+
+          echo "SNAPSHOT=$OUT" >> "$GITHUB_ENV"
+
+      - name: Verify it is a real SQLite database
+        run: |
+          set -euo pipefail
+          SIZE=$(stat -c%s "$SNAPSHOT")
+          echo "size: ${SIZE} bytes"
+
+          # A truncated or error-page "backup" is worse than none, because it looks
+          # like success. Check the magic header and a plausible floor on size.
+          if [ "$SIZE" -lt 100000 ]; then
+            echo "::error::snapshot is only ${SIZE} bytes — refusing to upload a likely-truncated backup"
+            exit 1
+          fi
+          if ! head -c 15 "$SNAPSHOT" | grep -q "SQLite format 3"; then
+            echo "::error::snapshot is missing the SQLite magic header — not a database"
+            head -c 200 "$SNAPSHOT"
+            exit 1
+          fi
+
+          sudo apt-get update -qq && sudo apt-get install -y -qq sqlite3
+          sqlite3 "$SNAPSHOT" "PRAGMA integrity_check;" | head -1
+          echo "clients:  $(sqlite3 "$SNAPSHOT" 'SELECT COUNT(*) FROM clients;')"
+          echo "api_keys: $(sqlite3 "$SNAPSHOT" 'SELECT COUNT(*) FROM api_keys;')"
+          echo "usage:    $(sqlite3 "$SNAPSHOT" 'SELECT COUNT(*) FROM usage_records;')"
+
+      - name: Compress
+        run: gzip -9 "$SNAPSHOT" && echo "SNAPSHOT=${SNAPSHOT}.gz" >> "$GITHUB_ENV"
+
+      - name: Upload to R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          aws s3 cp "$SNAPSHOT" "s3://${{ secrets.R2_BUCKET }}/agent-toolbelt/" \
+            --endpoint-url "${{ secrets.R2_ENDPOINT }}"
+
+      - name: Confirm
+        run: echo "Backup uploaded to r2://${{ secrets.R2_BUCKET }}/agent-toolbelt/$(basename "$SNAPSHOT")"
