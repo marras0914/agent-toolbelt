@@ -27,10 +27,13 @@ type Input = z.infer<typeof inputSchema>;
 async function handler(input: Input) {
   const { image, format, quality } = input;
 
+  // Strip data URI prefix if present (e.g. "data:image/png;base64,iVBOR...")
+  const base64Data = image.includes(",") ? image.split(",")[1] : image;
+
   // Decode base64
   let buffer: Buffer;
   try {
-    buffer = Buffer.from(image, "base64");
+    buffer = Buffer.from(base64Data, "base64");
   } catch {
     throw new Error("Invalid base64 image data");
   }
