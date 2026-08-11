@@ -1,32 +1,35 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import express from "express";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import type { Server } from "node:http";
 import {
   createClient,
   createApiKey,
   recordUsage,
   getClientById,
-  deleteClientCascade,
   db,
 } from "../db";
-import { RAPIDAPI_GATEWAY_EMAIL } from "../rapidapi-gateway";
-// Mirrors src/index.ts, which imports this for its side effect (creates the
-// watchlist tables). deleteClientCascade tolerates their absence, but the route
-// should be exercised against the same schema production has.
 import { createWatchlist } from "../db/watchlists";
+import { RAPIDAPI_GATEWAY_EMAIL } from "../rapidapi-gateway";
 
 /**
- * The guards, not the cascade, are what stand between a cleanup sweep and deleting a
- * paying customer. They only exist at the route layer, so they are tested there —
- * over a real socket, against a real router.
+ * Drives the REAL route from src/app.ts, not a copy of it.
  *
- * This mounts a local copy of the route rather than importing index.ts, which calls
- * app.listen() at import. Keep in sync with the handler in src/index.ts; the shared
- * destructive logic (deleteClientCascade) is imported, not duplicated.
+ * This used to mirror the handler here, because importing the app started a server.
+ * A mirrored guard is a guard that drifts: the copy could keep passing while the
+ * shipped route lost a check. Now that app.ts no longer listens on import, the
+ * guards standing between a cleanup sweep and a paying customer are tested as
+ * deployed.
  */
 
-const ADMIN_SECRET = "test-admin-secret";
-const app = express();
+// Hoisted so ADMIN_SECRET is set before src/app.ts (and src/config.ts) are imported;
+// config reads process.env once at module load. Without this, config.adminSecret is
+// "" and the admin middleware skips auth entirely (its dev-mode behaviour).
+const ADMIN_SECRET = "test-admin-secret-delete-route";
+vi.hoisted(() => {
+  process.env.ADMIN_SECRET = "test-admin-secret-delete-route";
+});
+
+import app from "../app";
+
 let server: Server;
 let baseUrl = "";
 
@@ -45,51 +48,6 @@ function seedClient(tier: "free" | "pro" = "free", credits = 0) {
 }
 
 beforeAll(async () => {
-  app.use(express.json());
-  app.use("/admin", (req, res, next) => {
-    if (req.headers["authorization"] !== `Bearer ${ADMIN_SECRET}`) {
-      res.status(401).json({ error: "unauthorized" });
-      return;
-    }
-    next();
-  });
-
-  app.delete("/admin/clients/:clientId", (req, res) => {
-    const { clientId } = req.params;
-    const confirm = typeof req.query.confirm === "string" ? req.query.confirm : "";
-    const dryRun = req.query.dryRun === "true";
-    const force = req.query.force === "true";
-
-    const client = getClientById(clientId);
-    if (!client) {
-      res.status(404).json({ error: "not_found", message: `Client '${clientId}' not found.` });
-      return;
-    }
-    if (client.email === RAPIDAPI_GATEWAY_EMAIL) {
-      res.status(409).json({ error: "protected_client" });
-      return;
-    }
-    if (confirm !== client.email) {
-      res.status(400).json({ error: "confirmation_required", expected: client.email, received: confirm || null });
-      return;
-    }
-    const paidTier = client.tier !== "free";
-    const hasCredits = (client.credit_balance_micros ?? 0) > 0;
-    if ((paidTier || hasCredits) && !force) {
-      res.status(409).json({ error: "paying_client", tier: client.tier });
-      return;
-    }
-    const deleted = deleteClientCascade(clientId, dryRun);
-    res.json({ ...(dryRun ? { dryRun: true } : { deleted: true }), clientId, email: client.email, rows: deleted });
-  });
-
-  // Surface a thrown handler error as JSON. Without this Express returns its HTML
-  // error page and a genuine failure shows up only as "Unexpected token '<'",
-  // which is how a real "no such table: watchlists" bug nearly went unread.
-  app.use((err: any, _req: any, res: any, _next: any) => {
-    res.status(500).json({ error: "route_threw", message: err?.message });
-  });
-
   await new Promise<void>((resolve) => {
     server = app.listen(0, () => {
       const addr = server.address();
@@ -144,7 +102,8 @@ describe("DELETE /admin/clients/:id — guards", () => {
   });
 
   it("refuses to delete the RapidAPI gateway client", async () => {
-    const gw = createClient(RAPIDAPI_GATEWAY_EMAIL, "RapidAPI Gateway", "enterprise");
+    const existing = db.prepare("SELECT id FROM clients WHERE email = ?").get(RAPIDAPI_GATEWAY_EMAIL) as { id: string } | undefined;
+    const gw = existing ?? createClient(RAPIDAPI_GATEWAY_EMAIL, "RapidAPI Gateway", "enterprise");
     const { status, body } = await del(`/admin/clients/${gw.id}?confirm=${encodeURIComponent(RAPIDAPI_GATEWAY_EMAIL)}`);
     expect(status).toBe(409);
     expect(body.error).toBe("protected_client");
