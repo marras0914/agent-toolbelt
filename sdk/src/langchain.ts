@@ -602,6 +602,41 @@ export function createLangChainTools(client: AgentToolbelt): DynamicStructuredTo
       },
     }),
 
+    // ---- Portfolio Review ----
+    new DynamicStructuredTool({
+      name: "portfolio_review",
+      description:
+        "Review a portfolio the user ALREADY OWNS, rather than screening stocks to buy. Takes 2-20 holdings with weights (or share counts) and " +
+        "judges what that combination adds up to at those sizes. " +
+        "Returns: concentration (Herfindahl index, effective position count, largest position), sector exposure, weight-adjusted portfolio metrics " +
+        "(P/E, FCF yield, ROE, beta), overlappingBets (holdings that share one underlying driver despite different sector labels), weakestLink, " +
+        "trimCandidates, gaps, and a bottom line. " +
+        "Use when a user asks about their own holdings — 'review my portfolio', 'am I too concentrated?', 'what should I trim?', 'is my portfolio diversified?'.",
+      schema: z.object({
+        holdings: z
+          .array(
+            z.object({
+              ticker: z.string().describe("US stock ticker (e.g. 'NVDA')"),
+              weight: z
+                .number()
+                .positive()
+                .optional()
+                .describe("Position size in any consistent unit (percent, dollar value, or fraction) — normalized internally"),
+              shares: z.number().positive().optional().describe("Alternative to weight: share count, valued at the last close"),
+            })
+          )
+          .min(2)
+          .max(20)
+          .describe(
+            "2-20 holdings. Use weight on every holding, or shares on every holding, or neither for an equal-weighted portfolio — do not mix."
+          ),
+      }),
+      func: async ({ holdings }) => {
+        const result = await client.portfolioReview({ holdings });
+        return JSON.stringify(result);
+      },
+    }),
+
     // ---- Create Watchlist ----
     new DynamicStructuredTool({
       name: "create_watchlist",
