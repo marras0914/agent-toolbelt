@@ -61,7 +61,7 @@ npm run test:ci      # Run tests once (no watch)
 
 **For stock tools specifically:** import the shared fetchers from `./_stock-fetchers` (already cached + typed), helpers from `./_stock-helpers`, and `parseLLMJson` from `./_llm-utils`. Don't reinvent these per tool — see `src/tools/moat-analysis.ts` for a minimal reference implementation.
 
-**Multi-ticker tools:** prefer `fetchFMPProfile()` over the Polygon overview + prev-close pair for name/sector/price/market cap/beta — one call instead of two, cleaner sector labels, and Polygon's per-minute limit is tight enough that a 12-ticker fan-out 429s itself. Also bound the fan-out (`mapWithConcurrency` in `portfolio-review.ts`); a bare `Promise.all` over 20 tickers opens 80 connections and rate-limits itself. See `src/tools/portfolio-review.ts`.
+**Multi-ticker tools:** prefer `fetchFMPProfile()` over the Polygon overview + prev-close pair for name/sector/price/market cap/beta — one call instead of two, cleaner sector labels, and Polygon's per-minute limit is tight enough that a 12-ticker fan-out 429s itself. Also bound the fan-out with `mapWithConcurrency(items, TICKER_CONCURRENCY, fn)` from `_stock-helpers` — a bare `Promise.all` over 20 tickers opens 80 connections and rate-limits itself. Both `portfolio-review` and `watchlist-scan` follow this.
 
 Tool pattern:
 ```ts

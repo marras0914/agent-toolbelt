@@ -8,7 +8,17 @@ import {
   fetchFMPRatiosTTM,
   fetchFinnhubMetrics,
 } from "./_stock-fetchers";
-import { sane, fhPct, fmt, fmtPct, round1, usTickerSchema, UnsupportedTickerError } from "./_stock-helpers";
+import {
+  sane,
+  fhPct,
+  fmt,
+  fmtPct,
+  round1,
+  usTickerSchema,
+  UnsupportedTickerError,
+  mapWithConcurrency,
+  TICKER_CONCURRENCY,
+} from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 // Review a portfolio you ALREADY OWN, rather than screening candidates to buy.
@@ -148,39 +158,6 @@ async function fetchPosition(ticker: string): Promise<PositionData | null> {
     debtToEquity: sane(rt.debtToEquityRatioTTM ?? fh["totalDebt/totalEquityAnnual"], 0, 50),
     beta: sane(pr.beta ?? fh.beta, -5, 5),
   };
-}
-
-/**
- * Fetch positions a few tickers at a time instead of all at once.
- *
- * Each position costs 4 upstream requests, so a 20-holding portfolio fired
- * through a bare Promise.all opens 80 simultaneous connections. An earlier cut
- * of this tool sourced sector and price from Polygon and a 12-holding test run
- * rate-limited itself into 429s on 7 of them — which is why those two facts now
- * come from FMP's profile endpoint instead (see fetchFMPProfile). Bounding the
- * fan-out is the other half of that fix: it keeps a large portfolio from
- * self-inflicting the same failure against whichever upstream is tightest.
- *
- * 4 tickers in flight keeps latency close to the unbounded version — the batches
- * pipeline against the 6h fetch cache — without provoking a 429.
- */
-const TICKER_CONCURRENCY = 4;
-
-export async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let next = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const i = next++;
-      results[i] = await fn(items[i]);
-    }
-  });
-  await Promise.all(workers);
-  return results;
 }
 
 /** Weighted arithmetic mean over the positions that actually have the metric. */

@@ -3,9 +3,9 @@ import tool, {
   weightedAvg,
   weightedHarmonic,
   concentrationLabel,
-  mapWithConcurrency,
   Position,
 } from "../../tools/portfolio-review";
+import { mapWithConcurrency } from "../../tools/_stock-helpers";
 
 const parse = (input: unknown) => tool.inputSchema.safeParse(input);
 
@@ -135,7 +135,8 @@ describe("portfolio-review weighting math", () => {
   });
 });
 
-describe("portfolio-review bounded fan-out", () => {
+// mapWithConcurrency is shared with watchlist-scan; both bound their per-ticker fan-out with it.
+describe("bounded fan-out (mapWithConcurrency)", () => {
   it("preserves input order regardless of completion order", async () => {
     const delays = [40, 5, 30, 1, 20, 10];
     const out = await mapWithConcurrency(delays, 2, async (ms) => {
