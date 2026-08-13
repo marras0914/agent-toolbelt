@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
+import { parseLLMJson } from "./_llm-utils";
 
 // ----- Input Schema -----
 const inputSchema = z.object({
@@ -131,14 +132,9 @@ ${prompt}
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
-  const jsonText = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch {
-    throw new Error("Failed to parse structured response from LLM");
-  }
+  // Shared parser: the hand-rolled fence-strip this replaced threw on any
+  // preamble or trailing note around the JSON. See meeting-action-items.
+  const parsed = parseLLMJson(rawText);
 
   const originalTokens = estimateTokens(prompt);
   const improvedPrompt = parsed.improvedPrompt as string | undefined;
