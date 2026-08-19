@@ -95,7 +95,7 @@ _Last updated: 2026-03-31_
 - SLA + priority support tier
 
 ### New stock tools to consider
-- **Portfolio analyzer** — analyze a list of tickers as a portfolio, correlation, sector concentration
+- ~~**Portfolio analyzer**~~ — ✓ SHIPPED 2026-08-13 as `portfolio-review`: 2-20 holdings with weights or share counts → concentration (Herfindahl / effective position count), sector exposure, weight-adjusted portfolio metrics, correlated bets, weakest link, trim candidates, gaps. First tool that reviews holdings rather than screening candidates.
 - **Sector comparison** — compare 3-5 stocks in the same sector head-to-head
 - **Earnings transcript summarizer** — ingest earnings call transcript, extract key guidance
 - **News sentiment** — recent news headlines → sentiment signal + summary

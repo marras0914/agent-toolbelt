@@ -1434,6 +1434,102 @@ server.registerTool(
   }
 );
 
+// ----- Tool: Portfolio Review -----
+server.registerTool(
+  "portfolio_review",
+  {
+    title: "Portfolio Review",
+    description:
+      "Review a portfolio the user ALREADY OWNS, rather than screening stocks to buy. Takes 2-20 holdings with weights " +
+      "(or share counts) and judges what that combination adds up to at those sizes: concentration risk, sector exposure, " +
+      "weight-adjusted portfolio metrics, the correlated bets hiding behind different sector labels, the weakest holding, " +
+      "what to trim, and what exposure is missing. Use when a user asks about their own holdings — 'review my portfolio', " +
+      "'am I too concentrated?', 'what should I trim?'.",
+    inputSchema: {
+      holdings: z
+        .array(
+          z.object({
+            ticker: z.string().describe("US stock ticker (e.g. 'NVDA')"),
+            weight: z
+              .number()
+              .positive()
+              .optional()
+              .describe("Position size in any consistent unit (percent, dollar value, or fraction) — normalized internally"),
+            shares: z.number().positive().optional().describe("Alternative to weight: share count, valued at the last close"),
+          })
+        )
+        .min(2)
+        .max(20)
+        .describe(
+          "2-20 holdings. Use weight on every holding, or shares on every holding, or neither for an equal-weighted portfolio — do not mix."
+        ),
+    },
+  },
+  async ({ holdings }) => {
+    const result = await callToolApi("portfolio-review", { holdings });
+    const data = result as any;
+    const r = data.result;
+    const c = r.concentration || {};
+    const m = r.portfolioMetrics || {};
+    const pct = (v: any, suffix = "%") => (v == null ? "N/A" : `${v}${suffix}`);
+
+    const lines: string[] = [
+      `**Portfolio review — ${c.positionCount ?? "?"} positions, ${c.label || "unclassified"}**`,
+      "",
+      r.oneLiner ? `_${r.oneLiner}_` : "",
+      "",
+      `**Concentration:** largest ${c.largestPosition?.ticker} at ${pct(c.largestPosition?.weightPct)} | ` +
+        `top 3 ${pct(c.top3Pct)} | effective positions ${c.effectivePositions ?? "N/A"}`,
+      `**Portfolio metrics:** P/E ${pct(m.peWeighted, "x")} | FCF yield ${pct(m.fcfYield)} | ROE ${pct(m.roe)} | ` +
+        `3Y rev growth ${pct(m.revGrowth3Y)} | div yield ${pct(m.divYield)} | beta ${m.beta ?? "N/A"}`,
+      "",
+    ];
+
+    if (r.sectorExposure?.length) {
+      lines.push("**Sector exposure**");
+      for (const s of r.sectorExposure) {
+        lines.push(`- ${s.sector}: ${pct(s.weightPct)} (${(s.tickers || []).join(", ")})`);
+      }
+      lines.push("");
+    }
+
+    if (r.riskRead) {
+      lines.push(r.riskRead, "");
+    }
+
+    if (r.overlappingBets?.length) {
+      lines.push("**Overlapping bets**");
+      for (const b of r.overlappingBets) {
+        lines.push(
+          `- **${(b.tickers || []).join(" + ")}** (${pct(b.combinedWeightPct)}, ${b.severity} severity) — ${b.sharedRisk}`
+        );
+      }
+      lines.push("");
+    }
+
+    if (r.weakestLink) lines.push(`**Weakest link: ${r.weakestLink.ticker}** — ${r.weakestLink.why}`, "");
+
+    if (r.trimCandidates?.length) {
+      lines.push("**Trim candidates**");
+      for (const t of r.trimCandidates) lines.push(`- **${t.ticker}** — ${t.why}`);
+      lines.push("");
+    }
+
+    if (r.gaps?.length) {
+      lines.push("**Gaps**");
+      for (const g of r.gaps) lines.push(`- ${g}`);
+      lines.push("");
+    }
+
+    if (r.bottomLine) lines.push(`**Bottom line:** ${r.bottomLine}`);
+    if (r.excluded?.length) {
+      lines.push("", `_Excluded (no usable data): ${r.excluded.map((e: any) => e.ticker).join(", ")}_`);
+    }
+
+    return { content: [{ type: "text" as const, text: lines.filter(Boolean).join("\n") }] };
+  }
+);
+
 // ----- Tool: Create Watchlist -----
 server.registerTool(
   "create_watchlist",

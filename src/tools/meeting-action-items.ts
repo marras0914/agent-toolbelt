@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
+import { parseLLMJson } from "./_llm-utils";
 
 // ----- Input Schema -----
 const inputSchema = z.object({
@@ -95,22 +96,32 @@ ${notes}`;
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 2048,
+    // Headroom, not a bug fix: `notes` accepts up to 50,000 characters and this
+    // response scales with the input, so a dense transcript can produce dozens of
+    // action items plus a summary and a decisions list. 2048 was self-imposed —
+    // Haiku 4.5 allows 64k output tokens. (Truncation was NOT the cause of the
+    // 2026-08-01 failures; that was the parser below. Measured: a 12k-character
+    // transcript uses ~900 output tokens, so 2048 had more slack than it looked.)
+    max_tokens: 8192,
     messages: [{ role: "user", content: userPrompt }],
     system: systemPrompt,
   });
 
   const rawText = message.content[0].type === "text" ? message.content[0].text : "";
 
-  // Strip markdown code fences if present
-  const jsonText = rawText.replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "").trim();
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(jsonText);
-  } catch {
-    throw new Error("Failed to parse structured response from LLM");
+  // Truncation produces JSON that can never parse, so say so explicitly rather
+  // than letting it surface as an opaque "failed to parse" — the caller can act
+  // on this one.
+  if (message.stop_reason === "max_tokens") {
+    throw new Error(
+      "These notes produced more action items than fit in one response. " +
+        "Split the transcript into shorter sections, or use format: 'action_items_only' to drop the summary and decisions."
+    );
   }
+
+  // Shared parser: same fence-stripping as before, plus a fallback that extracts
+  // the first balanced {...} when the model prepends a preamble.
+  const parsed = parseLLMJson(rawText);
 
   const actionItems = (parsed.actionItems as unknown[]) ?? [];
 
