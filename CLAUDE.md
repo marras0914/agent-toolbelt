@@ -48,6 +48,8 @@ npm run test         # Run tests (vitest)
 npm run test:ci      # Run tests once (no watch)
 ```
 
+`.claude/hooks/git-freshness.sh` runs on session start (wired in `.claude/settings.local.json`): it fetches and reports if the branch is behind its upstream, has unpushed commits, or `origin/master` has moved ahead of it. Read-only — it never pulls, merges, or checks anything out, so it is safe with uncommitted changes and on stacked branches. Silent when current, and silent when offline.
+
 ## Adding a new tool
 
 1. Create `src/tools/<tool-name>.ts` — implement and call `registerTool()` at the bottom
@@ -125,9 +127,19 @@ Hosted on Railway. Auto-deploys on push to `master` via GitHub integration.
 
 - Production URL: `https://www.agenttoolbelt.live` (Railway URL `https://www.agenttoolbelt.live` still resolves to the same service; both work)
 - Railway project ID: `d345a508-2557-453d-953c-3acd1ae26568`
-- Persistent volume mounted at `/data` — SQLite DB survives deploys
+- Persistent volume mounted at `/app/data` — SQLite DB survives deploys. `src/db/index.ts` probes `/app/data` first, then `/data`, then `./data/`; on Railway only `/app/data` exists. Do NOT set `DATABASE_PATH` — the probe handles it.
 
 CI runs on every push/PR: type check → unit tests → build → smoke test → Docker image push (GHSA).
+
+### Offsite DB backup
+
+`.github/workflows/db-backup.yml` — weekly (Mondays 14:30 UTC) to a private Cloudflare R2 bucket. Working since 2026-08-19; it had failed silently on schedule for two weeks before that, because the workflow merged with its one-time secret setup described only in a comment block, so nothing ran on the PR.
+
+- Snapshot comes from `GET /admin/backup` (SQLite `VACUUM INTO`, safe against a live DB and captures committed WAL). CI needs nothing but an HTTPS call — no `railway ssh`, no Railway CI token.
+- Bucket `agent-toolbelt-backups`, dedicated to this project, 180-day lifecycle rule. **Do not share cordon-server's bucket:** R2 tokens scope to buckets, not prefixes, so sharing gives each project's token read+delete over the other's backups.
+- Required repo secrets: `ADMIN_SECRET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT`, `R2_BUCKET`. The workflow header documents the setup, including the traps — most importantly that `R2_ACCESS_KEY_ID` is **not** the Cloudflare account id (both are 32 hex chars, so no format check catches the swap; the account id is also the subdomain of `R2_ENDPOINT`, which makes it self-checkable).
+- After merging any scheduled workflow, check `gh run list --workflow="<name>"` — a green PR proves nothing about a cron-triggered job.
+- Verify a backup by listing the bucket, not by the green check: a successful run means the upload was accepted, not that the object is retrievable.
 
 ### Landing pages (elephanttortoise.com)
 
