@@ -126,6 +126,18 @@ export interface FMPKeyMetrics {
   [key: string]: unknown;
 }
 
+/** FMP /stable/profile — identity, sector/industry labels, last price, market cap, beta. */
+export interface FMPProfile {
+  symbol?: string;
+  companyName?: string;
+  price?: number;
+  marketCap?: number;
+  beta?: number;
+  sector?: string;
+  industry?: string;
+  [key: string]: unknown;
+}
+
 /** FMP /stable/ratios-ttm. */
 export interface FMPRatiosTTM {
   priceToEarningsRatioTTM?: number;
@@ -180,6 +192,7 @@ export interface FinnhubMetric {
   revenueGrowth3Y?: number;
   epsGrowth3Y?: number;
   dividendYieldIndicatedAnnual?: number;
+  beta?: number;
   currentRatioAnnual?: number;
   "totalDebt/totalEquityAnnual"?: number;
   [key: string]: unknown;
@@ -334,6 +347,28 @@ export async function fetchFMPKeyMetrics(ticker: string): Promise<FMPKeyMetrics>
   return withCache(`fmp-keymetrics:${sym}`, async () => {
     const data = await safeJson<FMPKeyMetrics[]>(
       `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${sym}&apikey=${config.fmpApiKey}`,
+      []
+    );
+    return Array.isArray(data) && data.length > 0 ? data[0] : {};
+  });
+}
+
+/**
+ * FMP /stable/profile — company identity in one call: name, sector, industry,
+ * price, market cap, beta.
+ *
+ * This is the cheap way to get sector and price together. The Polygon pair
+ * (overview + prev-close) returns the same three facts for two calls against a
+ * much tighter per-minute limit, and labels sectors with raw SIC descriptions
+ * ("SERVICES-PREPACKAGED SOFTWARE") where FMP gives the conventional GICS-style
+ * name ("Technology") plus a finer `industry`. Multi-ticker tools should prefer
+ * this and fall back to Polygon, not the other way round.
+ */
+export async function fetchFMPProfile(ticker: string): Promise<FMPProfile> {
+  const sym = toFmpSymbol(ticker);
+  return withCache(`fmp-profile:${sym}`, async () => {
+    const data = await safeJson<FMPProfile[]>(
+      `https://financialmodelingprep.com/stable/profile?symbol=${sym}&apikey=${config.fmpApiKey}`,
       []
     );
     return Array.isArray(data) && data.length > 0 ? data[0] : {};

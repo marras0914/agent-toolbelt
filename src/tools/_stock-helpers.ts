@@ -72,3 +72,37 @@ export const fmtPct = (v: number | null | undefined): string =>
 /** Round to 1 decimal, preserving null. */
 export const round1 = (v: number | null | undefined): number | null =>
   v != null ? parseFloat(Number(v).toFixed(1)) : null;
+
+/**
+ * Map over tickers a few at a time instead of all at once, preserving input order.
+ *
+ * Multi-ticker tools fan out several upstream calls per ticker, so a bare
+ * Promise.all over a 15-20 ticker list opens 60-80 connections and rate-limits
+ * itself. Observed on 2026-08-13: a 12-ticker run 429'd 7 of them, and because
+ * the negative cache pins a failed URL for 5 minutes, retrying inside the window
+ * returned the same holes.
+ *
+ * The damage is quiet — a fetcher that fails returns `{}` rather than throwing,
+ * so the ticker keeps whatever fields its other upstreams supplied and the tool
+ * reports a confident result built on a partial row. Bound the fan-out; 4 tickers
+ * in flight keeps latency close to the unbounded version because the batches
+ * pipeline against the 6h fetch cache.
+ */
+export const TICKER_CONCURRENCY = 4;
+
+export async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}

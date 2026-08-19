@@ -1559,6 +1559,45 @@
         }
       }
     },
+    "/api/tools/portfolio-review": {
+      "post": {
+        "operationId": "portfolioReview",
+        "summary": "Review a portfolio you already hold",
+        "description": "Review 2-20 holdings as a portfolio rather than as screening candidates. Returns concentration risk (Herfindahl index, effective position count, largest position), sector exposure, weight-adjusted portfolio metrics (P/E, FCF yield, ROE, beta), correlated bets that share one underlying driver despite different sector labels, the weakest holding, trim candidates, and missing exposures. Powered by Claude. $0.05/call.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type": "object",
+            "required": ["holdings"],
+            "properties": {
+              "holdings": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 20,
+                "description": "2-20 positions. Use weight on every holding, or shares on every holding, or neither for an equal-weighted portfolio. Mixing the two is a validation error.",
+                "items": {
+                  "type": "object",
+                  "required": ["ticker"],
+                  "properties": {
+                    "ticker": { "type": "string", "description": "US-listed stock ticker (e.g. NVDA, AAPL). US equities only." },
+                    "weight": { "type": "number", "exclusiveMinimum": 0, "description": "Position size in any consistent unit (percent, dollar value, or fraction). Weights are normalized internally, so they need not sum to 100." },
+                    "shares": { "type": "number", "exclusiveMinimum": 0, "description": "Alternative to weight: share count, valued at the last close." }
+                  }
+                }
+              }
+            }
+          } } }
+        },
+        "responses": {
+          "200": { "description": "Portfolio review with concentration, sector exposure, weighted metrics, overlapping bets, weakest link, trim candidates, and gaps" },
+          "400": { "description": "Validation error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "422": { "description": "Fewer than 2 holdings had usable data (delisted, OTC, or non-US listings). Terminal — retrying will not help. Body carries the offending tickers and retryable=false.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Missing or invalid API key" },
+          "402": { "description": "Insufficient credits (PAYG)" },
+          "429": { "description": "Rate limit, monthly quota, or stock per-minute limit exceeded" }
+        }
+      }
+    },
     "/api/tools/web-summarizer": {
       "post": {
         "operationId": "summarizeWebPage",

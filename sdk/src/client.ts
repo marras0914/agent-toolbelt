@@ -513,6 +513,61 @@ export interface WatchlistScanResult {
   generatedAt: string;
 }
 
+export interface PortfolioReviewResult {
+  oneLiner: string;
+  riskRead: string;
+  overlappingBets: Array<{
+    tickers: string[];
+    combinedWeightPct: number;
+    sharedRisk: string;
+    severity: "high" | "medium" | "low";
+  }>;
+  weakestLink: { ticker: string; why: string };
+  trimCandidates: Array<{ ticker: string; why: string }>;
+  gaps: string[];
+  bottomLine: string;
+  weightingMode: "weight" | "shares" | "equal";
+  concentration: {
+    label: "diversified" | "concentrated" | "highly_concentrated";
+    largestPosition: { ticker: string; weightPct: number };
+    top3Pct: number | null;
+    hhi: number;
+    effectivePositions: number | null;
+    positionCount: number;
+  };
+  sectorExposure: Array<{ sector: string; weightPct: number | null; tickers: string[] }>;
+  portfolioMetrics: {
+    peWeighted: number | null;
+    psWeighted: number | null;
+    fcfYield: number | null;
+    roe: number | null;
+    netMargin: number | null;
+    divYield: number | null;
+    revGrowth3Y: number | null;
+    beta: number | null;
+  };
+  holdings: Array<{
+    ticker: string;
+    name: string;
+    sector: string | null;
+    industry: string | null;
+    weightPct: number;
+    price: number | null;
+    marketCapB: number | null;
+    pe: number | null;
+    ps: number | null;
+    fcfYield: number | null;
+    roe: number | null;
+    netMargin: number | null;
+    divYield: number | null;
+    revGrowth3Y: number | null;
+    debtToEquity: number | null;
+    beta: number | null;
+  }>;
+  excluded?: Array<{ ticker: string; reason: string }>;
+  generatedAt: string;
+}
+
 export interface StockThesisResult {
   ticker: string;
   companyName: string;
@@ -847,6 +902,13 @@ export class AgentToolbelt {
     focus?: "value" | "quality" | "growth" | "income";
   }): Promise<WatchlistScanResult> {
     return this.call("watchlist-scan", input);
+  }
+
+  /** Review a portfolio you already hold: concentration, correlated bets, weakest link, what to trim */
+  portfolioReview(input: {
+    holdings: Array<{ ticker: string; weight?: number; shares?: number }>;
+  }): Promise<PortfolioReviewResult> {
+    return this.call("portfolio-review", input);
   }
 
   /** Fetch a URL, extract main content as clean Markdown, and generate an AI summary with key points */
