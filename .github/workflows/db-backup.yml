@@ -18,19 +18,42 @@ name: DB backup → R2
 # ── One-time setup (GitHub → repo Settings → Secrets and variables → Actions) ──
 #   ADMIN_SECRET          Same value as the Railway ADMIN_SECRET env var.
 #                         Get it: railway variables --json | jq -r .ADMIN_SECRET
-#   R2_ACCESS_KEY_ID      Cloudflare R2 API token access key id
-#   R2_SECRET_ACCESS_KEY  R2 API token secret
+#   R2_ACCESS_KEY_ID      R2 access key id. NOT your Cloudflare account id —
+#                         see the warning below; this is the single easiest
+#                         thing to get wrong here.
+#   R2_SECRET_ACCESS_KEY  R2 secret access key (shown once, at token creation)
 #   R2_ENDPOINT           https://<accountid>.r2.cloudflarestorage.com
-#   R2_BUCKET             private bucket name (cordon-backups is fine — this
-#                         writes under an agent-toolbelt/ prefix, so it will not
-#                         collide with the cordon-server backups)
+#                         Service endpoint only — no bucket, no trailing slash.
+#                         The AWS CLI appends the bucket from the s3:// arg.
+#   R2_BUCKET             agent-toolbelt-backups — a bucket dedicated to THIS
+#                         project. Do not share cordon-server's bucket: R2 API
+#                         tokens scope to buckets, not prefixes, so a shared
+#                         bucket hands each project's token read+delete over the
+#                         other's backups. A separate prefix does not isolate
+#                         anything, and R2 does not bill per bucket.
 #   BACKUP_BASE_URL       optional; defaults to https://www.agenttoolbelt.live
 #
 # These are per-repository secrets, so the R2 values must be added here even
-# though cordon-server already has them.
+# though cordon-server already has them. GitHub secrets are write-only, so they
+# cannot be copied out of that repo — mint a fresh token for this one.
+#
+# Create the token at: R2 → Manage API tokens → Create API token → Account
+# token → "Object Read & Write", scoped to agent-toolbelt-backups only. Do NOT
+# use the general Cloudflare account-token page (the one offering permission
+# policies like "Write all resources") — that issues a Bearer token, which the
+# AWS CLI cannot use at all.
+#
+# ⚠️  R2_ACCESS_KEY_ID is not the account id. Both are 32 hex characters, so a
+#     length or format check will not catch the mistake, and the account id is
+#     displayed right beside the S3 endpoint on the R2 overview page. It is also
+#     the subdomain of R2_ENDPOINT — so if the key equals that subdomain, that is
+#     the bug. Symptom: HTTP 401 on every operation including reads, identical to
+#     what a made-up key returns. (Cost an afternoon on 2026-08-19.)
+#     A genuine permissions problem looks different: reads succeed, writes 403.
 #
 # Test it immediately after adding secrets: Actions tab → this workflow →
-# Run workflow. Then confirm the object landed in R2.
+# Run workflow. Then confirm the object actually landed in R2 — a green run
+# proves the upload was accepted, not that the object is retrievable.
 
 on:
   schedule:
