@@ -1793,11 +1793,11 @@ async function main() {
   await server.connect(transport);
 
   // Log to stderr (stdout is reserved for MCP protocol messages)
-  console.error("Agent Toolbelt MCP server v1.0.15 started");
+  console.error("Agent Toolbelt MCP server v1.0.16 started");
   console.error(`  API: ${API_BASE_URL}`);
   console.error(`  Key: ${API_KEY ? API_KEY.slice(0, 12) + "..." : "NOT SET"}`);
-  console.error("  Tools: 28 (8 stock research + 20 utility) + watchlist management");
-  console.error("  New in v1.0.15: create_watchlist / list_watchlists / get_watchlist_alerts — Claude can save & monitor watchlists (alerts are Pro+)");
+  console.error("  Tools: 29 (9 stock research + 20 utility) + watchlist management");
+  console.error("  New in v1.0.16: portfolio_review — review holdings you already own (concentration, correlated bets, what to trim), not just candidates to buy");
   if (!API_KEY) {
     console.error("");
     console.error("=================================================================");
