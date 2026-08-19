@@ -1,6 +1,6 @@
 # Agent Toolbelt
 
-LLM-powered stock research tools for AI agents. Per-call billing. 28 tools total (8 stock analysis + 20 utility).
+LLM-powered stock research tools for AI agents. Per-call billing. 29 tools total (9 stock analysis + 20 utility).
 
 ## Project structure
 
@@ -51,8 +51,8 @@ npm run test:ci      # Run tests once (no watch)
 ## Adding a new tool
 
 1. Create `src/tools/<tool-name>.ts` — implement and call `registerTool()` at the bottom
-2. Import it in `src/index.ts` (side-effect import): `import "./tools/<tool-name>";`
-3. Add the endpoint to `openapi/openapi-gpt-actions.json` (now complete as of 2026-06-11 — all 28 tools present; keep it in sync when adding tools)
+2. Import it in `src/app.ts` (side-effect import): `import "./tools/<tool-name>";` — the tool imports live in `app.ts`, not `index.ts`, since app construction was split from process startup
+3. Add the endpoint to `openapi/openapi-gpt-actions.json` (complete as of 2026-08-13 — all 29 tools present; keep it in sync when adding tools). Note the stale copy at the repo root is NOT the served spec.
 4. Add typed method to `sdk/src/client.ts`
 5. Add `DynamicStructuredTool` to `sdk/src/langchain.ts`
 6. Add tool to `mcp-server/src/index.ts`
@@ -60,6 +60,8 @@ npm run test:ci      # Run tests once (no watch)
 8. Rebuild SDK: `cd sdk && npm run build`
 
 **For stock tools specifically:** import the shared fetchers from `./_stock-fetchers` (already cached + typed), helpers from `./_stock-helpers`, and `parseLLMJson` from `./_llm-utils`. Don't reinvent these per tool — see `src/tools/moat-analysis.ts` for a minimal reference implementation.
+
+**Multi-ticker tools:** prefer `fetchFMPProfile()` over the Polygon overview + prev-close pair for name/sector/price/market cap/beta — one call instead of two, cleaner sector labels, and Polygon's per-minute limit is tight enough that a 12-ticker fan-out 429s itself. Also bound the fan-out with `mapWithConcurrency(items, TICKER_CONCURRENCY, fn)` from `_stock-helpers` — a bare `Promise.all` over 20 tickers opens 80 connections and rate-limits itself. Both `portfolio-review` and `watchlist-scan` follow this.
 
 Tool pattern:
 ```ts

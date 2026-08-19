@@ -3,13 +3,21 @@ import { z } from "zod";
 import { config } from "../config";
 import { ToolDefinition, registerTool } from "./registry";
 import {
-  fetchPolygonOverview,
-  fetchPolygonPrevClose,
+  fetchFMPProfile,
   fetchFMPKeyMetrics,
   fetchFMPRatiosTTM,
   fetchFinnhubMetrics,
 } from "./_stock-fetchers";
-import { sane, fhPct, fmt, fmtPct, usTickerSchema, US_ONLY_HINT } from "./_stock-helpers";
+import {
+  sane,
+  fhPct,
+  fmt,
+  fmtPct,
+  usTickerSchema,
+  US_ONLY_HINT,
+  mapWithConcurrency,
+  TICKER_CONCURRENCY,
+} from "./_stock-helpers";
 import { parseLLMJson } from "./_llm-utils";
 
 // Scan a watchlist (2–15 tickers) and rank it by a chosen lens. Built for the
@@ -48,26 +56,31 @@ interface TickerMetrics {
   divYield: number | null;
 }
 
+// Name, price and market cap come from FMP's profile in ONE call. They used to
+// come from the Polygon overview + prev-close pair, which cost two calls each
+// against a much tighter per-minute limit: a 12-ticker fan-out 429'd 7 of them
+// (2026-08-13). A missing overview here is quiet — the fetcher returns `{}`
+// rather than throwing, so the ticker keeps its FMP/Finnhub metrics and still
+// gets ranked, just nameless and with a null market cap.
 async function fetchTickerMetrics(ticker: string): Promise<TickerMetrics | null> {
-  const [km, rt, fh, ov, pc] = await Promise.all([
+  const [km, rt, fh, pr] = await Promise.all([
     fetchFMPKeyMetrics(ticker).catch(() => ({} as any)),
     fetchFMPRatiosTTM(ticker).catch(() => ({} as any)),
     fetchFinnhubMetrics(ticker).catch(() => ({} as any)),
-    fetchPolygonOverview(ticker).catch(() => ({} as any)),
-    fetchPolygonPrevClose(ticker).catch(() => ({} as any)),
+    fetchFMPProfile(ticker).catch(() => ({} as any)),
   ]);
 
-  const hasData = Object.keys(km).length > 0 || Object.keys(fh).length > 0 || Object.keys(ov).length > 0;
+  const hasData = Object.keys(km).length > 0 || Object.keys(fh).length > 0 || Object.keys(pr).length > 0;
   if (!hasData) return null;
 
   const pfcf = Number(fh.pfcfShareTTM);
   const fcfFromFh = pfcf > 0 && isFinite(pfcf) ? 1 / pfcf : undefined;
-  const mktCap = sane(ov.market_cap, 0, 1e14);
+  const mktCap = sane(pr.marketCap ?? km.marketCap, 0, 1e14);
 
   return {
     ticker,
-    name: ov.name || ticker,
-    price: sane(pc.c, 0, 1e7),
+    name: pr.companyName || ticker,
+    price: sane(pr.price, 0, 1e7),
     marketCapB: mktCap != null ? round1ToB(mktCap) : null,
     pe: sane(rt.priceToEarningsRatioTTM, 0, 2000),
     ps: sane(rt.priceToSalesRatioTTM ?? fh.psTTM, 0, 1000),
@@ -87,13 +100,12 @@ async function handler(input: Input) {
   if (!config.anthropicApiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
   if (!config.fmpApiKey) throw new Error("FMP_API_KEY is not configured");
   if (!config.finnhubApiKey) throw new Error("FINNHUB_API_KEY is not configured");
-  if (!config.polygonApiKey) throw new Error("POLYGON_API_KEY is not configured");
 
   // Dedupe (input is already uppercased/validated by the schema).
   const tickers = [...new Set(input.tickers)];
   const fetchedAt = new Date().toISOString();
 
-  const results = await Promise.all(tickers.map(fetchTickerMetrics));
+  const results = await mapWithConcurrency(tickers, TICKER_CONCURRENCY, fetchTickerMetrics);
   const found = results.filter((r): r is TickerMetrics => r !== null);
   const noDataFor = tickers.filter((_, i) => results[i] === null);
 

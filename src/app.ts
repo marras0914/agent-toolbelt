@@ -76,6 +76,7 @@ import "./tools/bear-vs-bull";
 import "./tools/compare-stocks";
 import "./tools/moat-analysis";
 import "./tools/watchlist-scan";
+import "./tools/portfolio-review";
 
 // ----- App Setup -----
 const app = express();
