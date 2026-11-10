@@ -8,6 +8,7 @@ import bearVsBullTool from "../../tools/bear-vs-bull";
 import compareStocksTool from "../../tools/compare-stocks";
 import moatAnalysisTool from "../../tools/moat-analysis";
 import { isValidUSTicker } from "../../tools/_stock-helpers";
+import { llmTimeout } from "../setup/llm-timeout";
 
 const hasStockKeys =
   !!process.env.ANTHROPIC_API_KEY &&
@@ -61,7 +62,7 @@ describe("stock-thesis", () => {
     expect(Array.isArray(result.keyRisks)).toBe(true);
     expect(result.dataSnapshot).toBeDefined();
     expect(result.generatedAt).toBeDefined();
-  }, 30_000);
+  }, llmTimeout(30_000));
 
   it.skipIf(!hasStockKeys)("throws on invalid ticker", async () => {
     await expect(stockThesisTool.handler({ ticker: "ZZZZZZ", timeHorizon: "3-5 years" })).rejects.toThrow();
@@ -101,7 +102,7 @@ describe("earnings-analysis", () => {
     expect(result.rawData).toBeDefined();
     expect(typeof result.rawData.quartersAnalyzed).toBe("number");
     expect(result.generatedAt).toBeDefined();
-  }, 30_000);
+  }, llmTimeout(30_000));
 });
 
 // ============================================
@@ -129,7 +130,7 @@ describe("insider-signal", () => {
     expect(result.rawData).toBeDefined();
     expect(typeof result.rawData.transactionsAnalyzed).toBe("number");
     expect(result.generatedAt).toBeDefined();
-  }, 30_000);
+  }, llmTimeout(30_000));
 });
 
 // ============================================
@@ -155,7 +156,7 @@ describe("valuation-snapshot", () => {
     expect(typeof result.bottomLine).toBe("string");
     expect(result.metrics).toBeDefined();
     expect(result.generatedAt).toBeDefined();
-  }, 30_000);
+  }, llmTimeout(30_000));
 });
 
 // ============================================
@@ -183,7 +184,7 @@ describe("bear-vs-bull", () => {
     expect(typeof result.verdictRationale).toBe("string");
     expect(typeof result.keyDebate).toBe("string");
     expect(result.generatedAt).toBeDefined();
-  }, 45_000);
+  }, llmTimeout(45_000));
 });
 
 // ============================================
@@ -229,7 +230,7 @@ describe("compare-stocks", () => {
     expect(result.metrics).toBeDefined();
     expect(result.metrics.NVDA).toBeDefined();
     expect(result.generatedAt).toBeDefined();
-  }, 60_000);
+  }, llmTimeout(60_000));
 });
 
 // ============================================
@@ -269,7 +270,7 @@ describe("moat-analysis", () => {
     expect(Array.isArray(result.threats)).toBe(true);
     expect(result.metrics).toBeDefined();
     expect(result.generatedAt).toBeDefined();
-  }, 45_000);
+  }, llmTimeout(45_000));
 });
 
 // ============================================

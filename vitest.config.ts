@@ -6,6 +6,8 @@ export default defineConfig({
     environment: "node",
     include: ["src/__tests__/**/*.test.ts"],
     testTimeout: 10000,
+    // Routes the LLM tool tests to local Ollama when OLLAMA_URL is set.
+    setupFiles: ["src/__tests__/setup/llm-backend.ts"],
     // Each worker thread gets its own in-memory SQLite DB — avoids SQLITE_BUSY
     // lock contention when multiple workers hit db.pragma() simultaneously.
     env: {

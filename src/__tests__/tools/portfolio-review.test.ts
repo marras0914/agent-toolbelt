@@ -6,6 +6,7 @@ import tool, {
   Position,
 } from "../../tools/portfolio-review";
 import { mapWithConcurrency } from "../../tools/_stock-helpers";
+import { llmTimeout } from "../setup/llm-timeout";
 
 const parse = (input: unknown) => tool.inputSchema.safeParse(input);
 
@@ -212,7 +213,7 @@ describe("portfolio-review handler (live)", () => {
     expect(Array.isArray(result.gaps)).toBe(true);
     expect(result.weakestLink?.ticker).toBeDefined();
     expect(result.generatedAt).toBeDefined();
-  }, 60_000);
+  }, llmTimeout(60_000));
 
   it.skipIf(!hasStockKeys)("throws UnsupportedTicker when nothing resolves", async () => {
     const parsed = parse({ holdings: [{ ticker: "ZZZZZZ", weight: 50 }, { ticker: "QQQQQQ", weight: 50 }] });

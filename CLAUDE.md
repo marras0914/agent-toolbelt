@@ -48,6 +48,8 @@ npm run test         # Run tests (vitest)
 npm run test:ci      # Run tests once (no watch)
 ```
 
+LLM tool tests call the real Anthropic API by default (costs credits; fails when the balance is empty). Set `OLLAMA_URL=http://192.168.50.8:11434` (donnie; in `.env` or the shell) to route them to local Ollama instead — `OLLAMA_MODEL` defaults to `qwen3.8:27b`. Test-only, via `src/__tests__/setup/llm-backend.ts`; production code is untouched. Full suite takes ~2 min on donnie vs ~10s on Haiku. Wrap any new per-test timeout on an LLM test in `llmTimeout(ms)` from `src/__tests__/setup/llm-timeout.ts`.
+
 `.claude/hooks/git-freshness.sh` runs on session start (wired in `.claude/settings.local.json`): it fetches and reports if the branch is behind its upstream, has unpushed commits, or `origin/master` has moved ahead of it. Read-only — it never pulls, merges, or checks anything out, so it is safe with uncommitted changes and on stacked branches. Silent when current, and silent when offline.
 
 ## Adding a new tool
